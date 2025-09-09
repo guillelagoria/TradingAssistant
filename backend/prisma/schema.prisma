@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TradeDirection {
+  LONG
+  SHORT
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+  STOP
+}
+
+enum TradeResult {
+  WIN
+  LOSS
+  BREAKEVEN
+}
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  password        String
+  name            String?
+  commission      Float      @default(0)
+  timezone        String     @default("UTC")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  trades          Trade[]
+  strategies      Strategy[]
+  
+  @@map("users")
+}
+
+model Strategy {
+  id              String     @id @default(cuid())
+  name            String
+  description     String?
+  userId          String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades          Trade[]
+  
+  @@unique([name, userId])
+  @@map("strategies")
+}
+
+model Trade {
+  id                  String          @id @default(cuid())
+  userId              String
+  strategyId          String?
+  
+  // Basic trade information
+  symbol              String
+  direction           TradeDirection
+  orderType           OrderType
+  
+  // Entry information
+  entryDate           DateTime
+  entryPrice          Float
+  quantity            Float
+  
+  // Exit information
+  exitDate            DateTime?
+  exitPrice           Float?
+  
+  // Risk management
+  stopLoss            Float?
+  takeProfit          Float?
+  
+  // Maximum movement tracking
+  maxFavorablePrice   Float?
+  maxAdversePrice     Float?
+  
+  // Trade metadata
+  timeframe           String?
+  result              TradeResult?
+  notes               String?
+  imageUrl            String?
+  
+  // Calculated fields (stored for performance)
+  pnl                 Float?
+  pnlPercentage       Float?
+  commission          Float           @default(0)
+  netPnl              Float?
+  efficiency          Float?
+  rMultiple           Float?
+  
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy            Strategy?       @relation(fields: [strategyId], references: [id], onDelete: SetNull)
+  
+  @@index([userId, entryDate])
+  @@index([userId, symbol])
+  @@index([userId, strategyId])
+  @@map("trades")
+}
