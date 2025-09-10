@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   DollarSign, 
   Target, 
@@ -19,8 +20,13 @@ import {
   X,
   TrendingUp,
   TrendingDown,
-  AlertCircle
+  AlertCircle,
+  Settings2
 } from 'lucide-react';
+
+import { StrategyManager } from './StrategyManager';
+import { FavoriteSymbols } from './FavoriteSymbols';
+import { CommissionSettings } from './CommissionSettings';
 
 import type { TradingPreferences as TradingPrefs } from '@/types/user';
 import { cn } from '@/lib/utils';
@@ -36,6 +42,7 @@ export function TradingPreferences({
   onUpdate, 
   validationErrors = {} 
 }: TradingPreferencesProps) {
+  const [activeTab, setActiveTab] = useState('basic');
   
   const handleInputChange = (field: keyof TradingPrefs, value: any) => {
     onUpdate({ [field]: value });
@@ -102,7 +109,27 @@ export function TradingPreferences({
   ];
 
   return (
-    <div className="space-y-6">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="basic" className="flex items-center gap-2">
+          <Target className="h-4 w-4" />
+          Basic Settings
+        </TabsTrigger>
+        <TabsTrigger value="strategies" className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4" />
+          Strategies
+        </TabsTrigger>
+        <TabsTrigger value="symbols" className="flex items-center gap-2">
+          <Star className="h-4 w-4" />
+          Symbols
+        </TabsTrigger>
+        <TabsTrigger value="commissions" className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4" />
+          Commissions
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="basic" className="space-y-6">
       {/* Default Trading Parameters */}
       <Card>
         <CardHeader>
@@ -567,6 +594,49 @@ export function TradingPreferences({
           </div>
         </CardContent>
       </Card>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="strategies">
+        <StrategyManager />
+      </TabsContent>
+
+      <TabsContent value="symbols">
+        <FavoriteSymbols />
+      </TabsContent>
+
+      <TabsContent value="commissions">
+        <CommissionSettings />
+      </TabsContent>
+
+      {/* Settings Summary */}
+      <Card className="bg-muted/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Settings2 className="h-4 w-4" />
+            Current Settings Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <div className="font-medium">Commission</div>
+              <div className="text-muted-foreground">${preferences.defaultCommission}</div>
+            </div>
+            <div>
+              <div className="font-medium">Position Size</div>
+              <div className="text-muted-foreground">{preferences.defaultPositionSizePercent}%</div>
+            </div>
+            <div>
+              <div className="font-medium">Risk Tolerance</div>
+              <div className="text-muted-foreground">{preferences.riskTolerancePercent}%</div>
+            </div>
+            <div>
+              <div className="font-medium">Favorite Symbols</div>
+              <div className="text-muted-foreground">{preferences.favoriteSymbols.length} symbols</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Tabs>
   );
 }
