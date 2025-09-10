@@ -1,4 +1,4 @@
-import { TradeDirection, TradeFormData, TradeCalculationResult, PositionSizeCalculation, Trade } from '../types/trade';
+import { TradeDirection, TradeFormData, TradeCalculationResult, PositionSizeCalculation, Trade } from '@/types';
 
 // Default commission settings - can be made configurable later
 const DEFAULT_COMMISSION_RATE = 0.001; // 0.1%

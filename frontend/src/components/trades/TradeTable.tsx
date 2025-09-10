@@ -30,8 +30,10 @@ import {
   Eye,
   Trash2,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Download
 } from 'lucide-react';
+import { ExportDialog } from '../export';
 
 interface TradeTableProps {
   trades?: Trade[];
@@ -39,6 +41,8 @@ interface TradeTableProps {
   onEdit?: (trade: Trade) => void;
   onDelete?: (trade: Trade) => void;
   loading?: boolean;
+  showExport?: boolean;
+  exportTitle?: string;
 }
 
 function TradeTable({ 
@@ -46,7 +50,9 @@ function TradeTable({
   onView, 
   onEdit, 
   onDelete,
-  loading = false 
+  loading = false,
+  showExport = true,
+  exportTitle = "Export Trades"
 }: TradeTableProps) {
   const { 
     trades: storeTrades, 
@@ -143,10 +149,33 @@ function TradeTable({
     );
   }
 
+  // Export functionality
+  const renderExportButton = () => {
+    if (!showExport) return null;
+    
+    return (
+      <ExportDialog 
+        trades={trades}
+        trigger={
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        }
+      />
+    );
+  };
+
   // Mobile Card View
   if (isMobile) {
     return (
       <div className="space-y-4">
+        {/* Export button for mobile */}
+        {showExport && (
+          <div className="flex justify-end">
+            {renderExportButton()}
+          </div>
+        )}
         {trades.map((trade) => (
           <Card key={trade.id} className="p-4">
             <div className="flex items-start justify-between mb-3">
@@ -217,6 +246,13 @@ function TradeTable({
   // Desktop Table View
   return (
     <Card>
+      {/* Table header with export button */}
+      {showExport && (
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="text-lg font-semibold">{exportTitle}</h3>
+          {renderExportButton()}
+        </div>
+      )}
       <CardContent className="p-0">
         <Table>
           <TableHeader>

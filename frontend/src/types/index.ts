@@ -10,7 +10,8 @@ export type {
   TradeFormErrors,
   TradeDraft,
   ApiResponse,
-  PaginatedResponse
+  PaginatedResponse,
+  FilterPreset
 } from './trade';
 
 export { 
@@ -19,7 +20,39 @@ export {
   TradeResult,
   Strategy,
   OrderType,
-  Timeframe
+  Timeframe,
+  DatePreset,
+  SearchField,
+  QuickFilterType
 } from './trade';
 
-export type { User, UserPreferences } from './user';
+export type { 
+  User, 
+  UserPreferences, 
+  TradingPreferences,
+  DisplayPreferences,
+  AccountPreferences,
+  NotificationPreferences,
+  SettingsCategoryId
+} from './user';
+export { 
+  DEFAULT_PREFERENCES,
+  SETTINGS_CATEGORIES
+} from './user';
+
+// Filter types are now exported above from './trade'
+
+// Export types
+export type {
+  ExportOptions,
+  ExportProgress
+} from '../utils/exportHelpers';
+
+export type {
+  CsvExportResult
+} from '../utils/csvExport';
+
+export type {
+  PdfExportResult,
+  PdfExportOptions
+} from '../utils/pdfExport';

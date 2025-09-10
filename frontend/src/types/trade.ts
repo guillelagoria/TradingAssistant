@@ -103,15 +103,87 @@ export interface TradeCalculationResult {
 }
 
 export interface TradeFilters {
+  // Basic filters
   symbol?: string;
   direction?: TradeDirection;
   result?: TradeResult;
   strategy?: Strategy;
   timeframe?: Timeframe;
+  orderType?: OrderType;
+  
+  // Date filters
   dateFrom?: Date;
   dateTo?: Date;
+  datePreset?: DatePreset;
+  
+  // P&L filters
   pnlMin?: number;
   pnlMax?: number;
+  
+  // Advanced range filters
+  rMultipleMin?: number;
+  rMultipleMax?: number;
+  positionSizeMin?: number;
+  positionSizeMax?: number;
+  efficiencyMin?: number;
+  efficiencyMax?: number;
+  holdingPeriodMin?: number; // in minutes
+  holdingPeriodMax?: number; // in minutes
+  
+  // Text search
+  searchTerm?: string;
+  searchFields?: SearchField[];
+  
+  // Multiple selection filters
+  strategies?: Strategy[];
+  symbols?: string[];
+  
+  // Quick filters
+  quickFilter?: QuickFilterType;
+}
+
+export enum DatePreset {
+  TODAY = 'TODAY',
+  YESTERDAY = 'YESTERDAY',
+  THIS_WEEK = 'THIS_WEEK',
+  LAST_WEEK = 'LAST_WEEK',
+  THIS_MONTH = 'THIS_MONTH',
+  LAST_MONTH = 'LAST_MONTH',
+  LAST_30_DAYS = 'LAST_30_DAYS',
+  LAST_90_DAYS = 'LAST_90_DAYS',
+  THIS_YEAR = 'THIS_YEAR',
+  CUSTOM = 'CUSTOM'
+}
+
+export enum SearchField {
+  SYMBOL = 'symbol',
+  NOTES = 'notes',
+  STRATEGY = 'strategy',
+  CUSTOM_STRATEGY = 'customStrategy',
+  ALL = 'all'
+}
+
+export enum QuickFilterType {
+  WINNING_TRADES = 'WINNING_TRADES',
+  LOSING_TRADES = 'LOSING_TRADES',
+  BREAKEVEN_TRADES = 'BREAKEVEN_TRADES',
+  LARGE_POSITIONS = 'LARGE_POSITIONS',
+  SHORT_TERM_TRADES = 'SHORT_TERM_TRADES',
+  LONG_TERM_TRADES = 'LONG_TERM_TRADES',
+  HIGH_R_MULTIPLE = 'HIGH_R_MULTIPLE',
+  LOW_R_MULTIPLE = 'LOW_R_MULTIPLE',
+  HIGH_EFFICIENCY = 'HIGH_EFFICIENCY',
+  OPEN_TRADES = 'OPEN_TRADES',
+  CLOSED_TRADES = 'CLOSED_TRADES'
+}
+
+export interface FilterPreset {
+  id: string;
+  name: string;
+  description: string;
+  filters: TradeFilters;
+  isDefault?: boolean;
+  userId?: string;
 }
 
 export interface TradeSortConfig {

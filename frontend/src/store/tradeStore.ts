@@ -8,10 +8,14 @@ import {
   TradeStats, 
   TradeDraft, 
   TradeStatus,
-  TradeResult
-} from '../types/trade';
-import { calculateTradeMetrics, calculateTradeStats } from '../utils/tradeCalculations';
-import { tradesService } from '../services/tradesService';
+  TradeResult,
+  FilterPreset,
+  SearchField
+} from '@/types';
+import { calculateTradeMetrics, calculateTradeStats } from '@/utils/tradeCalculations';
+import { tradesService } from '@/services/tradesService';
+import { applyFilters } from '@/utils/filterHelpers';
+import { searchTrades, SearchOptions, DEFAULT_SEARCH_OPTIONS } from '@/utils/searchHelpers';
 
 interface TradeState {
   // Trade data
@@ -37,6 +41,12 @@ interface TradeState {
   
   // Statistics
   stats: TradeStats | null;
+  
+  // Filter presets
+  customPresets: FilterPreset[];
+  
+  // Search options
+  searchOptions: SearchOptions;
   
   // Actions
   setLoading: (loading: boolean) => void;
@@ -65,9 +75,18 @@ interface TradeState {
   // Statistics
   refreshStats: () => void;
   
+  // Filter presets
+  savePreset: (preset: Omit<FilterPreset, 'id'>) => void;
+  deletePreset: (presetId: string) => void;
+  loadCustomPresets: () => void;
+  
+  // Search options
+  setSearchOptions: (options: Partial<SearchOptions>) => void;
+  
   // Utility functions
   getFilteredTrades: () => Trade[];
   getSortedTrades: (trades: Trade[]) => Trade[];
+  getSearchResults: () => any[];
 }
 
 const defaultFilters: TradeFilters = {};
@@ -86,17 +105,31 @@ const defaultPagination = {
 
 export const useTradeStore = create<TradeState>()(
   devtools(
-    (set, get) => ({
-      // Initial state
-      trades: [],
-      currentTrade: null,
-      tradeDraft: null,
-      loading: false,
-      error: null,
-      filters: defaultFilters,
-      sortConfig: defaultSortConfig,
-      pagination: defaultPagination,
-      stats: null,
+    (set, get) => {
+      // Load custom presets on initialization
+      const loadInitialPresets = () => {
+        try {
+          const saved = localStorage.getItem('tradeFilterPresets');
+          return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+          console.error('Failed to load initial presets:', error);
+          return [];
+        }
+      };
+
+      return {
+        // Initial state
+        trades: [],
+        currentTrade: null,
+        tradeDraft: null,
+        loading: false,
+        error: null,
+        filters: defaultFilters,
+        sortConfig: defaultSortConfig,
+        pagination: defaultPagination,
+        stats: null,
+        customPresets: loadInitialPresets(),
+        searchOptions: DEFAULT_SEARCH_OPTIONS,
       
       // Basic state setters
       setLoading: (loading) => set({ loading }),
@@ -351,53 +384,7 @@ export const useTradeStore = create<TradeState>()(
       // Utility functions
       getFilteredTrades: () => {
         const { trades, filters } = get();
-        
-        return trades.filter(trade => {
-          // Symbol filter
-          if (filters.symbol && !trade.symbol.toLowerCase().includes(filters.symbol.toLowerCase())) {
-            return false;
-          }
-          
-          // Direction filter
-          if (filters.direction && trade.direction !== filters.direction) {
-            return false;
-          }
-          
-          // Result filter
-          if (filters.result && trade.result !== filters.result) {
-            return false;
-          }
-          
-          // Strategy filter
-          if (filters.strategy && trade.strategy !== filters.strategy) {
-            return false;
-          }
-          
-          // Timeframe filter
-          if (filters.timeframe && trade.timeframe !== filters.timeframe) {
-            return false;
-          }
-          
-          // Date range filter
-          if (filters.dateFrom && trade.entryDate < filters.dateFrom) {
-            return false;
-          }
-          
-          if (filters.dateTo && trade.entryDate > filters.dateTo) {
-            return false;
-          }
-          
-          // PnL range filter
-          if (filters.pnlMin !== undefined && trade.pnl < filters.pnlMin) {
-            return false;
-          }
-          
-          if (filters.pnlMax !== undefined && trade.pnl > filters.pnlMax) {
-            return false;
-          }
-          
-          return true;
-        });
+        return trades.filter(trade => applyFilters(trade, filters));
       },
       
       getSortedTrades: (trades) => {
@@ -415,14 +402,81 @@ export const useTradeStore = create<TradeState>()(
             return aVal > bVal ? -1 : 1;
           }
         });
+      },
+      
+      // Search functionality
+      getSearchResults: () => {
+        const { trades, filters, searchOptions } = get();
+        
+        // If no search term, return empty array
+        if (!filters.searchTerm?.trim()) {
+          return [];
+        }
+        
+        // Get search options based on current filters
+        const options = {
+          ...searchOptions,
+          fields: filters.searchFields || [SearchField.ALL]
+        };
+        
+        return searchTrades(trades, filters.searchTerm, options);
+      },
+      
+      // Filter presets management
+      savePreset: (preset) => {
+        const newPreset: FilterPreset = {
+          ...preset,
+          id: `custom-${Date.now()}`,
+          userId: 'current-user' // This would come from auth context in real app
+        };
+        
+        set(state => ({
+          customPresets: [...state.customPresets, newPreset]
+        }));
+        
+        // Save to localStorage for persistence
+        const presets = get().customPresets;
+        localStorage.setItem('tradeFilterPresets', JSON.stringify(presets));
+      },
+      
+      deletePreset: (presetId) => {
+        set(state => ({
+          customPresets: state.customPresets.filter(p => p.id !== presetId)
+        }));
+        
+        // Update localStorage
+        const presets = get().customPresets;
+        localStorage.setItem('tradeFilterPresets', JSON.stringify(presets));
+      },
+      
+      loadCustomPresets: () => {
+        try {
+          const saved = localStorage.getItem('tradeFilterPresets');
+          if (saved) {
+            const presets = JSON.parse(saved);
+            set({ customPresets: presets });
+          }
+        } catch (error) {
+          console.error('Failed to load custom presets:', error);
+        }
+      },
+      
+      // Search options
+      setSearchOptions: (options) => {
+        set(state => ({
+          searchOptions: { ...state.searchOptions, ...options }
+        }));
       }
-    }),
+      };
+    },
     {
       name: 'trade-store',
       partialize: (state) => ({
         filters: state.filters,
         sortConfig: state.sortConfig,
-        pagination: state.pagination
+        pagination: state.pagination,
+        customPresets: state.customPresets,
+        searchOptions: state.searchOptions
       })
     }
   )

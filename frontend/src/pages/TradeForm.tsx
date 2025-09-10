@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import TradeFormComponent from '../components/trades/TradeForm';
+import TradeFormComponent from '@/components/trades/TradeForm';
 
 export function TradeFormPage() {
   const navigate = useNavigate();

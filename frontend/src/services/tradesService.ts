@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Trade, TradeFormData, TradeFilters, ApiResponse, PaginatedResponse } from '../types/trade';
+import { Trade, TradeFormData, TradeFilters, ApiResponse, PaginatedResponse } from '@/types';
 
 // API base URL - can be configured via environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';

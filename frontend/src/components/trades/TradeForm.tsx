@@ -44,8 +44,8 @@ import {
   Timeframe,
   TradeFormData,
   TradeResult
-} from '../../types/trade';
-import { useTradeStore } from '../../store/tradeStore';
+} from '@/types';
+import { useTradeStore } from '@/store/tradeStore';
 import {
   calculateTradeMetrics,
   calculatePositionSize,
@@ -53,7 +53,7 @@ import {
   formatPercentage,
   formatRMultiple,
   validateTradeData
-} from '../../utils/tradeCalculations';
+} from '@/utils/tradeCalculations';
 import { AlertCircle, Calculator, Save, TrendingUp, TrendingDown } from 'lucide-react';
 
 // Form validation schema
