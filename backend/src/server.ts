@@ -16,6 +16,7 @@ import tradeRoutes from './routes/trade.routes';
 import strategyRoutes from './routes/strategy.routes';
 import userRoutes from './routes/user.routes';
 import statsRoutes from './routes/stats.routes';
+import analysisRoutes from './routes/analysis.routes';
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient();
@@ -47,6 +48,7 @@ app.use('/api/trades', tradeRoutes);
 app.use('/api/strategies', strategyRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/analysis', analysisRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

@@ -78,6 +78,48 @@ export const WHAT_IF_SCENARIOS: WhatIfScenario[] = [
     description: 'What if you scaled out 50% at first target?',
     category: 'management',
     color: '#06B6D4' // cyan
+  },
+  {
+    id: 'optimal_stop_loss',
+    name: 'Optimal Stop Loss',
+    description: 'What if you used data-driven optimal stop loss levels?',
+    category: 'risk',
+    color: '#DC2626' // red-600
+  },
+  {
+    id: 'remove_worst_trades',
+    name: 'Remove Worst 10%',
+    description: 'What if you avoided your worst 10% of trades?',
+    category: 'selection',
+    color: '#EA580C' // orange-600
+  },
+  {
+    id: 'best_day_only',
+    name: 'Best Trading Days',
+    description: 'What if you only traded on your most profitable days?',
+    category: 'selection',
+    color: '#CA8A04' // yellow-600
+  },
+  {
+    id: 'trailing_stops',
+    name: 'Trailing Stop Loss',
+    description: 'What if you used trailing stops to maximize profits?',
+    category: 'management',
+    color: '#0891B2' // cyan-600
+  },
+  {
+    id: 'risk_reward_filter',
+    name: '1:2 Risk-Reward Filter',
+    description: 'What if you only took trades with 1:2+ risk-reward?',
+    category: 'selection',
+    color: '#7C2D12' // amber-800
+  },
+  {
+    id: 'market_condition_filter',
+    name: 'Market Condition Filter',
+    description: 'What if you avoided trading in unfavorable conditions?',
+    category: 'selection',
+    color: '#4338CA' // indigo-700
   }
 ];
 
@@ -351,6 +393,37 @@ function generateInsights(
       insights.push('Scaling out of positions can help lock in profits while maintaining upside potential.');
       insights.push('Consider partial profit-taking strategies for larger position sizes.');
       break;
+      
+    case 'optimal_stop_loss':
+      insights.push('Data-driven stop loss levels can improve your risk-reward balance.');
+      insights.push('Consider market volatility when setting stop loss levels.');
+      break;
+      
+    case 'remove_worst_trades':
+      const worstPercent = (tradesAffected / totalTrades) * 100;
+      insights.push(`${worstPercent.toFixed(1)}% of your trades were significant losers that could be avoided.`);
+      insights.push('Look for patterns in your worst trades to improve trade selection.');
+      break;
+      
+    case 'best_day_only':
+      insights.push('Consider market conditions and your psychological state when trading.');
+      insights.push('Identify what makes your best trading days successful.');
+      break;
+      
+    case 'trailing_stops':
+      insights.push('Trailing stops can help capture more profit from strong trending moves.');
+      insights.push('Balance trail distance with market noise to avoid premature exits.');
+      break;
+      
+    case 'risk_reward_filter':
+      insights.push('Higher risk-reward ratios can improve profitability even with lower win rates.');
+      insights.push('Be patient and wait for setups with favorable risk-reward profiles.');
+      break;
+      
+    case 'market_condition_filter':
+      insights.push('Avoid trading during extremely volatile or uncertain market conditions.');
+      insights.push('Develop criteria to identify favorable market environments for your strategy.');
+      break;
   }
   
   return insights;
@@ -429,6 +502,36 @@ export function runWhatIfAnalysis(trades: Trade[]): WhatIfAnalysisResult {
         tradesAffected = trades.filter(t => t.pnl > 0).length;
         break;
         
+      case 'optimal_stop_loss':
+        modifiedTrades = calculateOptimalStopLoss(trades);
+        tradesAffected = trades.filter(t => t.stopLoss && t.exitPrice).length;
+        break;
+        
+      case 'remove_worst_trades':
+        modifiedTrades = calculateRemoveWorstTrades(trades, 0.1);
+        tradesAffected = trades.length - modifiedTrades.length;
+        break;
+        
+      case 'best_day_only':
+        modifiedTrades = calculateBestDayOnly(trades);
+        tradesAffected = trades.length - modifiedTrades.length;
+        break;
+        
+      case 'trailing_stops':
+        modifiedTrades = calculateTrailingStops(trades);
+        tradesAffected = trades.filter(t => t.exitPrice && t.maxFavorablePrice).length;
+        break;
+        
+      case 'risk_reward_filter':
+        modifiedTrades = calculateRiskRewardFilter(trades, 2);
+        tradesAffected = trades.length - modifiedTrades.length;
+        break;
+        
+      case 'market_condition_filter':
+        modifiedTrades = calculateMarketConditionFilter(trades);
+        tradesAffected = trades.length - modifiedTrades.length;
+        break;
+        
       default:
         modifiedTrades = trades;
         break;
@@ -505,4 +608,195 @@ export function getComparisonChartData(analysisResult: WhatIfAnalysisResult): Co
     improvement: result.improvement.totalPnlImprovement,
     color: result.scenario.color
   }));
+}
+
+/**
+ * Calculate optimal stop loss scenario based on historical data
+ * Uses statistical analysis to find optimal stop loss levels
+ */
+function calculateOptimalStopLoss(trades: Trade[]): Trade[] {
+  const completedTrades = trades.filter(t => t.exitPrice && t.stopLoss);
+  if (completedTrades.length < 5) return trades; // Need minimum data
+  
+  // Calculate average volatility as percentage of entry price
+  const avgVolatility = completedTrades.reduce((sum, trade) => {
+    const volatility = trade.maxAdversePrice 
+      ? Math.abs(trade.maxAdversePrice - trade.entryPrice) / trade.entryPrice
+      : Math.abs(trade.stopLoss! - trade.entryPrice) / trade.entryPrice;
+    return sum + volatility;
+  }, 0) / completedTrades.length;
+  
+  // Optimal stop should be slightly wider than average volatility
+  const optimalStopPercent = avgVolatility * 1.2;
+  
+  return trades.map(trade => {
+    if (!trade.stopLoss || !trade.exitPrice) return trade;
+    
+    let optimalStopLoss: number;
+    if (trade.direction === TradeDirection.LONG) {
+      optimalStopLoss = trade.entryPrice * (1 - optimalStopPercent);
+    } else {
+      optimalStopLoss = trade.entryPrice * (1 + optimalStopPercent);
+    }
+    
+    // Check if trade would have been stopped out
+    const wouldHitStop = trade.maxAdversePrice ?
+      (trade.direction === TradeDirection.LONG ?
+        trade.maxAdversePrice <= optimalStopLoss :
+        trade.maxAdversePrice >= optimalStopLoss) : false;
+    
+    if (wouldHitStop) {
+      const priceChange = optimalStopLoss - trade.entryPrice;
+      const pnl = trade.direction === TradeDirection.LONG 
+        ? priceChange * trade.quantity
+        : -priceChange * trade.quantity;
+      
+      const pnlPercentage = (pnl / (trade.entryPrice * trade.quantity)) * 100;
+      
+      return {
+        ...trade,
+        stopLoss: optimalStopLoss,
+        exitPrice: optimalStopLoss,
+        pnl,
+        pnlPercentage,
+        netPnl: pnl - trade.commission
+      };
+    }
+    
+    return {
+      ...trade,
+      stopLoss: optimalStopLoss
+    };
+  });
+}
+
+/**
+ * Remove worst performing trades by percentage
+ */
+function calculateRemoveWorstTrades(trades: Trade[], percentage: number): Trade[] {
+  const completedTrades = trades.filter(t => t.exitPrice);
+  const sortedTrades = [...completedTrades].sort((a, b) => a.netPnl - b.netPnl);
+  const worstCount = Math.floor(sortedTrades.length * percentage);
+  const worstTrades = new Set(sortedTrades.slice(0, worstCount).map(t => t.id));
+  
+  return trades.filter(t => !worstTrades.has(t.id));
+}
+
+/**
+ * Keep only trades from best performing days
+ */
+function calculateBestDayOnly(trades: Trade[]): Trade[] {
+  const completedTrades = trades.filter(t => t.exitPrice);
+  
+  // Group trades by day
+  const tradesByDay = completedTrades.reduce((acc, trade) => {
+    const day = new Date(trade.entryDate).toDateString();
+    if (!acc[day]) acc[day] = [];
+    acc[day].push(trade);
+    return acc;
+  }, {} as Record<string, Trade[]>);
+  
+  // Calculate daily P&L
+  const dailyPnL = Object.entries(tradesByDay).map(([day, dayTrades]) => ({
+    day,
+    pnl: dayTrades.reduce((sum, t) => sum + t.netPnl, 0),
+    trades: dayTrades
+  }));
+  
+  // Keep only profitable days
+  const profitableDays = dailyPnL
+    .filter(d => d.pnl > 0)
+    .sort((a, b) => b.pnl - a.pnl)
+    .slice(0, Math.ceil(dailyPnL.length * 0.6)); // Keep top 60% of days
+  
+  const goodDayTrades = new Set(
+    profitableDays.flatMap(d => d.trades.map(t => t.id))
+  );
+  
+  return trades.filter(t => goodDayTrades.has(t.id));
+}
+
+/**
+ * Implement trailing stop losses to capture more upside
+ */
+function calculateTrailingStops(trades: Trade[]): Trade[] {
+  const trailingPercent = 0.03; // 3% trailing stop
+  
+  return trades.map(trade => {
+    if (!trade.exitPrice || !trade.maxFavorablePrice || trade.pnl <= 0) return trade;
+    
+    // Calculate trailing stop from maximum favorable price
+    let trailingStop: number;
+    if (trade.direction === TradeDirection.LONG) {
+      trailingStop = trade.maxFavorablePrice * (1 - trailingPercent);
+    } else {
+      trailingStop = trade.maxFavorablePrice * (1 + trailingPercent);
+    }
+    
+    // Use trailing stop as exit if it's better than actual exit
+    const shouldUseTrailing = trade.direction === TradeDirection.LONG ?
+      trailingStop > trade.exitPrice :
+      trailingStop < trade.exitPrice;
+    
+    if (shouldUseTrailing) {
+      const priceChange = trailingStop - trade.entryPrice;
+      const pnl = trade.direction === TradeDirection.LONG 
+        ? priceChange * trade.quantity
+        : -priceChange * trade.quantity;
+      
+      const pnlPercentage = (pnl / (trade.entryPrice * trade.quantity)) * 100;
+      
+      return {
+        ...trade,
+        exitPrice: trailingStop,
+        pnl,
+        pnlPercentage,
+        netPnl: pnl - trade.commission
+      };
+    }
+    
+    return trade;
+  });
+}
+
+/**
+ * Filter trades by minimum risk-reward ratio
+ */
+function calculateRiskRewardFilter(trades: Trade[], minRiskReward: number): Trade[] {
+  return trades.filter(trade => {
+    if (!trade.stopLoss || !trade.takeProfit) return true; // Keep if no R:R data
+    
+    const risk = Math.abs(trade.entryPrice - trade.stopLoss);
+    const reward = Math.abs(trade.takeProfit - trade.entryPrice);
+    const riskRewardRatio = reward / risk;
+    
+    return riskRewardRatio >= minRiskReward;
+  });
+}
+
+/**
+ * Filter trades based on market conditions (simplified)
+ * Removes trades during high volatility periods
+ */
+function calculateMarketConditionFilter(trades: Trade[]): Trade[] {
+  if (trades.length < 10) return trades;
+  
+  // Calculate average daily price movement as proxy for market condition
+  const movements = trades
+    .filter(t => t.exitPrice)
+    .map(t => Math.abs(t.exitPrice! - t.entryPrice) / t.entryPrice);
+  
+  const avgMovement = movements.reduce((sum, m) => sum + m, 0) / movements.length;
+  const stdDev = Math.sqrt(
+    movements.reduce((sum, m) => sum + Math.pow(m - avgMovement, 2), 0) / movements.length
+  );
+  
+  // Filter out trades with excessive price movement (high volatility)
+  const maxMovement = avgMovement + (2 * stdDev);
+  
+  return trades.filter(trade => {
+    if (!trade.exitPrice) return true;
+    const movement = Math.abs(trade.exitPrice - trade.entryPrice) / trade.entryPrice;
+    return movement <= maxMovement;
+  });
 }

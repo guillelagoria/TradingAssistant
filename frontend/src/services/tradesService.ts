@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Trade, TradeFormData, TradeFilters, ApiResponse, PaginatedResponse } from '@/types';
 
 // API base URL - can be configured via environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // Create axios instance with default configuration
 const apiClient = axios.create({
@@ -114,7 +114,7 @@ export const tradesService = {
       const response = await apiClient.get<PaginatedResponse<Trade>>(`/trades${queryParams}`);
       
       // Convert date strings back to Date objects
-      const tradesWithDates = response.data.data.map(trade => ({
+      const tradesWithDates = response.data.data.trades.map(trade => ({
         ...trade,
         entryDate: new Date(trade.entryDate),
         exitDate: trade.exitDate ? new Date(trade.exitDate) : undefined,
@@ -123,8 +123,9 @@ export const tradesService = {
       }));
       
       return {
-        ...response.data,
-        data: tradesWithDates
+        data: tradesWithDates,
+        pagination: response.data.data.pagination,
+        success: response.data.success
       };
     } catch (error) {
       console.error('Failed to fetch trades:', error);

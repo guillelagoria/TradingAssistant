@@ -198,63 +198,78 @@ function TradeForm({ tradeId, onSuccess, onCancel }: TradeFormProps) {
     loadTradeData();
   }, [isEditing, editId, getTrade, setCurrentTrade, form, loadDraft]);
 
-  // Watch form values for real-time calculations and draft saving
-  const watchedValues = form.watch();
+  // Watch specific form values instead of the entire form to avoid infinite loops
+  const entryPrice = form.watch('entryPrice');
+  const quantity = form.watch('quantity');
+  const exitPrice = form.watch('exitPrice');
+  const stopLoss = form.watch('stopLoss');
+  const takeProfit = form.watch('takeProfit');
+  const maxFavorablePrice = form.watch('maxFavorablePrice');
+  const maxAdversePrice = form.watch('maxAdversePrice');
+  const riskAmount = form.watch('riskAmount');
+  const entryDate = form.watch('entryDate');
+  const exitDate = form.watch('exitDate');
   
+  // Calculate metrics when relevant values change
   useEffect(() => {
-    // Calculate metrics in real-time
-    if (watchedValues.entryPrice && watchedValues.quantity) {
+    if (entryPrice && quantity) {
       const formData = {
-        ...watchedValues,
-        entryPrice: Number(watchedValues.entryPrice) || 0,
-        quantity: Number(watchedValues.quantity) || 0,
-        exitPrice: watchedValues.exitPrice ? Number(watchedValues.exitPrice) : undefined,
-        stopLoss: watchedValues.stopLoss ? Number(watchedValues.stopLoss) : undefined,
-        takeProfit: watchedValues.takeProfit ? Number(watchedValues.takeProfit) : undefined,
-        maxFavorablePrice: watchedValues.maxFavorablePrice ? Number(watchedValues.maxFavorablePrice) : undefined,
-        maxAdversePrice: watchedValues.maxAdversePrice ? Number(watchedValues.maxAdversePrice) : undefined,
-        riskAmount: watchedValues.riskAmount ? Number(watchedValues.riskAmount) : undefined,
-        entryDate: new Date(watchedValues.entryDate),
-        exitDate: watchedValues.exitDate ? new Date(watchedValues.exitDate) : undefined,
-      } as TradeFormData;
+        entryPrice: Number(entryPrice) || 0,
+        quantity: Number(quantity) || 0,
+        exitPrice: exitPrice ? Number(exitPrice) : undefined,
+        stopLoss: stopLoss ? Number(stopLoss) : undefined,
+        takeProfit: takeProfit ? Number(takeProfit) : undefined,
+        maxFavorablePrice: maxFavorablePrice ? Number(maxFavorablePrice) : undefined,
+        maxAdversePrice: maxAdversePrice ? Number(maxAdversePrice) : undefined,
+        riskAmount: riskAmount ? Number(riskAmount) : undefined,
+        entryDate: new Date(entryDate),
+        exitDate: exitDate ? new Date(exitDate) : undefined,
+      } as Partial<TradeFormData>;
       
       // Validate form data
-      const errors = validateTradeData(formData);
+      const errors = validateTradeData(formData as TradeFormData);
       setValidationErrors(errors);
       
       if (errors.length === 0) {
-        const metrics = calculateTradeMetrics(formData);
+        const metrics = calculateTradeMetrics(formData as TradeFormData);
         setCalculatedMetrics(metrics);
       } else {
         setCalculatedMetrics(null);
       }
+    } else {
+      setCalculatedMetrics(null);
+      setValidationErrors([]);
     }
-    
-    // Auto-save draft (debounced)
+  }, [entryPrice, quantity, exitPrice, stopLoss, takeProfit, maxFavorablePrice, maxAdversePrice, riskAmount, entryDate, exitDate]);
+  
+  // Separate effect for auto-save draft (debounced)
+  useEffect(() => {
     if (!isEditing) {
       const timeoutId = setTimeout(() => {
+        const currentValues = form.getValues();
         const tabIndex = ['entry', 'exit', 'risk', 'analysis'].indexOf(activeTab);
-        saveDraft(watchedValues, tabIndex);
-      }, 1000);
+        saveDraft(currentValues, tabIndex);
+      }, 2000); // Increased debounce time to 2 seconds
       
       return () => clearTimeout(timeoutId);
     }
-  }, [watchedValues, activeTab, saveDraft, isEditing]);
+  }, [activeTab, entryPrice, quantity, exitPrice, stopLoss, takeProfit, maxFavorablePrice, maxAdversePrice, riskAmount, entryDate, exitDate, form, saveDraft, isEditing]);
 
   // Position size calculator
   const calculatePositionSizeHandler = () => {
     const accountBalance = 10000; // This should come from user settings
-    const riskPercentage = Number(watchedValues.riskPercentage);
-    const entryPrice = Number(watchedValues.entryPrice);
-    const stopLoss = Number(watchedValues.stopLoss);
-    const direction = watchedValues.direction;
+    const currentValues = form.getValues();
+    const riskPercentage = Number(currentValues.riskPercentage);
+    const entryPriceValue = Number(currentValues.entryPrice);
+    const stopLossValue = Number(currentValues.stopLoss);
+    const direction = currentValues.direction;
     
-    if (accountBalance && riskPercentage && entryPrice && stopLoss && direction) {
+    if (accountBalance && riskPercentage && entryPriceValue && stopLossValue && direction) {
       const calculation = calculatePositionSize(
         accountBalance,
         riskPercentage,
-        entryPrice,
-        stopLoss,
+        entryPriceValue,
+        stopLossValue,
         direction
       );
       
@@ -313,13 +328,13 @@ function TradeForm({ tradeId, onSuccess, onCancel }: TradeFormProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {watchedValues.direction === TradeDirection.LONG ? (
+            {form.watch('direction') === TradeDirection.LONG ? (
               <TrendingUp className="h-5 w-5 text-green-600" />
             ) : (
               <TrendingDown className="h-5 w-5 text-red-600" />
             )}
             {isEditing ? 'Edit Trade' : 'New Trade'}
-            {watchedValues.symbol && ` - ${watchedValues.symbol}`}
+            {form.watch('symbol') && ` - ${form.watch('symbol')}`}
           </CardTitle>
           <CardDescription>
             {isEditing 
@@ -840,7 +855,7 @@ function TradeForm({ tradeId, onSuccess, onCancel }: TradeFormProps) {
                       )}
                     />
 
-                    {watchedValues.strategy === Strategy.CUSTOM && (
+                    {form.watch('strategy') === Strategy.CUSTOM && (
                       <FormField
                         control={form.control}
                         name="customStrategy"
@@ -917,8 +932,9 @@ function TradeForm({ tradeId, onSuccess, onCancel }: TradeFormProps) {
                       type="button" 
                       variant="outline" 
                       onClick={() => {
+                        const currentValues = form.getValues();
                         const tabIndex = ['entry', 'exit', 'risk', 'analysis'].indexOf(activeTab);
-                        saveDraft(watchedValues, tabIndex);
+                        saveDraft(currentValues, tabIndex);
                       }}
                       disabled={loading}
                     >

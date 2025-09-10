@@ -19,6 +19,7 @@ import { runWhatIfAnalysis, WhatIfAnalysisResult } from '@/utils/whatIfCalculati
 import { WhatIfScenarios } from './WhatIfScenarios';
 import { WhatIfResults } from './WhatIfResults';
 import { WhatIfChart } from './WhatIfChart';
+import { ImprovementSuggestions } from './ImprovementSuggestions';
 
 interface WhatIfAnalysisProps {
   className?: string;
@@ -117,7 +118,7 @@ export function WhatIfAnalysis({ className }: WhatIfAnalysisProps) {
       
       <CardContent className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Overview
@@ -130,8 +131,12 @@ export function WhatIfAnalysis({ className }: WhatIfAnalysisProps) {
               <BarChart3 className="h-4 w-4" />
               Results
             </TabsTrigger>
-            <TabsTrigger value="insights" className="flex items-center gap-2">
+            <TabsTrigger value="suggestions" className="flex items-center gap-2">
               <Lightbulb className="h-4 w-4" />
+              Suggestions
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
               Insights
             </TabsTrigger>
           </TabsList>
@@ -238,6 +243,10 @@ export function WhatIfAnalysis({ className }: WhatIfAnalysisProps) {
 
           <TabsContent value="results">
             <WhatIfResults analysisResult={analysisResult} />
+          </TabsContent>
+
+          <TabsContent value="suggestions">
+            <ImprovementSuggestions analysisResult={analysisResult} />
           </TabsContent>
 
           <TabsContent value="insights" className="space-y-6">

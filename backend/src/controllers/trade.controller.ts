@@ -13,7 +13,7 @@ export const getTrades = async (
       page = 1,
       limit = 20,
       symbol,
-      strategyId,
+      strategy,
       direction,
       result,
       startDate,
@@ -24,12 +24,16 @@ export const getTrades = async (
 
     const skip = (Number(page) - 1) * Number(limit);
     
+    // Temporarily use a default test user ID for development
+    // TODO: Remove when authentication is properly implemented
+    const userId = req.userId || 'test-user-id';
+    
     const where: any = {
-      userId: req.userId
+      userId
     };
 
     if (symbol) where.symbol = { contains: String(symbol), mode: 'insensitive' };
-    if (strategyId) where.strategyId = String(strategyId);
+    if (strategy) where.strategy = String(strategy);
     if (direction) where.direction = String(direction);
     if (result) where.result = String(result);
     if (startDate || endDate) {
@@ -43,10 +47,7 @@ export const getTrades = async (
         where,
         skip,
         take: Number(limit),
-        orderBy: { [String(sortBy)]: String(sortOrder) },
-        include: {
-          strategy: true
-        }
+        orderBy: { [String(sortBy)]: String(sortOrder) }
       }),
       prisma.trade.count({ where })
     ]);
@@ -74,14 +75,14 @@ export const getTrade = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    // Temporarily use a default test user ID for development
+    const userId = req.userId || 'test-user-id';
+    
     const trade = await prisma.trade.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId
+        userId
       },
-      include: {
-        strategy: true
-      }
     });
 
     if (!trade) {
@@ -110,9 +111,12 @@ export const createTrade = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    // Temporarily use a default test user ID for development
+    const userId = req.userId || 'test-user-id';
+    
     const tradeData = {
       ...req.body,
-      userId: req.userId!,
+      userId,
       entryDate: new Date(req.body.entryDate),
       exitDate: req.body.exitDate ? new Date(req.body.exitDate) : null
     };
@@ -125,9 +129,6 @@ export const createTrade = async (
         ...tradeData,
         ...metrics
       },
-      include: {
-        strategy: true
-      }
     });
 
     res.status(201).json({
@@ -145,11 +146,14 @@ export const updateTrade = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    // Temporarily use a default test user ID for development
+    const userId = req.userId || 'test-user-id';
+    
     // Check if trade exists and belongs to user
     const existingTrade = await prisma.trade.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId
+        userId
       }
     });
 
@@ -179,9 +183,6 @@ export const updateTrade = async (
         ...updateData,
         ...metrics
       },
-      include: {
-        strategy: true
-      }
     });
 
     res.json({
@@ -199,11 +200,14 @@ export const deleteTrade = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    // Temporarily use a default test user ID for development
+    const userId = req.userId || 'test-user-id';
+    
     // Check if trade exists and belongs to user
     const trade = await prisma.trade.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId
+        userId
       }
     });
 
@@ -239,10 +243,13 @@ export const bulkDelete = async (
   try {
     const { ids } = req.body;
 
+    // Temporarily use a default test user ID for development
+    const userId = req.userId || 'test-user-id';
+    
     const result = await prisma.trade.deleteMany({
       where: {
         id: { in: ids },
-        userId: req.userId
+        userId
       }
     });
 

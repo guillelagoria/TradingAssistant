@@ -1,4 +1,7 @@
-import { TradeDirection } from '@prisma/client';
+import { TradeDirection, PrismaClient } from '@prisma/client';
+import { calculateTradeMetrics as calcMetrics } from '../utils/calculations';
+
+const prisma = new PrismaClient();
 
 interface TradeData {
   direction: TradeDirection;
@@ -112,3 +115,64 @@ export const calculateRiskReward = (
 
   return reward / risk;
 };
+
+export class TradeService {
+  /**
+   * Get user trades with optional filtering
+   */
+  static async getUserTrades(
+    userId: string, 
+    options?: {
+      tradeIds?: string[];
+      includeCalculations?: boolean;
+      includeOpen?: boolean;
+    }
+  ) {
+    const where: any = { userId };
+    
+    if (options?.tradeIds && options.tradeIds.length > 0) {
+      where.id = { in: options.tradeIds };
+    }
+    
+    if (!options?.includeOpen) {
+      where.exitPrice = { not: null };
+    }
+
+    const trades = await prisma.trade.findMany({
+      where,
+      orderBy: { entryDate: 'desc' }
+    });
+
+    // Add calculations if requested
+    if (options?.includeCalculations) {
+      return trades.map(trade => {
+        const calculations = calcMetrics(trade);
+        return {
+          ...trade,
+          ...calculations
+        };
+      });
+    }
+
+    return trades;
+  }
+
+  /**
+   * Get a single trade by ID
+   */
+  static async getTrade(tradeId: string, userId: string) {
+    const trade = await prisma.trade.findFirst({
+      where: { id: tradeId, userId }
+    });
+
+    if (!trade) {
+      throw new Error('Trade not found');
+    }
+
+    const calculations = calcMetrics(trade);
+    return {
+      ...trade,
+      ...calculations
+    };
+  }
+}
