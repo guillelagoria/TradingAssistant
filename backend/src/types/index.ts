@@ -161,3 +161,6 @@ export interface UserProfile extends Omit<User, 'password'> {
 
 // Export market types
 export * from './market';
+
+// Re-export key market interfaces for convenience
+export type { MarketInfo, ContractSpecification, MarketDefaultsResponse } from './market';

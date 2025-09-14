@@ -185,3 +185,68 @@ export const validatePriceTicks = (
     return;
   }
 };
+
+/**
+ * Middleware to validate market parameter exists and is active
+ */
+export const validateMarketExists = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const { market } = req.body;
+
+  // If no market specified, default to ES (backward compatibility)
+  const marketSymbol = market || 'ES';
+
+  try {
+    // Check if market exists using the simplified market service
+    if (!marketService.marketExists(marketSymbol)) {
+      const response: ApiResponse = {
+        success: false,
+        error: {
+          message: `Market '${marketSymbol}' not found. Available markets: ${marketService.getQuickMarketList().map(m => m.symbol).join(', ')}`,
+          statusCode: 400
+        }
+      };
+
+      res.status(400).json(response);
+      return;
+    }
+
+    // Get market info and add to request for use in controllers
+    const marketInfo = marketService.getMarketInfo(marketSymbol);
+    if (marketInfo && !marketInfo.isActive) {
+      const response: ApiResponse = {
+        success: false,
+        error: {
+          message: `Market '${marketSymbol}' is not currently active for trading`,
+          statusCode: 400
+        }
+      };
+
+      res.status(400).json(response);
+      return;
+    }
+
+    // Add market info to request
+    (req as any).marketInfo = marketInfo;
+
+    // Ensure market field is set in body for consistency
+    req.body.market = marketSymbol;
+
+    next();
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: {
+        message: 'Market validation failed',
+        statusCode: 500,
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }
+    };
+
+    res.status(500).json(response);
+    return;
+  }
+};

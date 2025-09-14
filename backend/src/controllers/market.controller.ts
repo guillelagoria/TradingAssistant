@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { marketService } from '../services/market.service';
-import { ApiResponse, UpdateMarketPreferencesRequest } from '../types';
+import { ApiResponse, UpdateMarketPreferencesRequest, MarketInfo } from '../types';
+import { getAllMarketsInfo, getMarketInfo } from '../types/market';
 import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
@@ -275,10 +276,10 @@ export const updateUserMarketPreferences = async (req: Request, res: Response): 
         preferredMarkets: updateData.preferredMarkets || ['ES', 'NQ'],
         defaultMarket: updateData.defaultMarket || 'ES',
         quickAccessMarkets: updateData.quickAccessMarkets || ['ES', 'NQ'],
-        marketSettings: updateData.marketSettings || null,
+        marketSettings: updateData.marketSettings || {},
         accountSize: updateData.accountSize || 100000,
         riskPerTrade: updateData.riskPerTrade || 1.0,
-        commissionOverrides: updateData.commissionOverrides || null
+        commissionOverrides: updateData.commissionOverrides || {}
       }
     });
 
@@ -423,6 +424,81 @@ export const calculatePositionSize = async (req: Request, res: Response): Promis
         message: 'Failed to calculate position size',
         statusCode: 500,
         details: error instanceof Error ? error.message : 'Unknown error'
+      }
+    };
+
+    res.status(500).json(response);
+  }
+};
+
+/**
+ * Get all available markets in simplified format
+ * NEW ENDPOINT: Returns MarketInfo[] instead of full ContractSpecification[]
+ */
+export const getMarketsSimplified = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const markets = getAllMarketsInfo();
+
+    const response: ApiResponse<MarketInfo[]> = {
+      success: true,
+      data: markets,
+      message: 'Markets retrieved successfully'
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Error fetching simplified markets:', error);
+
+    const response: ApiResponse = {
+      success: false,
+      error: {
+        message: 'Failed to fetch markets',
+        statusCode: 500
+      }
+    };
+
+    res.status(500).json(response);
+  }
+};
+
+/**
+ * Get specific market details by symbol in simplified format
+ * NEW ENDPOINT: Returns MarketInfo instead of full ContractSpecification
+ */
+export const getMarketBySymbolSimplified = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { symbol } = req.params;
+
+    const market = getMarketInfo(symbol);
+
+    if (!market) {
+      const response: ApiResponse = {
+        success: false,
+        error: {
+          message: `Market not found: ${symbol}`,
+          statusCode: 404
+        }
+      };
+
+      res.status(404).json(response);
+      return;
+    }
+
+    const response: ApiResponse<MarketInfo> = {
+      success: true,
+      data: market,
+      message: 'Market retrieved successfully'
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Error fetching simplified market:', error);
+
+    const response: ApiResponse = {
+      success: false,
+      error: {
+        message: 'Failed to fetch market details',
+        statusCode: 500
       }
     };
 

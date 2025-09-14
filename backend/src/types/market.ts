@@ -396,3 +396,72 @@ export function getMarketById(marketId: string): ContractSpecification | null {
 export function getMarketBySymbol(symbol: string): ContractSpecification | null {
   return AVAILABLE_CONTRACTS.find(contract => contract.symbol === symbol) || null;
 }
+
+// Simplified market info interface for frontend consumption
+export interface MarketInfo {
+  id: string;
+  symbol: string;
+  name: string;
+  category: MarketCategory;
+  exchange: Exchange;
+
+  // Essential contract details
+  tickSize: number;
+  tickValue: number;
+  pointValue: number;
+  currency: string;
+  precision: number;
+
+  // Commission and margins
+  commission: number;
+  initialMargin: number;
+  dayTradingMargin?: number;
+
+  // Risk management defaults
+  defaultStopLossPercent: number;
+  defaultTakeProfitPercent: number;
+  maxPositionSize: number;
+  riskPercentage: number;
+
+  // Trading status
+  isActive: boolean;
+}
+
+// Convert ContractSpecification to simplified MarketInfo
+export function toMarketInfo(contract: ContractSpecification): MarketInfo {
+  return {
+    id: contract.id,
+    symbol: contract.symbol,
+    name: contract.name,
+    category: contract.category,
+    exchange: contract.exchange,
+
+    tickSize: contract.tickSize,
+    tickValue: contract.tickValue,
+    pointValue: contract.pointValue,
+    currency: contract.currency,
+    precision: contract.precision,
+
+    commission: contract.defaultCommission.amount,
+    initialMargin: contract.initialMargin,
+    dayTradingMargin: contract.dayTradingMargin,
+
+    defaultStopLossPercent: contract.riskDefaults.defaultStopLossPercent,
+    defaultTakeProfitPercent: contract.riskDefaults.defaultTakeProfitPercent,
+    maxPositionSize: contract.riskDefaults.maxPositionSize,
+    riskPercentage: contract.riskDefaults.riskPerTradePercent,
+
+    isActive: contract.isActive,
+  };
+}
+
+// Get all markets as simplified MarketInfo array
+export function getAllMarketsInfo(): MarketInfo[] {
+  return AVAILABLE_CONTRACTS.map(toMarketInfo);
+}
+
+// Get market info by identifier
+export function getMarketInfo(identifier: string): MarketInfo | null {
+  const contract = getMarketById(identifier) || getMarketBySymbol(identifier);
+  return contract ? toMarketInfo(contract) : null;
+}

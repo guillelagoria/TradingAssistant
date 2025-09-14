@@ -7,23 +7,48 @@ import {
   getUserMarketPreferences,
   updateUserMarketPreferences,
   validateTradeForMarket,
-  calculatePositionSize
+  calculatePositionSize,
+  getMarketsSimplified,
+  getMarketBySymbolSimplified
 } from '../controllers/market.controller';
 import { validateRequest } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+// NEW SIMPLIFIED ENDPOINTS - Must come before parameterized routes
+/**
+ * @route GET /api/markets/info
+ * @desc Get all available markets in simplified format (MarketInfo[])
+ * @access Public
+ */
+router.get('/info', getMarketsSimplified);
+
+/**
+ * @route GET /api/markets/info/:symbol
+ * @desc Get specific market info in simplified format (MarketInfo)
+ * @access Public
+ */
+router.get(
+  '/info/:symbol',
+  param('symbol')
+    .isString()
+    .isLength({ min: 1, max: 10 })
+    .withMessage('Symbol must be a string between 1-10 characters'),
+  validateRequest,
+  getMarketBySymbolSimplified
+);
+
 /**
  * @route GET /api/markets
- * @desc Get all available markets
+ * @desc Get all available markets (full ContractSpecification[])
  * @access Public
  */
 router.get('/', getMarkets);
 
 /**
  * @route GET /api/markets/:symbol
- * @desc Get specific market details
+ * @desc Get specific market details (full ContractSpecification)
  * @access Public
  */
 router.get(

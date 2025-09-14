@@ -178,19 +178,15 @@ export const useTradeStore = create<TradeState>()(
       // Add new trade
       addTrade: async (tradeData) => {
         set({ loading: true, error: null });
-        
+
         try {
-          // Calculate metrics before sending to API
-          const calculatedMetrics = calculateTradeMetrics(tradeData);
-          
+          // For now, let the backend handle calculations
+          // TODO: Update to use new calculateTradeMetrics signature
+
           const tradeWithMetrics = {
             ...tradeData,
-            ...calculatedMetrics,
             status: tradeData.exitPrice ? TradeStatus.CLOSED : TradeStatus.OPEN,
-            result: tradeData.exitPrice 
-              ? (calculatedMetrics.pnl > 0 ? TradeResult.WIN : 
-                 calculatedMetrics.pnl < 0 ? TradeResult.LOSS : TradeResult.BREAKEVEN)
-              : undefined
+            result: undefined // Let backend calculate this
           };
           
           const newTrade = await tradesService.createTrade(tradeWithMetrics);

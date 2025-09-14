@@ -1,339 +1,326 @@
-import { TradeDirection, TradeFormData, TradeCalculationResult, PositionSizeCalculation, Trade } from '@/types';
-
-// Default commission settings - can be made configurable later
-const DEFAULT_COMMISSION_RATE = 0.001; // 0.1%
-const DEFAULT_MIN_COMMISSION = 1.0;
+import { MarketInfo, Direction, NewTrade, TradeDirection, TradeFormData } from '../types/trade';
 
 /**
- * Calculate PnL for a trade
+ * Simplified trade calculation utilities for the new single-form interface
+ * Adapted from the comprehensive backend calculations but optimized for frontend use
  */
-export function calculatePnL(
-  direction: TradeDirection,
+
+export interface TradeMetrics {
+  pnlPoints: number;
+  pnlUsd: number;
+  pnlPercentage: number;
+  riskPoints: number;
+  rewardPoints: number;
+  riskRewardRatio: number;
+  efficiency: number;
+  commission: number;
+  netPnl: number;
+  rMultiple: number;
+}
+
+/**
+ * Calculate comprehensive trade metrics
+ */
+export function calculateTradeMetrics(
   entryPrice: number,
   exitPrice: number,
-  quantity: number
-): number {
-  if (direction === TradeDirection.LONG) {
-    return (exitPrice - entryPrice) * quantity;
-  } else {
-    return (entryPrice - exitPrice) * quantity;
-  }
-}
-
-/**
- * Calculate PnL percentage
- */
-export function calculatePnLPercentage(
-  direction: TradeDirection,
-  entryPrice: number,
-  exitPrice: number
-): number {
-  if (direction === TradeDirection.LONG) {
-    return ((exitPrice - entryPrice) / entryPrice) * 100;
-  } else {
-    return ((entryPrice - exitPrice) / entryPrice) * 100;
-  }
-}
-
-/**
- * Calculate commission for a trade
- */
-export function calculateCommission(
-  entryPrice: number,
-  exitPrice: number,
-  quantity: number,
-  commissionRate: number = DEFAULT_COMMISSION_RATE,
-  minCommission: number = DEFAULT_MIN_COMMISSION
-): number {
-  const entryValue = entryPrice * quantity;
-  const exitValue = exitPrice * quantity;
-  const totalValue = entryValue + exitValue;
-  
-  const commission = totalValue * commissionRate;
-  return Math.max(commission, minCommission * 2); // 2x because we have entry + exit
-}
-
-/**
- * Calculate R-multiple (Risk/Reward ratio)
- * R-multiple = Actual PnL / Risk Amount
- */
-export function calculateRMultiple(
-  actualPnL: number,
-  riskAmount: number
-): number {
-  if (riskAmount === 0) return 0;
-  return actualPnL / Math.abs(riskAmount);
-}
-
-/**
- * Calculate efficiency (how much of the favorable move was captured)
- */
-export function calculateEfficiency(
-  direction: TradeDirection,
-  entryPrice: number,
-  exitPrice: number,
+  stopLoss: number,
+  takeProfit: number,
+  market: MarketInfo,
   maxFavorablePrice?: number
-): number {
-  if (!maxFavorablePrice) return 0;
-  
-  let actualMove: number;
-  let potentialMove: number;
-  
-  if (direction === TradeDirection.LONG) {
-    actualMove = exitPrice - entryPrice;
-    potentialMove = maxFavorablePrice - entryPrice;
-  } else {
-    actualMove = entryPrice - exitPrice;
-    potentialMove = entryPrice - maxFavorablePrice;
-  }
-  
-  if (potentialMove <= 0) return 0;
-  return Math.max(0, Math.min(100, (actualMove / potentialMove) * 100));
+): TradeMetrics {
+  const direction = determineDirection(entryPrice, exitPrice);
+
+  // P&L calculations
+  const pnlPoints = calculatePnLPoints(entryPrice, exitPrice, direction);
+  const grossPnlUsd = pnlPoints * market.pointValue;
+  const commission = market.commission;
+  const netPnl = grossPnlUsd - commission;
+
+  // P&L percentage calculation
+  const pnlPercentage = entryPrice > 0 ? ((exitPrice - entryPrice) / entryPrice) * 100 * (direction === 'long' ? 1 : -1) : 0;
+
+  // Risk/Reward calculations
+  const riskPoints = calculateRiskPoints(entryPrice, stopLoss, direction);
+  const rewardPoints = calculateRewardPoints(entryPrice, takeProfit, direction);
+  const riskRewardRatio = riskPoints > 0 ? rewardPoints / riskPoints : 0;
+
+  // R-Multiple calculation
+  const rMultiple = riskPoints > 0 ? pnlPoints / riskPoints : 0;
+
+  // Efficiency calculation
+  const efficiency = calculateEfficiency(entryPrice, exitPrice, maxFavorablePrice, direction);
+
+  return {
+    pnlPoints: Number(pnlPoints.toFixed(2)),
+    pnlUsd: Number(grossPnlUsd.toFixed(2)),
+    pnlPercentage: Number(pnlPercentage.toFixed(2)),
+    riskPoints: Number(riskPoints.toFixed(2)),
+    rewardPoints: Number(rewardPoints.toFixed(2)),
+    riskRewardRatio: Number(riskRewardRatio.toFixed(2)),
+    efficiency: Number(efficiency.toFixed(1)),
+    commission: Number(commission.toFixed(2)),
+    netPnl: Number(netPnl.toFixed(2)),
+    rMultiple: Number(rMultiple.toFixed(2)),
+  };
 }
 
 /**
- * Calculate position size based on risk parameters
+ * Determine trade direction based on entry and exit prices
  */
-export function calculatePositionSize(
-  accountBalance: number,
-  riskPercentage: number,
+export function determineDirection(entryPrice: number, exitPrice: number): Direction {
+  return exitPrice > entryPrice ? 'long' : 'short';
+}
+
+/**
+ * Calculate P&L in points
+ */
+export function calculatePnLPoints(
+  entryPrice: number,
+  exitPrice: number,
+  direction: Direction
+): number {
+  if (direction === 'long') {
+    return exitPrice - entryPrice;
+  } else {
+    return entryPrice - exitPrice;
+  }
+}
+
+/**
+ * Calculate risk in points
+ */
+export function calculateRiskPoints(
   entryPrice: number,
   stopLoss: number,
-  direction: TradeDirection
-): PositionSizeCalculation {
-  const riskAmount = (accountBalance * riskPercentage) / 100;
-  
-  let riskPerShare: number;
-  if (direction === TradeDirection.LONG) {
-    riskPerShare = entryPrice - stopLoss;
-  } else {
-    riskPerShare = stopLoss - entryPrice;
-  }
-  
-  if (riskPerShare <= 0) {
-    return {
-      positionSize: 0,
-      riskAmount: 0,
-      sharesOrContracts: 0
-    };
-  }
-  
-  const sharesOrContracts = Math.floor(riskAmount / riskPerShare);
-  const actualPositionSize = sharesOrContracts * entryPrice;
-  const actualRiskAmount = sharesOrContracts * riskPerShare;
-  
-  return {
-    positionSize: actualPositionSize,
-    riskAmount: actualRiskAmount,
-    sharesOrContracts: sharesOrContracts
-  };
-}
-
-/**
- * Calculate holding period in minutes
- */
-export function calculateHoldingPeriod(entryDate: Date, exitDate: Date): number {
-  return Math.floor((exitDate.getTime() - entryDate.getTime()) / (1000 * 60));
-}
-
-/**
- * Calculate maximum drawdown during the trade
- */
-export function calculateMaxDrawdown(
-  direction: TradeDirection,
-  entryPrice: number,
-  maxAdversePrice?: number
+  direction: Direction
 ): number {
-  if (!maxAdversePrice) return 0;
-  
-  if (direction === TradeDirection.LONG) {
-    return Math.max(0, entryPrice - maxAdversePrice);
+  if (direction === 'long') {
+    return entryPrice - stopLoss;
   } else {
-    return Math.max(0, maxAdversePrice - entryPrice);
+    return stopLoss - entryPrice;
   }
 }
 
 /**
- * Calculate maximum gain during the trade
+ * Calculate reward in points
  */
-export function calculateMaxGain(
-  direction: TradeDirection,
+export function calculateRewardPoints(
   entryPrice: number,
-  maxFavorablePrice?: number
+  takeProfit: number,
+  direction: Direction
+): number {
+  if (direction === 'long') {
+    return takeProfit - entryPrice;
+  } else {
+    return entryPrice - takeProfit;
+  }
+}
+
+/**
+ * Calculate risk-reward ratio
+ */
+export function calculateRiskRewardRatio(
+  entryPrice: number,
+  stopLoss: number,
+  takeProfit: number
+): number {
+  const direction = determineDirection(entryPrice, takeProfit);
+  const risk = calculateRiskPoints(entryPrice, stopLoss, direction);
+  const reward = calculateRewardPoints(entryPrice, takeProfit, direction);
+
+  return risk > 0 ? reward / risk : 0;
+}
+
+/**
+ * Calculate trade efficiency based on maximum favorable price
+ */
+export function calculateEfficiency(
+  entryPrice: number,
+  exitPrice: number,
+  maxFavorablePrice: number | undefined,
+  direction: Direction
 ): number {
   if (!maxFavorablePrice) return 0;
-  
-  if (direction === TradeDirection.LONG) {
-    return Math.max(0, maxFavorablePrice - entryPrice);
+
+  let maxMove: number;
+  let actualMove: number;
+
+  if (direction === 'long') {
+    maxMove = maxFavorablePrice - entryPrice;
+    actualMove = exitPrice - entryPrice;
   } else {
-    return Math.max(0, entryPrice - maxFavorablePrice);
+    maxMove = entryPrice - maxFavorablePrice;
+    actualMove = entryPrice - exitPrice;
   }
+
+  if (maxMove <= 0) return 0;
+  return Math.min(100, Math.max(0, (actualMove / maxMove) * 100));
 }
 
 /**
- * Comprehensive trade calculation
+ * Calculate position size based on risk amount and market specifications
  */
-export function calculateTradeMetrics(trade: TradeFormData): TradeCalculationResult {
-  if (!trade.exitPrice || !trade.exitDate) {
-    return {
-      pnl: 0,
-      pnlPercentage: 0,
-      efficiency: 0,
-      rMultiple: 0,
-      commission: 0,
-      netPnl: 0
-    };
-  }
-  
-  const pnl = calculatePnL(
-    trade.direction,
-    trade.entryPrice,
-    trade.exitPrice,
-    trade.quantity
-  );
-  
-  const pnlPercentage = calculatePnLPercentage(
-    trade.direction,
-    trade.entryPrice,
-    trade.exitPrice
-  );
-  
-  const commission = calculateCommission(
-    trade.entryPrice,
-    trade.exitPrice,
-    trade.quantity
-  );
-  
-  const netPnl = pnl - commission;
-  
-  const efficiency = calculateEfficiency(
-    trade.direction,
-    trade.entryPrice,
-    trade.exitPrice,
-    trade.maxFavorablePrice
-  );
-  
-  const riskAmount = trade.riskAmount || 0;
-  const rMultiple = calculateRMultiple(pnl, riskAmount);
-  
-  const holdingPeriod = calculateHoldingPeriod(
-    trade.entryDate,
-    trade.exitDate
-  );
-  
-  const maxDrawdown = calculateMaxDrawdown(
-    trade.direction,
-    trade.entryPrice,
-    trade.maxAdversePrice
-  );
-  
-  const maxGain = calculateMaxGain(
-    trade.direction,
-    trade.entryPrice,
-    trade.maxFavorablePrice
-  );
-  
-  return {
-    pnl,
-    pnlPercentage,
-    efficiency,
-    rMultiple,
-    commission,
-    netPnl,
-    holdingPeriod,
-    maxDrawdown,
-    maxGain
-  };
+export function calculatePositionSize(
+  riskAmountUsd: number,
+  entryPrice: number,
+  stopLoss: number,
+  market: MarketInfo
+): number {
+  const direction = determineDirection(entryPrice, entryPrice > stopLoss ? entryPrice + 1 : entryPrice - 1);
+  const riskPoints = calculateRiskPoints(entryPrice, stopLoss, direction);
+  const riskPerContract = riskPoints * market.pointValue;
+
+  return riskPerContract > 0 ? Math.floor(riskAmountUsd / riskPerContract) : 0;
 }
 
 /**
- * Validate trade data for calculations
+ * Validate trade setup for logical consistency
  */
-export function validateTradeData(trade: Partial<TradeFormData>): string[] {
+export function validateTradeSetup(
+  entryPrice: number,
+  exitPrice: number,
+  stopLoss: number,
+  takeProfit: number,
+  market?: MarketInfo
+): string[] {
   const errors: string[] = [];
-  
-  if (!trade.symbol?.trim()) {
-    errors.push('Symbol is required');
-  }
-  
-  if (!trade.direction) {
-    errors.push('Direction is required');
-  }
-  
-  if (!trade.entryPrice || trade.entryPrice <= 0) {
-    errors.push('Entry price must be greater than 0');
-  }
-  
-  if (!trade.quantity || trade.quantity <= 0) {
-    errors.push('Quantity must be greater than 0');
-  }
-  
-  if (!trade.entryDate) {
-    errors.push('Entry date is required');
-  }
-  
-  if (trade.exitPrice && trade.exitPrice <= 0) {
-    errors.push('Exit price must be greater than 0');
-  }
-  
-  if (trade.exitDate && trade.entryDate && trade.exitDate < trade.entryDate) {
-    errors.push('Exit date must be after entry date');
-  }
-  
-  if (trade.stopLoss && trade.entryPrice) {
-    if (trade.direction === TradeDirection.LONG && trade.stopLoss >= trade.entryPrice) {
-      errors.push('Stop loss for LONG position must be below entry price');
+
+  // Basic price validation
+  if (entryPrice <= 0) errors.push('Entry price must be greater than zero');
+  if (exitPrice <= 0) errors.push('Exit price must be greater than zero');
+  if (stopLoss <= 0) errors.push('Stop loss must be greater than zero');
+  if (takeProfit <= 0) errors.push('Take profit must be greater than zero');
+
+  if (errors.length > 0) return errors;
+
+  // Direction-based validation
+  const direction = determineDirection(entryPrice, exitPrice);
+
+  if (direction === 'long') {
+    if (stopLoss >= entryPrice) {
+      errors.push('Stop loss must be below entry price for long trades');
     }
-    if (trade.direction === TradeDirection.SHORT && trade.stopLoss <= trade.entryPrice) {
-      errors.push('Stop loss for SHORT position must be above entry price');
+    if (takeProfit <= entryPrice) {
+      errors.push('Take profit must be above entry price for long trades');
+    }
+  } else {
+    if (stopLoss <= entryPrice) {
+      errors.push('Stop loss must be above entry price for short trades');
+    }
+    if (takeProfit >= entryPrice) {
+      errors.push('Take profit must be below entry price for short trades');
     }
   }
-  
-  if (trade.takeProfit && trade.entryPrice) {
-    if (trade.direction === TradeDirection.LONG && trade.takeProfit <= trade.entryPrice) {
-      errors.push('Take profit for LONG position must be above entry price');
-    }
-    if (trade.direction === TradeDirection.SHORT && trade.takeProfit >= trade.entryPrice) {
-      errors.push('Take profit for SHORT position must be below entry price');
-    }
+
+  // Market-specific validation
+  if (market) {
+    const prices = [entryPrice, exitPrice, stopLoss, takeProfit];
+    prices.forEach((price, index) => {
+      const priceNames = ['entry price', 'exit price', 'stop loss', 'take profit'];
+      if (!isValidPriceIncrement(price, market)) {
+        errors.push(`${priceNames[index]} must be a valid increment for ${market.symbol} (tick size: ${market.tickSize})`);
+      }
+    });
   }
-  
-  if (trade.riskPercentage && (trade.riskPercentage <= 0 || trade.riskPercentage > 100)) {
-    errors.push('Risk percentage must be between 0 and 100');
-  }
-  
+
   return errors;
 }
 
 /**
- * Format currency values
+ * Check if a price respects the market's tick size
  */
-export function formatCurrency(value: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value);
+export function isValidPriceIncrement(price: number, market: MarketInfo): boolean {
+  if (!market.tickSize) return true;
+
+  const remainder = price % market.tickSize;
+  return Math.abs(remainder) < 0.0001 || Math.abs(remainder - market.tickSize) < 0.0001;
 }
 
 /**
- * Format percentage values
+ * Round price to the nearest valid tick for the market
  */
-export function formatPercentage(value: number, decimals: number = 2): string {
-  return `${value.toFixed(decimals)}%`;
+export function roundToNearestTick(price: number, market: MarketInfo): number {
+  if (!market.tickSize) return price;
+  return Math.round(price / market.tickSize) * market.tickSize;
 }
 
 /**
- * Format R-multiple values
+ * Format price according to market conventions
  */
-export function formatRMultiple(value: number): string {
-  const sign = value >= 0 ? '+' : '';
-  return `${sign}${value.toFixed(2)}R`;
+export function formatMarketPrice(price: number, market: MarketInfo): string {
+  let decimals = 2;
+  if (market.tickSize >= 1) decimals = 0;
+  else if (market.tickSize >= 0.1) decimals = 1;
+  else if (market.tickSize >= 0.01) decimals = 2;
+  else if (market.tickSize >= 0.001) decimals = 3;
+
+  return price.toFixed(decimals);
 }
 
 /**
- * Calculate trade statistics from an array of trades
+ * Calculate trade statistics for a collection of trades
+ */
+export function calculateTradeStatistics(trades: NewTrade[]) {
+  if (trades.length === 0) {
+    return {
+      totalTrades: 0,
+      winTrades: 0,
+      lossTrades: 0,
+      winRate: 0,
+      totalPnl: 0,
+      avgWin: 0,
+      avgLoss: 0,
+      profitFactor: 0,
+      maxWin: 0,
+      maxLoss: 0,
+      avgEfficiency: 0,
+      totalCommissions: 0,
+      netPnl: 0,
+    };
+  }
+
+  const winningTrades = trades.filter(t => t.pnlUsd > 0);
+  const losingTrades = trades.filter(t => t.pnlUsd < 0);
+
+  const totalPnl = trades.reduce((sum, t) => sum + t.pnlUsd, 0);
+  const totalCommissions = trades.reduce((sum, t) => sum + t.marketInfo.commission, 0);
+  const netPnl = totalPnl - totalCommissions;
+
+  const totalWins = winningTrades.reduce((sum, t) => sum + t.pnlUsd, 0);
+  const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnlUsd, 0));
+
+  const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
+  const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
+
+  const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+
+  const maxWin = winningTrades.length > 0 ? Math.max(...winningTrades.map(t => t.pnlUsd)) : 0;
+  const maxLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map(t => t.pnlUsd)) : 0;
+
+  const avgEfficiency = trades.length > 0
+    ? trades.reduce((sum, t) => sum + t.efficiency, 0) / trades.length
+    : 0;
+
+  return {
+    totalTrades: trades.length,
+    winTrades: winningTrades.length,
+    lossTrades: losingTrades.length,
+    winRate: trades.length > 0 ? (winningTrades.length / trades.length) * 100 : 0,
+    totalPnl: Number(totalPnl.toFixed(2)),
+    avgWin: Number(avgWin.toFixed(2)),
+    avgLoss: Number(avgLoss.toFixed(2)),
+    profitFactor: Number(profitFactor.toFixed(2)),
+    maxWin: Number(maxWin.toFixed(2)),
+    maxLoss: Number(maxLoss.toFixed(2)),
+    avgEfficiency: Number(avgEfficiency.toFixed(1)),
+    totalCommissions: Number(totalCommissions.toFixed(2)),
+    netPnl: Number(netPnl.toFixed(2)),
+  };
+}
+
+/**
+ * Calculate trade statistics from an array of trades (compatible with Trade type)
  */
 export function calculateTradeStats(trades: Trade[]): {
   totalTrades: number;
@@ -391,4 +378,96 @@ export function calculateTradeStats(trades: Trade[]): {
     totalCommission,
     netPnl
   };
+}
+
+/**
+ * Validate trade data for calculations
+ */
+export function validateTradeData(trade: Partial<TradeFormData>): string[] {
+  const errors: string[] = [];
+
+  if (!trade.symbol?.trim()) {
+    errors.push('Symbol is required');
+  }
+
+  if (!trade.direction) {
+    errors.push('Direction is required');
+  }
+
+  if (!trade.entryPrice || trade.entryPrice <= 0) {
+    errors.push('Entry price must be greater than 0');
+  }
+
+  if (!trade.quantity || trade.quantity <= 0) {
+    errors.push('Quantity must be greater than 0');
+  }
+
+  if (!trade.entryDate) {
+    errors.push('Entry date is required');
+  }
+
+  if (trade.exitPrice && trade.exitPrice <= 0) {
+    errors.push('Exit price must be greater than 0');
+  }
+
+  if (trade.exitDate && trade.entryDate && trade.exitDate < trade.entryDate) {
+    errors.push('Exit date must be after entry date');
+  }
+
+  if (trade.stopLoss && trade.entryPrice) {
+    if (trade.direction === TradeDirection.LONG && trade.stopLoss >= trade.entryPrice) {
+      errors.push('Stop loss for LONG position must be below entry price');
+    }
+    if (trade.direction === TradeDirection.SHORT && trade.stopLoss <= trade.entryPrice) {
+      errors.push('Stop loss for SHORT position must be above entry price');
+    }
+  }
+
+  if (trade.takeProfit && trade.entryPrice) {
+    if (trade.direction === TradeDirection.LONG && trade.takeProfit <= trade.entryPrice) {
+      errors.push('Take profit for LONG position must be above entry price');
+    }
+    if (trade.direction === TradeDirection.SHORT && trade.takeProfit >= trade.entryPrice) {
+      errors.push('Take profit for SHORT position must be below entry price');
+    }
+  }
+
+  if (trade.riskPercentage && (trade.riskPercentage <= 0 || trade.riskPercentage > 100)) {
+    errors.push('Risk percentage must be between 0 and 100');
+  }
+
+  return errors;
+}
+
+/**
+ * Format currency values
+ */
+export function formatCurrency(value: number, currency: string = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+/**
+ * Format percentage values
+ */
+export function formatPercentage(value: number | undefined | null, decimals: number = 2): string {
+  if (value === undefined || value === null || isNaN(value)) {
+    return '0%';
+  }
+  return `${value.toFixed(decimals)}%`;
+}
+
+/**
+ * Format R-multiple values
+ */
+export function formatRMultiple(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) {
+    return '0.00R';
+  }
+  const sign = value >= 0 ? '+' : '';
+  return `${sign}${value.toFixed(2)}R`;
 }

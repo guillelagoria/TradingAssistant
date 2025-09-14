@@ -1,14 +1,16 @@
 import {
   ContractSpecification,
-  MarketPreferences,
   MarketDefaultsResponse,
   MarketCalculationResult,
   TradeValidationResult,
+  MarketInfo,
   AVAILABLE_CONTRACTS,
   ES_FUTURES,
-  NQ_FUTURES,
   getMarketById,
   getMarketBySymbol,
+  getAllMarketsInfo,
+  getMarketInfo,
+  toMarketInfo,
   PositionSizingMethod,
   MarketCategory
 } from '../types/market';
@@ -376,6 +378,101 @@ export class MarketService {
     }
 
     return price.toFixed(market.precision);
+  }
+
+  // NEW METHODS FOR SIMPLIFIED MARKET INFO
+
+  /**
+   * Get all available markets in simplified format
+   */
+  getAllMarketsInfo(): MarketInfo[] {
+    return getAllMarketsInfo();
+  }
+
+  /**
+   * Get market info by symbol or ID in simplified format
+   */
+  getMarketInfo(identifier: string): MarketInfo | null {
+    return getMarketInfo(identifier);
+  }
+
+  /**
+   * Convert full market specification to simplified info
+   */
+  toMarketInfo(market: ContractSpecification): MarketInfo {
+    return toMarketInfo(market);
+  }
+
+  /**
+   * Calculate trade defaults but return in simplified format compatible with frontend
+   */
+  calculateSimplifiedTradeDefaults(
+    marketSymbol: string,
+    accountBalance: number = 100000,
+    entryPrice?: number
+  ): MarketInfo & {
+    suggestedQuantity?: number;
+    suggestedStopLoss?: number;
+    suggestedTakeProfit?: number;
+    suggestedRiskAmount?: number;
+  } {
+    const market = this.getMarket(marketSymbol);
+    if (!market) {
+      throw new Error(`Market not found: ${marketSymbol}`);
+    }
+
+    // Get the simplified market info
+    const marketInfo = toMarketInfo(market);
+
+    // Create result with explicit type to include optional properties
+    const result: MarketInfo & {
+      suggestedQuantity?: number;
+      suggestedStopLoss?: number;
+      suggestedTakeProfit?: number;
+      suggestedRiskAmount?: number;
+    } = { ...marketInfo };
+
+    if (entryPrice && entryPrice > 0) {
+      const riskAmount = (accountBalance * market.riskDefaults.riskPerTradePercent) / 100;
+      const stopPrice = entryPrice * (1 - market.riskDefaults.defaultStopLossPercent / 100);
+
+      const suggestedSize = this.calculatePositionSize(
+        riskAmount,
+        entryPrice,
+        stopPrice,
+        market
+      );
+
+      result.suggestedQuantity = suggestedSize;
+      result.suggestedStopLoss = Number(stopPrice.toFixed(market.precision));
+      result.suggestedTakeProfit = Number(
+        (entryPrice * (1 + market.riskDefaults.defaultTakeProfitPercent / 100)).toFixed(market.precision)
+      );
+      result.suggestedRiskAmount = riskAmount;
+    }
+
+    return result;
+  }
+
+  /**
+   * Validate if a market exists by symbol or ID
+   */
+  marketExists(identifier: string): boolean {
+    return this.getMarket(identifier) !== null;
+  }
+
+  /**
+   * Get quick market info for dropdown selections
+   */
+  getQuickMarketList(): Array<{ id: string; symbol: string; name: string; category: string }> {
+    return AVAILABLE_CONTRACTS
+      .filter(market => market.isActive)
+      .map(market => ({
+        id: market.id,
+        symbol: market.symbol,
+        name: market.name,
+        category: market.category
+      }));
   }
 }
 

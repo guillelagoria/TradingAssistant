@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
 import { authenticate } from '../middleware/auth';
-import { handleValidationErrors, validateTradeData, validatePriceTicks } from '../middleware/validation';
+import { handleValidationErrors, validateTradeData, validatePriceTicks, validateMarketExists } from '../middleware/validation';
 import {
   createTrade,
   getTrades,
@@ -59,6 +59,7 @@ router.post(
     body('notes').optional().isString(),
     body('imageUrl').optional().isURL(),
     handleValidationErrors,
+    validateMarketExists,
     validateTradeData,
     validatePriceTicks
   ],
@@ -90,6 +91,7 @@ router.put(
     body('notes').optional().isString(),
     body('imageUrl').optional().isURL(),
     handleValidationErrors,
+    validateMarketExists,
     validatePriceTicks
   ],
   updateTrade

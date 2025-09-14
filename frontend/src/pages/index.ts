@@ -1,8 +1,7 @@
 // Pages exports
-export { default as Dashboard } from './Dashboard';
+export { default as Dashboard } from './ModernDashboardPage';
 export { default as TradeHistory } from './TradeHistory';
 export { default as Settings } from './Settings';
-export { TradeFormPage as TradeForm } from './TradeForm';
-export { TradeWizard } from './TradeWizard';
+export { ModernTradeFormPage as TradeForm } from './ModernTradeFormPage';
 export { default as Analysis } from './Analysis';
 export { default as Portfolio } from './Portfolio';

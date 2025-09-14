@@ -3,6 +3,8 @@ export enum TradeDirection {
   SHORT = 'SHORT'
 }
 
+export type Direction = 'long' | 'short';
+
 export enum OrderType {
   MARKET = 'MARKET',
   LIMIT = 'LIMIT',
@@ -242,6 +244,82 @@ export interface TradeDraft {
   currentTab: number;
 }
 
+// New simplified types for the modern trade system
+export interface MarketInfo {
+  symbol: string;
+  displayName: string;
+  tickValue: number;
+  pointValue: number;
+  tickSize: number;
+  commission: number;
+  currency: string;
+  marketHours?: {
+    open: string;
+    close: string;
+    timezone: string;
+  };
+}
+
+export interface NewTrade {
+  // Market info
+  marketInfo: MarketInfo;
+
+  // Essential prices
+  entryPrice: number;
+  stopLoss: number;
+  takeProfit: number;
+  exitPrice: number;
+
+  // Simple metadata
+  moodRating: 1 | 2 | 3 | 4 | 5;
+  imageUrl?: string;
+
+  // Optional fields
+  maxFavorablePrice?: number;
+  maxAdversePrice?: number;
+  notes?: string;
+
+  // Auto-calculated fields
+  direction: Direction;
+  pnlPoints: number;
+  pnlUsd: number;
+  riskRewardRatio: number;
+  efficiency: number;
+
+  // System fields
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+}
+
+export interface TradeFormState {
+  marketInfo: MarketInfo | null;
+  entryPrice: string;
+  stopLoss: string;
+  takeProfit: string;
+  exitPrice: string;
+  moodRating: 1 | 2 | 3 | 4 | 5;
+  imageUrl: string;
+  maxFavorablePrice: string;
+  maxAdversePrice: string;
+  notes: string;
+}
+
+export interface TradeCalculations {
+  direction: Direction;
+  pnlPoints: number;
+  pnlUsd: number;
+  riskPoints: number;
+  rewardPoints: number;
+  riskRewardRatio: number;
+  efficiency: number;
+  isValid: boolean;
+  errors: string[];
+}
+
+export type MoodRating = 1 | 2 | 3 | 4 | 5;
+
 // API response types
 export interface ApiResponse<T> {
   success: boolean;
@@ -259,4 +337,19 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
   message?: string;
+}
+
+// Form validation types
+export interface TradeFormValidation {
+  isValid: boolean;
+  errors: Partial<Record<keyof TradeFormState, string>>;
+  warnings: Partial<Record<keyof TradeFormState, string>>;
+}
+
+// Animation states for form transitions
+export interface FormAnimationState {
+  isCalculating: boolean;
+  showResults: boolean;
+  slideDirection: 'left' | 'right' | 'none';
+  fadeState: 'in' | 'out' | 'none';
 }

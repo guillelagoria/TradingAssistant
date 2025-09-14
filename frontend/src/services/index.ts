@@ -1,3 +1,4 @@
 // Services exports
-export { default as api } from './api';
+export { api } from './api';
 export { default as tradesService } from './tradesService';
+export { marketService } from './marketService';

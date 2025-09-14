@@ -3,7 +3,9 @@
     "allow": [
       "Bash(curl:*)",
       "Bash(cd:*)",
-      "Bash(git push origin main)"
+      "Bash(git push origin main)",
+      "mcp__shadcn__get_project_registries",
+      "mcp__shadcn__get_audit_checklist"
     ]
   },
   "enableAllProjectMcpServers": true,

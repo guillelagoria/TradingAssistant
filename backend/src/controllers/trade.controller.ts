@@ -166,7 +166,7 @@ export const createTrade = async (
       imageUrl: tradeData.imageUrl || null,
       pnl: metrics.pnl,
       pnlPercentage: metrics.pnlPercentage,
-      commission: metrics.commission || 0,
+      commission: (metrics && 'commission' in metrics) ? metrics.commission : 0,
       netPnl: metrics.netPnl,
       efficiency: metrics.efficiency,
       rMultiple: metrics.rMultiple,
