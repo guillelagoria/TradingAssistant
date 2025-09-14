@@ -352,28 +352,28 @@ export function calculateTradeStats(trades: Trade[]): {
   totalCommission: number;
   netPnl: number;
 } {
-  const closedTrades = trades.filter(trade => trade.exitPrice && trade.exitDate);
-  const winTrades = closedTrades.filter(trade => trade.pnl > 0);
-  const lossTrades = closedTrades.filter(trade => trade.pnl < 0);
-  const breakevenTrades = closedTrades.filter(trade => trade.pnl === 0);
-  
-  const totalPnl = closedTrades.reduce((sum, trade) => sum + trade.pnl, 0);
-  const totalCommission = closedTrades.reduce((sum, trade) => sum + trade.commission, 0);
+  const closedTrades = trades.filter(trade => trade.exitPrice && trade.exitPrice > 0);
+  const winTrades = closedTrades.filter(trade => (trade.pnl || 0) > 0);
+  const lossTrades = closedTrades.filter(trade => (trade.pnl || 0) < 0);
+  const breakevenTrades = closedTrades.filter(trade => (trade.pnl || 0) === 0);
+
+  const totalPnl = closedTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+  const totalCommission = closedTrades.reduce((sum, trade) => sum + (trade.commission || 0), 0);
   const netPnl = totalPnl - totalCommission;
-  
+
   const winRate = closedTrades.length > 0 ? (winTrades.length / closedTrades.length) * 100 : 0;
-  
-  const avgWin = winTrades.length > 0 ? winTrades.reduce((sum, trade) => sum + trade.pnl, 0) / winTrades.length : 0;
-  const avgLoss = lossTrades.length > 0 ? Math.abs(lossTrades.reduce((sum, trade) => sum + trade.pnl, 0)) / lossTrades.length : 0;
-  
+
+  const avgWin = winTrades.length > 0 ? winTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0) / winTrades.length : 0;
+  const avgLoss = lossTrades.length > 0 ? Math.abs(lossTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)) / lossTrades.length : 0;
+
   const profitFactor = avgLoss > 0 ? avgWin / avgLoss : avgWin > 0 ? Infinity : 0;
-  
-  const maxWin = winTrades.length > 0 ? Math.max(...winTrades.map(trade => trade.pnl)) : 0;
-  const maxLoss = lossTrades.length > 0 ? Math.min(...lossTrades.map(trade => trade.pnl)) : 0;
-  
-  const avgRMultiple = closedTrades.length > 0 ? closedTrades.reduce((sum, trade) => sum + trade.rMultiple, 0) / closedTrades.length : 0;
-  const avgEfficiency = closedTrades.length > 0 ? closedTrades.reduce((sum, trade) => sum + trade.efficiency, 0) / closedTrades.length : 0;
-  
+
+  const maxWin = winTrades.length > 0 ? Math.max(...winTrades.map(trade => trade.pnl || 0)) : 0;
+  const maxLoss = lossTrades.length > 0 ? Math.min(...lossTrades.map(trade => trade.pnl || 0)) : 0;
+
+  const avgRMultiple = closedTrades.length > 0 ? closedTrades.reduce((sum, trade) => sum + (trade.rMultiple || 0), 0) / closedTrades.length : 0;
+  const avgEfficiency = closedTrades.length > 0 ? closedTrades.reduce((sum, trade) => sum + (trade.efficiency || 0), 0) / closedTrades.length : 0;
+
   return {
     totalTrades: closedTrades.length,
     winTrades: winTrades.length,

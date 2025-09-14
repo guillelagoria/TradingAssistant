@@ -27,6 +27,7 @@ import {
 import { StrategyManager } from './StrategyManager';
 import { FavoriteSymbols } from './FavoriteSymbols';
 import { CommissionSettings } from './CommissionSettings';
+import MarketConfiguration from './MarketConfiguration';
 
 import type { TradingPreferences as TradingPrefs } from '@/types/user';
 import { cn } from '@/lib/utils';
@@ -110,10 +111,14 @@ export function TradingPreferences({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="basic" className="flex items-center gap-2">
           <Target className="h-4 w-4" />
           Basic Settings
+        </TabsTrigger>
+        <TabsTrigger value="markets" className="flex items-center gap-2">
+          <Settings2 className="h-4 w-4" />
+          Markets
         </TabsTrigger>
         <TabsTrigger value="strategies" className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4" />
@@ -594,6 +599,10 @@ export function TradingPreferences({
           </div>
         </CardContent>
       </Card>
+      </TabsContent>
+
+      <TabsContent value="markets">
+        <MarketConfiguration />
       </TabsContent>
 
       <TabsContent value="strategies">

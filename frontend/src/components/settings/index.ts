@@ -7,3 +7,4 @@ export { NotificationSettings } from './NotificationSettings';
 export { StrategyManager } from './StrategyManager';
 export { FavoriteSymbols } from './FavoriteSymbols';
 export { CommissionSettings } from './CommissionSettings';
+export { default as MarketConfiguration } from './MarketConfiguration';

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
 import { authenticate } from '../middleware/auth';
-import { handleValidationErrors } from '../middleware/validation';
+import { handleValidationErrors, validateTradeData, validatePriceTicks } from '../middleware/validation';
 import {
   createTrade,
   getTrades,
@@ -24,6 +24,7 @@ router.get(
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
     query('symbol').optional().isString(),
+    query('market').optional().isString(),
     query('strategy').optional().isString(),
     query('direction').optional().isIn(['LONG', 'SHORT']),
     query('result').optional().isIn(['WIN', 'LOSS', 'BREAKEVEN']),
@@ -41,11 +42,12 @@ router.post(
   '/',
   [
     body('symbol').notEmpty().trim(),
+    body('market').optional().isString().isLength({ min: 1, max: 10 }),
     body('direction').isIn(['LONG', 'SHORT']),
     body('orderType').isIn(['MARKET', 'LIMIT', 'STOP', 'STOP_LIMIT']),
     body('entryDate').isISO8601(),
     body('entryPrice').isFloat({ min: 0 }),
-    body('quantity').isFloat({ min: 0 }),
+    body('quantity').isInt({ min: 1 }),
     body('exitDate').optional().isISO8601(),
     body('exitPrice').optional().isFloat({ min: 0 }),
     body('stopLoss').optional().isFloat({ min: 0 }),
@@ -56,7 +58,9 @@ router.post(
     body('timeframe').optional().isString(),
     body('notes').optional().isString(),
     body('imageUrl').optional().isURL(),
-    handleValidationErrors
+    handleValidationErrors,
+    validateTradeData,
+    validatePriceTicks
   ],
   createTrade
 );
@@ -69,11 +73,12 @@ router.put(
   '/:id',
   [
     body('symbol').optional().notEmpty().trim(),
+    body('market').optional().isString().isLength({ min: 1, max: 10 }),
     body('direction').optional().isIn(['LONG', 'SHORT']),
     body('orderType').optional().isIn(['MARKET', 'LIMIT', 'STOP', 'STOP_LIMIT']),
     body('entryDate').optional().isISO8601(),
     body('entryPrice').optional().isFloat({ min: 0 }),
-    body('quantity').optional().isFloat({ min: 0 }),
+    body('quantity').optional().isInt({ min: 1 }),
     body('exitDate').optional().isISO8601(),
     body('exitPrice').optional().isFloat({ min: 0 }),
     body('stopLoss').optional().isFloat({ min: 0 }),
@@ -84,7 +89,8 @@ router.put(
     body('timeframe').optional().isString(),
     body('notes').optional().isString(),
     body('imageUrl').optional().isURL(),
-    handleValidationErrors
+    handleValidationErrors,
+    validatePriceTicks
   ],
   updateTrade
 );

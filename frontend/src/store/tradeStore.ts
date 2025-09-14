@@ -138,22 +138,32 @@ export const useTradeStore = create<TradeState>()(
       // Fetch trades with filters and pagination
       fetchTrades: async (filters = {}, page = 1, limit = 20) => {
         set({ loading: true, error: null });
-        
+
         try {
           const response = await tradesService.getTrades(filters, page, limit);
-          
-          const tradesWithCalculations = response.data.map(trade => ({
-            ...trade,
-            ...calculateTradeMetrics(trade)
-          }));
-          
+
+          const tradesWithCalculations = response.data.map(trade => {
+            // Only recalculate if values don't exist
+            const needsCalculation = !trade.pnl && trade.pnl !== 0;
+
+            if (needsCalculation) {
+              const calculations = calculateTradeMetrics(trade);
+              return {
+                ...trade,
+                ...calculations
+              };
+            } else {
+              return trade;
+            }
+          });
+
           set({
             trades: tradesWithCalculations,
             pagination: response.pagination,
             loading: false,
             filters: { ...get().filters, ...filters }
           });
-          
+
           // Refresh stats after fetching trades
           get().refreshStats();
           

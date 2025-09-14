@@ -1,4 +1,6 @@
 import { TradeDirection } from '@prisma/client';
+import { marketService } from '../services/market.service';
+import { ContractSpecification } from '../types/market';
 
 export interface TradeStats {
   totalTrades: number;
@@ -119,7 +121,7 @@ export function calculateTradeStats(trades: any[]): TradeStats {
 }
 
 /**
- * Calculate individual trade metrics
+ * Calculate individual trade metrics with market-aware calculations
  */
 export function calculateTradeMetrics(tradeData: any) {
   const {
@@ -130,56 +132,74 @@ export function calculateTradeMetrics(tradeData: any) {
     stopLoss,
     takeProfit,
     maxFavorablePrice,
-    maxAdversePrice
+    maxAdversePrice,
+    market = 'ES' // Default to ES if not specified
   } = tradeData;
+
+  // Get market specification for accurate calculations
+  const marketSpec = marketService.getMarket(market);
+  if (!marketSpec) {
+    throw new Error(`Market not found: ${market}`);
+  }
 
   // If no exit price, return zeros (open trade)
   if (!exitPrice) {
+    const commission = marketService.calculateCommission(quantity, marketSpec, false); // One-way commission for open trade
     return {
       pnl: 0,
       pnlPercentage: 0,
       efficiency: 0,
       rMultiple: 0,
-      commission: calculateCommission(entryPrice, quantity),
+      commission,
       netPnl: 0
     };
   }
 
-  // Calculate basic P&L
-  const priceChange = exitPrice - entryPrice;
-  const pnl = direction === TradeDirection.LONG 
-    ? priceChange * quantity 
-    : -priceChange * quantity;
+  // Calculate P&L using market-specific calculations
+  const pnlResult = marketService.calculatePnL(
+    entryPrice,
+    exitPrice,
+    quantity,
+    market,
+    direction === TradeDirection.LONG ? 'LONG' : 'SHORT',
+    true
+  );
 
-  const pnlPercentage = (pnl / (entryPrice * quantity)) * 100;
+  const pnl = pnlResult.grossPnL;
+  const commission = pnlResult.commission;
+  const netPnl = pnlResult.netPnL;
 
-  // Calculate commission (simplified - could be more complex based on broker)
-  const commission = calculateCommission(entryPrice, quantity) + calculateCommission(exitPrice, quantity);
+  // Calculate percentage P&L based on contract value
+  const contractValue = marketSpec.category === 'futures'
+    ? entryPrice * marketSpec.pointValue * quantity
+    : entryPrice * quantity;
 
-  const netPnl = pnl - commission;
+  const pnlPercentage = contractValue > 0 ? (pnl / contractValue) * 100 : 0;
 
-  // Calculate R-Multiple (Risk-Reward ratio)
+  // Calculate R-Multiple using market service
   let rMultiple = 0;
   if (stopLoss) {
-    const riskPerShare = Math.abs(entryPrice - stopLoss);
-    const risk = riskPerShare * quantity;
-    rMultiple = risk > 0 ? pnl / risk : 0;
+    rMultiple = marketService.calculateRMultiple(
+      entryPrice,
+      exitPrice,
+      stopLoss,
+      direction === TradeDirection.LONG ? 'LONG' : 'SHORT'
+    );
   }
 
-  // Calculate efficiency (how much of the potential move was captured)
+  // Calculate efficiency using market service
   let efficiency = 0;
-  if (maxFavorablePrice && maxAdversePrice) {
+  if (maxFavorablePrice) {
+    efficiency = marketService.calculateEfficiency(
+      entryPrice,
+      exitPrice,
+      maxFavorablePrice,
+      direction === TradeDirection.LONG ? 'LONG' : 'SHORT'
+    );
+  } else if (maxFavorablePrice && maxAdversePrice) {
     const totalMove = Math.abs(maxFavorablePrice - maxAdversePrice);
     const capturedMove = Math.abs(exitPrice - entryPrice);
     efficiency = totalMove > 0 ? (capturedMove / totalMove) * 100 : 0;
-  } else if (maxFavorablePrice) {
-    const potentialMove = direction === TradeDirection.LONG 
-      ? maxFavorablePrice - entryPrice
-      : entryPrice - maxFavorablePrice;
-    const actualMove = direction === TradeDirection.LONG 
-      ? exitPrice - entryPrice
-      : entryPrice - exitPrice;
-    efficiency = potentialMove > 0 ? (actualMove / potentialMove) * 100 : 0;
   }
 
   return {
@@ -194,15 +214,30 @@ export function calculateTradeMetrics(tradeData: any) {
 
 /**
  * Calculate commission based on simple percentage model
+ * @deprecated Use marketService.calculateCommission() for market-aware calculations
  * In a real app, this would be more sophisticated based on broker rules
  */
 function calculateCommission(price: number, quantity: number, rate: number = 0.001): number {
   // Simple percentage-based commission (0.1% default)
+  // This is a fallback for legacy calculations
   return price * quantity * rate;
 }
 
 /**
+ * Market-aware commission calculation
+ */
+export function calculateMarketCommission(quantity: number, market: string = 'ES', isRoundTurn: boolean = true): number {
+  const marketSpec = marketService.getMarket(market);
+  if (!marketSpec) {
+    throw new Error(`Market not found: ${market}`);
+  }
+
+  return marketService.calculateCommission(quantity, marketSpec, isRoundTurn);
+}
+
+/**
  * Calculate position size based on risk amount and stop loss
+ * @deprecated Use marketService.calculatePositionSize() for market-aware calculations
  */
 export function calculatePositionSize(
   entryPrice: number,
@@ -211,6 +246,23 @@ export function calculatePositionSize(
 ): number {
   const riskPerShare = Math.abs(entryPrice - stopLoss);
   return riskPerShare > 0 ? Math.floor(riskAmount / riskPerShare) : 0;
+}
+
+/**
+ * Market-aware position size calculation
+ */
+export function calculateMarketPositionSize(
+  riskAmount: number,
+  entryPrice: number,
+  stopLoss: number,
+  market: string = 'ES'
+): number {
+  const marketSpec = marketService.getMarket(market);
+  if (!marketSpec) {
+    throw new Error(`Market not found: ${market}`);
+  }
+
+  return marketService.calculatePositionSize(riskAmount, entryPrice, stopLoss, marketSpec);
 }
 
 /**

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +5,92 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String                 @id @default(cuid())
+  email             String                 @unique
+  password          String
+  name              String?
+  commission        Float                  @default(0)
+  timezone          String                 @default("UTC")
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  strategies        Strategy[]
+  trades            Trade[]
+  marketPreferences UserMarketPreferences?
+
+  @@map("users")
+}
+
+model Strategy {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades      Trade[]
+
+  @@unique([name, userId])
+  @@map("strategies")
+}
+
+model Trade {
+  id                String         @id @default(cuid())
+  userId            String
+  strategyId        String?
+  symbol            String
+  market            String         @default("ES")
+  direction         TradeDirection
+  orderType         OrderType
+  entryDate         DateTime
+  entryPrice        Float
+  quantity          Float
+  exitDate          DateTime?
+  exitPrice         Float?
+  stopLoss          Float?
+  takeProfit        Float?
+  maxFavorablePrice Float?
+  maxAdversePrice   Float?
+  timeframe         String?
+  result            TradeResult?
+  notes             String?
+  imageUrl          String?
+  pnl               Float?
+  pnlPercentage     Float?
+  commission        Float          @default(0)
+  netPnl            Float?
+  efficiency        Float?
+  rMultiple         Float?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  strategy          Strategy?      @relation(fields: [strategyId], references: [id])
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entryDate])
+  @@index([userId, symbol])
+  @@index([userId, market])
+  @@index([userId, strategyId])
+  @@map("trades")
+}
+
+model UserMarketPreferences {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  preferredMarkets    Json     @default("[]")
+  defaultMarket       String   @default("ES")
+  quickAccessMarkets  Json     @default("[\"ES\", \"NQ\"]")
+  marketSettings      Json?
+  accountSize         Float    @default(100000)
+  riskPerTrade        Float    @default(1.0)
+  commissionOverrides Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_market_preferences")
 }
 
 enum TradeDirection {
@@ -25,88 +108,4 @@ enum TradeResult {
   WIN
   LOSS
   BREAKEVEN
-}
-
-model User {
-  id              String     @id @default(cuid())
-  email           String     @unique
-  password        String
-  name            String?
-  commission      Float      @default(0)
-  timezone        String     @default("UTC")
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  
-  trades          Trade[]
-  strategies      Strategy[]
-  
-  @@map("users")
-}
-
-model Strategy {
-  id              String     @id @default(cuid())
-  name            String
-  description     String?
-  userId          String
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trades          Trade[]
-  
-  @@unique([name, userId])
-  @@map("strategies")
-}
-
-model Trade {
-  id                  String          @id @default(cuid())
-  userId              String
-  strategyId          String?
-  
-  // Basic trade information
-  symbol              String
-  direction           TradeDirection
-  orderType           OrderType
-  
-  // Entry information
-  entryDate           DateTime
-  entryPrice          Float
-  quantity            Float
-  
-  // Exit information
-  exitDate            DateTime?
-  exitPrice           Float?
-  
-  // Risk management
-  stopLoss            Float?
-  takeProfit          Float?
-  
-  // Maximum movement tracking
-  maxFavorablePrice   Float?
-  maxAdversePrice     Float?
-  
-  // Trade metadata
-  timeframe           String?
-  result              TradeResult?
-  notes               String?
-  imageUrl            String?
-  
-  // Calculated fields (stored for performance)
-  pnl                 Float?
-  pnlPercentage       Float?
-  commission          Float           @default(0)
-  netPnl              Float?
-  efficiency          Float?
-  rMultiple           Float?
-  
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  
-  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  strategy            Strategy?       @relation(fields: [strategyId], references: [id], onDelete: SetNull)
-  
-  @@index([userId, entryDate])
-  @@index([userId, symbol])
-  @@index([userId, strategyId])
-  @@map("trades")
 }

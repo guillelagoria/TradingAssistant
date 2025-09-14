@@ -13,6 +13,7 @@ export const getTrades = async (
       page = 1,
       limit = 20,
       symbol,
+      market,
       strategy,
       direction,
       result,
@@ -33,6 +34,7 @@ export const getTrades = async (
     };
 
     if (symbol) where.symbol = { contains: String(symbol), mode: 'insensitive' };
+    if (market) where.market = String(market);
     if (strategy) where.strategy = String(strategy);
     if (direction) where.direction = String(direction);
     if (result) where.result = String(result);
@@ -113,7 +115,21 @@ export const createTrade = async (
   try {
     // Temporarily use a default test user ID for development
     const userId = req.userId || 'test-user-id';
-    
+
+    // Ensure test user exists
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: {
+        id: userId,
+        email: 'test@example.com',
+        password: 'test-password',
+        name: 'Test User'
+      }
+    });
+
+    console.log('Creating trade with body:', req.body);
+
     const tradeData = {
       ...req.body,
       userId,
@@ -121,14 +137,45 @@ export const createTrade = async (
       exitDate: req.body.exitDate ? new Date(req.body.exitDate) : null
     };
 
+    console.log('Trade data before metrics calculation:', tradeData);
+
     // Calculate trade metrics
     const metrics = calculateTradeMetrics(tradeData);
-    
+
+    console.log('Calculated metrics:', metrics);
+
+    // Clean data to match Prisma schema exactly
+    const cleanTradeData = {
+      userId,
+      symbol: tradeData.symbol,
+      market: tradeData.market,
+      direction: tradeData.direction,
+      orderType: tradeData.orderType,
+      entryDate: tradeData.entryDate,
+      entryPrice: tradeData.entryPrice,
+      quantity: tradeData.quantity,
+      exitDate: tradeData.exitDate,
+      exitPrice: tradeData.exitPrice || null,
+      stopLoss: tradeData.stopLoss || null,
+      takeProfit: tradeData.takeProfit || null,
+      maxFavorablePrice: tradeData.maxFavorablePrice || null,
+      maxAdversePrice: tradeData.maxAdversePrice || null,
+      timeframe: tradeData.timeframe || null,
+      result: tradeData.result || null,
+      notes: tradeData.notes || null,
+      imageUrl: tradeData.imageUrl || null,
+      pnl: metrics.pnl,
+      pnlPercentage: metrics.pnlPercentage,
+      commission: metrics.commission || 0,
+      netPnl: metrics.netPnl,
+      efficiency: metrics.efficiency,
+      rMultiple: metrics.rMultiple,
+    };
+
+    console.log('Clean trade data for Prisma:', cleanTradeData);
+
     const trade = await prisma.trade.create({
-      data: {
-        ...tradeData,
-        ...metrics
-      },
+      data: cleanTradeData,
     });
 
     res.status(201).json({
@@ -136,6 +183,7 @@ export const createTrade = async (
       data: trade
     });
   } catch (error) {
+    console.error('Error creating trade:', error);
     next(error);
   }
 };

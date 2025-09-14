@@ -42,6 +42,7 @@ export interface AuthResponse {
 // Trade types
 export interface CreateTradeRequest {
   symbol: string;
+  market?: string;
   direction: 'LONG' | 'SHORT';
   orderType: 'MARKET' | 'LIMIT' | 'STOP';
   entryDate: string;
@@ -65,6 +66,7 @@ export interface TradeFilters {
   page?: number;
   limit?: number;
   symbol?: string;
+  market?: string;
   strategyId?: string;
   direction?: 'LONG' | 'SHORT';
   result?: 'WIN' | 'LOSS' | 'BREAKEVEN';
@@ -156,3 +158,6 @@ export interface UserProfile extends Omit<User, 'password'> {
     strategies: number;
   };
 }
+
+// Export market types
+export * from './market';

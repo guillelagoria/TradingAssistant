@@ -2,12 +2,30 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { type UserPreferences, DEFAULT_PREFERENCES, type SettingsCategoryId } from '@/types/user';
 import { type Strategy, type Commission } from '@/types/settings';
+import {
+  type ContractSpecification,
+  type MarketPreset,
+  type MarketPreferences,
+  type MarketSelection,
+  POPULAR_FUTURES_CONTRACTS,
+  MARKET_PRESETS,
+  DEFAULT_MARKET_CONFIG
+} from '@/types/market';
+import {
+  generateTradeDefaults,
+  calculatePositionSize,
+  marketValidation
+} from '@/utils/marketCalculations';
 
 export interface SettingsStore {
   // State
   preferences: UserPreferences;
   strategies: Strategy[];
   commissions: Commission[];
+  marketConfigs: ContractSpecification[];
+  marketPresets: MarketPreset[];
+  marketPreferences: MarketPreferences;
+  selectedMarket: ContractSpecification | null;
   isDirty: boolean;
   isLoading: boolean;
   
@@ -37,12 +55,39 @@ export interface SettingsStore {
   addFavoriteSymbol: (symbol: string) => void;
   removeFavoriteSymbol: (symbol: string) => void;
   reorderFavoriteSymbols: (fromIndex: number, toIndex: number) => void;
-  
+
+  // Market configuration management
+  addMarketConfig: (config: Omit<ContractSpecification, 'id'>) => void;
+  updateMarketConfig: (id: string, updates: Partial<ContractSpecification>) => void;
+  deleteMarketConfig: (id: string) => void;
+  toggleMarketActive: (id: string) => void;
+  setSelectedMarket: (marketId: string | null) => void;
+  getMarketConfig: (marketId: string) => ContractSpecification | null;
+
+  // Market preset management
+  addMarketPreset: (preset: Omit<MarketPreset, 'id' | 'createdAt'>) => void;
+  updateMarketPreset: (id: string, updates: Partial<MarketPreset>) => void;
+  deleteMarketPreset: (id: string) => void;
+  applyMarketPreset: (presetId: string) => void;
+
+  // Market preferences management
+  updateMarketPreferences: (updates: Partial<MarketPreferences>) => void;
+  addPreferredMarket: (marketId: string) => void;
+  removePreferredMarket: (marketId: string) => void;
+  setDefaultMarket: (marketId: string) => void;
+  addQuickAccessMarket: (marketId: string) => void;
+  removeQuickAccessMarket: (marketId: string) => void;
+
+  // Market utility functions
+  getTradeDefaults: (marketId?: string, accountBalance?: number, entryPrice?: number) => any;
+  calculatePositionSize: (marketId: string, riskAmount: number, entryPrice: number, stopPrice: number) => number;
+  validateMarketData: (marketId: string, data: any) => string[];
+
   // Utility functions
   markDirty: () => void;
   markClean: () => void;
   setLoading: (loading: boolean) => void;
-  
+
   // Persistence functions
   saveToLocalStorage: () => void;
   loadFromLocalStorage: () => void;
@@ -70,6 +115,15 @@ const useSettingsStore = create<SettingsStore>()(
           isDefault: true,
         }
       ],
+      marketConfigs: POPULAR_FUTURES_CONTRACTS,
+      marketPresets: MARKET_PRESETS,
+      marketPreferences: {
+        preferredMarkets: ['es_futures', 'nq_futures'],
+        defaultMarket: 'es_futures',
+        quickAccessMarkets: ['es_futures', 'nq_futures'],
+        marketSettings: {},
+      },
+      selectedMarket: DEFAULT_MARKET_CONFIG,
       isDirty: false,
       isLoading: false,
 
@@ -245,6 +299,236 @@ const useSettingsStore = create<SettingsStore>()(
         });
       },
 
+      // Market configuration management
+      addMarketConfig: (config) => {
+        const newConfig: ContractSpecification = {
+          ...config,
+          id: generateId(),
+        };
+
+        set((state) => ({
+          marketConfigs: [...state.marketConfigs, newConfig],
+          isDirty: true,
+        }));
+      },
+
+      updateMarketConfig: (id, updates) => {
+        set((state) => ({
+          marketConfigs: state.marketConfigs.map((config) =>
+            config.id === id ? { ...config, ...updates } : config
+          ),
+          selectedMarket: state.selectedMarket?.id === id
+            ? { ...state.selectedMarket, ...updates }
+            : state.selectedMarket,
+          isDirty: true,
+        }));
+      },
+
+      deleteMarketConfig: (id) => {
+        set((state) => ({
+          marketConfigs: state.marketConfigs.filter((config) => config.id !== id),
+          selectedMarket: state.selectedMarket?.id === id ? null : state.selectedMarket,
+          marketPreferences: {
+            ...state.marketPreferences,
+            preferredMarkets: state.marketPreferences.preferredMarkets.filter(mid => mid !== id),
+            quickAccessMarkets: state.marketPreferences.quickAccessMarkets.filter(mid => mid !== id),
+            defaultMarket: state.marketPreferences.defaultMarket === id ? '' : state.marketPreferences.defaultMarket,
+          },
+          isDirty: true,
+        }));
+      },
+
+      toggleMarketActive: (id) => {
+        set((state) => ({
+          marketConfigs: state.marketConfigs.map((config) =>
+            config.id === id ? { ...config, isActive: !config.isActive } : config
+          ),
+          isDirty: true,
+        }));
+      },
+
+      setSelectedMarket: (marketId) => {
+        const state = get();
+        const market = marketId ? state.marketConfigs.find(m => m.id === marketId) || null : null;
+        set({ selectedMarket: market, isDirty: true });
+      },
+
+      getMarketConfig: (marketId) => {
+        const state = get();
+        return state.marketConfigs.find(m => m.id === marketId) || null;
+      },
+
+      // Market preset management
+      addMarketPreset: (preset) => {
+        const newPreset: MarketPreset = {
+          ...preset,
+          id: generateId(),
+          createdAt: new Date().toISOString(),
+        };
+
+        set((state) => ({
+          marketPresets: [...state.marketPresets, newPreset],
+          isDirty: true,
+        }));
+      },
+
+      updateMarketPreset: (id, updates) => {
+        set((state) => ({
+          marketPresets: state.marketPresets.map((preset) =>
+            preset.id === id ? { ...preset, ...updates, updatedAt: new Date().toISOString() } : preset
+          ),
+          isDirty: true,
+        }));
+      },
+
+      deleteMarketPreset: (id) => {
+        set((state) => ({
+          marketPresets: state.marketPresets.filter((preset) => preset.id !== id),
+          isDirty: true,
+        }));
+      },
+
+      applyMarketPreset: (presetId) => {
+        const state = get();
+        const preset = state.marketPresets.find(p => p.id === presetId);
+
+        if (preset) {
+          set({
+            marketConfigs: [...preset.contractSpecs],
+            marketPreferences: {
+              ...state.marketPreferences,
+              preferredMarkets: preset.contractSpecs.map(spec => spec.id),
+              defaultMarket: preset.contractSpecs[0]?.id || '',
+            },
+            selectedMarket: preset.contractSpecs[0] || null,
+            isDirty: true,
+          });
+        }
+      },
+
+      // Market preferences management
+      updateMarketPreferences: (updates) => {
+        set((state) => ({
+          marketPreferences: { ...state.marketPreferences, ...updates },
+          isDirty: true,
+        }));
+      },
+
+      addPreferredMarket: (marketId) => {
+        set((state) => {
+          const preferredMarkets = [...state.marketPreferences.preferredMarkets];
+          if (!preferredMarkets.includes(marketId)) {
+            preferredMarkets.push(marketId);
+          }
+
+          return {
+            marketPreferences: { ...state.marketPreferences, preferredMarkets },
+            isDirty: true,
+          };
+        });
+      },
+
+      removePreferredMarket: (marketId) => {
+        set((state) => ({
+          marketPreferences: {
+            ...state.marketPreferences,
+            preferredMarkets: state.marketPreferences.preferredMarkets.filter(id => id !== marketId),
+          },
+          isDirty: true,
+        }));
+      },
+
+      setDefaultMarket: (marketId) => {
+        set((state) => ({
+          marketPreferences: { ...state.marketPreferences, defaultMarket: marketId },
+          isDirty: true,
+        }));
+      },
+
+      addQuickAccessMarket: (marketId) => {
+        set((state) => {
+          const quickAccessMarkets = [...state.marketPreferences.quickAccessMarkets];
+          if (!quickAccessMarkets.includes(marketId)) {
+            quickAccessMarkets.push(marketId);
+          }
+
+          return {
+            marketPreferences: { ...state.marketPreferences, quickAccessMarkets },
+            isDirty: true,
+          };
+        });
+      },
+
+      removeQuickAccessMarket: (marketId) => {
+        set((state) => ({
+          marketPreferences: {
+            ...state.marketPreferences,
+            quickAccessMarkets: state.marketPreferences.quickAccessMarkets.filter(id => id !== marketId),
+          },
+          isDirty: true,
+        }));
+      },
+
+      // Market utility functions
+      getTradeDefaults: (marketId, accountBalance = 100000, entryPrice) => {
+        const state = get();
+        const market = marketId
+          ? state.marketConfigs.find(m => m.id === marketId)
+          : state.selectedMarket;
+
+        if (!market) return {};
+
+        return generateTradeDefaults(market, accountBalance, entryPrice);
+      },
+
+      calculatePositionSize: (marketId, riskAmount, entryPrice, stopPrice) => {
+        const state = get();
+        const market = state.marketConfigs.find(m => m.id === marketId);
+
+        if (!market) return 0;
+
+        return calculatePositionSize(
+          riskAmount,
+          entryPrice,
+          stopPrice,
+          market,
+          market.riskDefaults.defaultPositionSizing
+        );
+      },
+
+      validateMarketData: (marketId, data) => {
+        const state = get();
+        const market = state.marketConfigs.find(m => m.id === marketId);
+
+        if (!market) return ['Market configuration not found'];
+
+        const errors: string[] = [];
+
+        // Validate prices
+        if (data.entryPrice && !marketValidation.validatePrice(data.entryPrice, market)) {
+          errors.push(`Entry price must be a valid increment of ${market.tickSize}`);
+        }
+
+        if (data.exitPrice && !marketValidation.validatePrice(data.exitPrice, market)) {
+          errors.push(`Exit price must be a valid increment of ${market.tickSize}`);
+        }
+
+        if (data.stopLoss && !marketValidation.validatePrice(data.stopLoss, market)) {
+          errors.push(`Stop loss must be a valid increment of ${market.tickSize}`);
+        }
+
+        if (data.takeProfit && !marketValidation.validatePrice(data.takeProfit, market)) {
+          errors.push(`Take profit must be a valid increment of ${market.tickSize}`);
+        }
+
+        // Validate quantity
+        if (data.quantity && !marketValidation.validateQuantity(data.quantity, market)) {
+          errors.push(`Quantity must be a positive integer not exceeding ${market.riskDefaults.maxPositionSize}`);
+        }
+
+        return errors;
+      },
+
       // Utility functions
       markDirty: () => set({ isDirty: true }),
       markClean: () => set({ isDirty: false }),
@@ -257,6 +541,10 @@ const useSettingsStore = create<SettingsStore>()(
           preferences: state.preferences,
           strategies: state.strategies,
           commissions: state.commissions,
+          marketConfigs: state.marketConfigs,
+          marketPresets: state.marketPresets,
+          marketPreferences: state.marketPreferences,
+          selectedMarket: state.selectedMarket,
           timestamp: new Date().toISOString(),
         }));
         set({ isDirty: false });
@@ -267,10 +555,15 @@ const useSettingsStore = create<SettingsStore>()(
           const saved = localStorage.getItem('trading-diary-settings');
           if (saved) {
             const data = JSON.parse(saved);
+            const currentState = get();
             set({
               preferences: { ...DEFAULT_PREFERENCES, ...data.preferences },
               strategies: data.strategies || [],
-              commissions: data.commissions || get().commissions,
+              commissions: data.commissions || currentState.commissions,
+              marketConfigs: data.marketConfigs || currentState.marketConfigs,
+              marketPresets: data.marketPresets || currentState.marketPresets,
+              marketPreferences: { ...currentState.marketPreferences, ...data.marketPreferences },
+              selectedMarket: data.selectedMarket || currentState.selectedMarket,
               isDirty: false,
             });
           }
@@ -285,18 +578,27 @@ const useSettingsStore = create<SettingsStore>()(
           preferences: state.preferences,
           strategies: state.strategies,
           commissions: state.commissions,
+          marketConfigs: state.marketConfigs,
+          marketPresets: state.marketPresets,
+          marketPreferences: state.marketPreferences,
+          selectedMarket: state.selectedMarket,
           exportedAt: new Date().toISOString(),
-          version: '1.0',
+          version: '1.1',
         }, null, 2);
       },
 
       importSettings: (data) => {
         try {
           const parsed = JSON.parse(data);
+          const currentState = get();
           set({
             preferences: { ...DEFAULT_PREFERENCES, ...parsed.preferences },
             strategies: parsed.strategies || [],
-            commissions: parsed.commissions || get().commissions,
+            commissions: parsed.commissions || currentState.commissions,
+            marketConfigs: parsed.marketConfigs || currentState.marketConfigs,
+            marketPresets: parsed.marketPresets || currentState.marketPresets,
+            marketPreferences: { ...currentState.marketPreferences, ...parsed.marketPreferences },
+            selectedMarket: parsed.selectedMarket || currentState.selectedMarket,
             isDirty: true,
           });
         } catch (error) {
@@ -312,6 +614,10 @@ const useSettingsStore = create<SettingsStore>()(
         preferences: state.preferences,
         strategies: state.strategies,
         commissions: state.commissions,
+        marketConfigs: state.marketConfigs,
+        marketPresets: state.marketPresets,
+        marketPreferences: state.marketPreferences,
+        selectedMarket: state.selectedMarket,
       }),
     }
   )

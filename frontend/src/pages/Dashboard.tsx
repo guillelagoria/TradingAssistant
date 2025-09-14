@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, FileBarChart } from 'lucide-react';
+import { Download, FileBarChart, Zap, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTradeStore } from '@/store/tradeStore';
 import {
   StatsCards,
@@ -13,6 +14,7 @@ import { WhatIfAnalysis } from '@/components/analysis';
 import { ExportDialog } from '@/components/export';
 
 function Dashboard() {
+  const navigate = useNavigate();
   const { fetchTrades, refreshStats, trades, stats } = useTradeStore();
   
   // Refs for chart elements to capture for PDF export
@@ -31,6 +33,16 @@ function Dashboard() {
   useEffect(() => {
     refreshStats();
   }, [trades, refreshStats]);
+
+  // Force refresh when the component receives focus (when navigating back from form)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchTrades();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchTrades]);
 
   // Get chart elements for PDF export
   const getChartElements = (): HTMLElement[] => {
@@ -130,6 +142,26 @@ function Dashboard() {
           days={90} 
           className="lg:col-span-2"
         />
+      </div>
+
+      {/* Floating Action Button - Quick Trade Entry */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={() => navigate('/trades/wizard')}
+          size="lg"
+          className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all duration-200 hover:scale-105"
+        >
+          <div className="flex flex-col items-center">
+            <Zap className="h-5 w-5" />
+            <Plus className="h-3 w-3 -mt-1" />
+          </div>
+          <span className="sr-only">Quick Trade Entry</span>
+        </Button>
+
+        {/* Tooltip */}
+        <div className="absolute bottom-16 right-0 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          Quick Trade Entry
+        </div>
       </div>
     </div>
   );
