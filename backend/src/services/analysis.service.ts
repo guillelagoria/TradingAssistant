@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { TradeService } from './trade.service';
-import { calculateTradeStats, calculateTradeMetrics } from '../utils/calculations';
+import { calculateTradeStats } from '../utils/calculations';
 
 const prisma = new PrismaClient();
 
@@ -14,8 +14,8 @@ interface WhatIfOptions {
 interface GenerateWhatIfOptions {
   tradeIds?: string[];
   scenarios?: string[];
-  customScenarios?: any[];
-  accountSize?: number;
+  _customScenarios?: any[];
+  _accountSize?: number;
 }
 
 interface SuggestionOptions {
@@ -227,10 +227,10 @@ export class AnalysisService {
 
       // Run analysis with custom parameters
       const analysis = await this.runWhatIfCalculations(
-        trades, 
-        options.scenarios, 
-        options.accountSize,
-        options.customScenarios
+        trades,
+        options.scenarios,
+        options._accountSize,
+        options._customScenarios
       );
 
       logger.info(`Generated custom What-If analysis for user ${userId}`);
@@ -321,10 +321,10 @@ export class AnalysisService {
    * Run What-If calculations (simplified backend version)
    */
   private static async runWhatIfCalculations(
-    trades: any[], 
-    scenarios?: string[], 
-    accountSize: number = 100000,
-    customScenarios?: any[]
+    trades: any[],
+    scenarios?: string[],
+    _accountSize: number = 100000,
+    _customScenarios?: any[]
   ) {
     // This is a simplified version - in a real implementation,
     // you'd port the frontend calculation logic here
@@ -337,7 +337,7 @@ export class AnalysisService {
 
     const results = scenariosToRun.map(scenario => {
       // Simplified scenario calculations
-      const improvement = this.calculateScenarioImprovement(trades, scenario, accountSize);
+      const improvement = this.calculateScenarioImprovement(trades, scenario, _accountSize);
       
       return {
         scenario,
@@ -372,7 +372,7 @@ export class AnalysisService {
   /**
    * Calculate simplified scenario improvements
    */
-  private static calculateScenarioImprovement(trades: any[], scenario: WhatIfScenario, accountSize: number) {
+  private static calculateScenarioImprovement(trades: any[], scenario: WhatIfScenario, _accountSize: number) {
     // Simplified calculation - real implementation would be more complex
     const totalPnL = trades.reduce((sum, t) => sum + (t.netPnl || 0), 0);
     const winningTrades = trades.filter(t => (t.pnl || 0) > 0).length;

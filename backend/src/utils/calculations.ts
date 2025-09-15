@@ -1,6 +1,5 @@
 import { TradeDirection } from '@prisma/client';
 import { marketService } from '../services/market.service';
-import { ContractSpecification } from '../types/market';
 
 export interface TradeStats {
   totalTrades: number;
@@ -130,7 +129,6 @@ export function calculateTradeMetrics(tradeData: any) {
     exitPrice,
     quantity,
     stopLoss,
-    takeProfit,
     maxFavorablePrice,
     maxAdversePrice,
     market = 'ES' // Default to ES if not specified
@@ -212,16 +210,7 @@ export function calculateTradeMetrics(tradeData: any) {
   };
 }
 
-/**
- * Calculate commission based on simple percentage model
- * @deprecated Use marketService.calculateCommission() for market-aware calculations
- * In a real app, this would be more sophisticated based on broker rules
- */
-function calculateCommission(price: number, quantity: number, rate: number = 0.001): number {
-  // Simple percentage-based commission (0.1% default)
-  // This is a fallback for legacy calculations
-  return price * quantity * rate;
-}
+// Removed unused _calculateCommission function - use marketService.calculateCommission() instead
 
 /**
  * Market-aware commission calculation

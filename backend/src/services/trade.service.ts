@@ -1,6 +1,5 @@
 import { TradeDirection, PrismaClient } from '@prisma/client';
 import { calculateTradeMetrics as calcMetrics } from '../utils/calculations';
-import { marketService } from './market.service';
 
 const prisma = new PrismaClient();
 
@@ -13,6 +12,10 @@ interface TradeData {
   takeProfit?: number | null;
   maxFavorablePrice?: number | null;
   maxAdversePrice?: number | null;
+  // NEW: BE Analysis fields
+  maxPotentialProfit?: number | null;
+  maxDrawdown?: number | null;
+  breakEvenWorked?: boolean;
   commission?: number;
   market?: string;
 }

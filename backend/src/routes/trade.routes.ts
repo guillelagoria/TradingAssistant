@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
-import { authenticate } from '../middleware/auth';
+// import { authenticate } from '../middleware/auth';
 import { handleValidationErrors, validateTradeData, validatePriceTicks, validateMarketExists } from '../middleware/validation';
 import {
   createTrade,
@@ -54,6 +54,10 @@ router.post(
     body('takeProfit').optional().isFloat({ min: 0 }),
     body('maxFavorablePrice').optional().isFloat({ min: 0 }),
     body('maxAdversePrice').optional().isFloat({ min: 0 }),
+    // BE Analysis fields
+    body('maxPotentialProfit').optional().isFloat({ min: 0 }),
+    body('maxDrawdown').optional().isFloat({ min: 0 }),
+    body('breakEvenWorked').optional().isBoolean(),
     body('strategy').optional().isString(),
     body('timeframe').optional().isString(),
     body('notes').optional().isString(),
@@ -86,6 +90,10 @@ router.put(
     body('takeProfit').optional().isFloat({ min: 0 }),
     body('maxFavorablePrice').optional().isFloat({ min: 0 }),
     body('maxAdversePrice').optional().isFloat({ min: 0 }),
+    // BE Analysis fields
+    body('maxPotentialProfit').optional().isFloat({ min: 0 }),
+    body('maxDrawdown').optional().isFloat({ min: 0 }),
+    body('breakEvenWorked').optional().isBoolean(),
     body('strategy').optional().isString(),
     body('timeframe').optional().isString(),
     body('notes').optional().isString(),

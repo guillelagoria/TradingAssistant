@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../server';
 import { calculateTradeMetrics } from '../services/trade.service';
+import { BECalculationsService } from '../services/bECalculations.service';
 
 export const getTrades = async (
   req: AuthRequest,
@@ -139,6 +140,29 @@ export const createTrade = async (
 
     console.log('Trade data before metrics calculation:', tradeData);
 
+    // Validate BE fields if they are provided
+    if (req.body.maxPotentialProfit !== undefined || req.body.maxDrawdown !== undefined || req.body.breakEvenWorked !== undefined) {
+      const beValidation = BECalculationsService.validateBEFields(tradeData);
+
+      if (!beValidation.isValid) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Invalid Break-Even Analysis fields',
+            errors: beValidation.errors,
+            warnings: beValidation.warnings,
+            statusCode: 400
+          }
+        });
+        return;
+      }
+
+      // Log warnings if any
+      if (beValidation.warnings.length > 0) {
+        console.warn('BE field warnings for trade:', beValidation.warnings);
+      }
+    }
+
     // Calculate trade metrics
     const metrics = calculateTradeMetrics(tradeData);
 
@@ -160,6 +184,10 @@ export const createTrade = async (
       takeProfit: tradeData.takeProfit || null,
       maxFavorablePrice: tradeData.maxFavorablePrice || null,
       maxAdversePrice: tradeData.maxAdversePrice || null,
+      // NEW: BE Analysis fields
+      maxPotentialProfit: tradeData.maxPotentialProfit || null,
+      maxDrawdown: tradeData.maxDrawdown || null,
+      breakEvenWorked: tradeData.breakEvenWorked || false,
       timeframe: tradeData.timeframe || null,
       result: tradeData.result || null,
       notes: tradeData.notes || null,
@@ -221,6 +249,30 @@ export const updateTrade = async (
       entryDate: req.body.entryDate ? new Date(req.body.entryDate) : undefined,
       exitDate: req.body.exitDate ? new Date(req.body.exitDate) : undefined
     };
+
+    // Validate BE fields if they are being updated
+    if (req.body.maxPotentialProfit !== undefined || req.body.maxDrawdown !== undefined || req.body.breakEvenWorked !== undefined) {
+      const mergedTradeData = { ...existingTrade, ...updateData };
+      const beValidation = BECalculationsService.validateBEFields(mergedTradeData);
+
+      if (!beValidation.isValid) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Invalid Break-Even Analysis fields',
+            errors: beValidation.errors,
+            warnings: beValidation.warnings,
+            statusCode: 400
+          }
+        });
+        return;
+      }
+
+      // Log warnings if any
+      if (beValidation.warnings.length > 0) {
+        console.warn('BE field warnings for trade update:', beValidation.warnings);
+      }
+    }
 
     // Recalculate metrics if price data changed
     const metrics = calculateTradeMetrics({ ...existingTrade, ...updateData });

@@ -17,7 +17,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Upload, X, TrendingUp, TrendingDown, Calculator, Image as ImageIcon } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Loader2, Upload, X, TrendingUp, TrendingDown, Calculator, Image as ImageIcon, Target, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import { TradeFormData, TradeDirection, Strategy, Timeframe, OrderType } from '@/types';
@@ -45,6 +47,17 @@ interface FormValues extends Omit<TradeFormData, 'entryDate' | 'exitDate'> {
   entryDate: string;
   exitDate?: string;
   mood?: number;
+  maxPotentialProfit?: number;
+  maxDrawdown?: number;
+  breakEvenWorked?: boolean;
+  // Points-based entry fields
+  stopLossPoints?: number;
+  takeProfitPoints?: number;
+  exitPricePoints?: number;
+  maxFavorablePricePoints?: number;
+  maxAdversePricePoints?: number;
+  maxPotentialProfitPoints?: number;
+  maxDrawdownPoints?: number;
 }
 
 export default function NewTradeForm({
@@ -81,11 +94,68 @@ export default function NewTradeForm({
       notes: initialData?.notes || '',
       maxFavorablePrice: initialData?.maxFavorablePrice || undefined,
       maxAdversePrice: initialData?.maxAdversePrice || undefined,
+      maxPotentialProfit: initialData?.maxPotentialProfit || undefined,
+      maxDrawdown: initialData?.maxDrawdown || undefined,
+      breakEvenWorked: initialData?.breakEvenWorked || false,
       mood: 3, // Default neutral mood
+      // Points-based defaults - convert from prices if available
+      stopLossPoints: initialData?.stopLoss && initialData?.entryPrice ?
+        Math.abs(initialData.stopLoss - initialData.entryPrice) : undefined,
+      takeProfitPoints: initialData?.takeProfit && initialData?.entryPrice ?
+        Math.abs(initialData.takeProfit - initialData.entryPrice) : undefined,
+      exitPricePoints: initialData?.exitPrice && initialData?.entryPrice ?
+        Math.abs(initialData.exitPrice - initialData.entryPrice) : undefined,
+      maxFavorablePricePoints: initialData?.maxFavorablePrice && initialData?.entryPrice ?
+        Math.abs(initialData.maxFavorablePrice - initialData.entryPrice) : undefined,
+      maxAdversePricePoints: initialData?.maxAdversePrice && initialData?.entryPrice ?
+        Math.abs(initialData.maxAdversePrice - initialData.entryPrice) : undefined,
+      maxPotentialProfitPoints: initialData?.maxPotentialProfit && initialData?.entryPrice ?
+        Math.abs(initialData.maxPotentialProfit - initialData.entryPrice) : undefined,
+      maxDrawdownPoints: initialData?.maxDrawdown && initialData?.entryPrice ?
+        Math.abs(initialData.maxDrawdown - initialData.entryPrice) : undefined,
     }
   });
 
   const watchedValues = form.watch();
+
+  // Convert points to absolute prices based on direction
+  const convertPointsToPrice = useCallback((points: number | undefined, isStop: boolean = false, isReverse: boolean = false): number | undefined => {
+    if (!points || points <= 0 || !watchedValues.entryPrice || !selectedMarket) return undefined;
+
+    const entryPrice = watchedValues.entryPrice;
+    const direction = watchedValues.direction;
+
+    if (direction === TradeDirection.LONG) {
+      if (isStop || isReverse) {
+        return entryPrice - points;
+      } else {
+        return entryPrice + points;
+      }
+    } else { // SHORT
+      if (isStop || isReverse) {
+        return entryPrice + points;
+      } else {
+        return entryPrice - points;
+      }
+    }
+  }, [watchedValues.entryPrice, watchedValues.direction, selectedMarket]);
+
+  // Calculate absolute prices from points
+  const absolutePrices = useMemo(() => {
+    return {
+      stopLoss: convertPointsToPrice(watchedValues.stopLossPoints, true),
+      takeProfit: convertPointsToPrice(watchedValues.takeProfitPoints),
+      exitPrice: watchedValues.exitPricePoints ?
+        (watchedValues.direction === TradeDirection.LONG ?
+          watchedValues.entryPrice + (watchedValues.exitPricePoints * (watchedValues.exitPricePoints > 0 ? 1 : -1)) :
+          watchedValues.entryPrice - (watchedValues.exitPricePoints * (watchedValues.exitPricePoints > 0 ? 1 : -1))
+        ) : undefined,
+      maxFavorablePrice: convertPointsToPrice(watchedValues.maxFavorablePricePoints),
+      maxAdversePrice: convertPointsToPrice(watchedValues.maxAdversePricePoints, true),
+      maxPotentialProfit: convertPointsToPrice(watchedValues.maxPotentialProfitPoints),
+      maxDrawdown: convertPointsToPrice(watchedValues.maxDrawdownPoints, true)
+    };
+  }, [watchedValues, convertPointsToPrice]);
 
   // Real-time calculation with debounce
   const calculations = useMemo(() => {
@@ -94,19 +164,19 @@ export default function NewTradeForm({
     }
 
     // Only calculate if we have exit price for P&L calculation
-    if (!watchedValues.exitPrice) {
+    if (!absolutePrices.exitPrice) {
       return null;
     }
 
     return calculateTradeMetrics(
       watchedValues.entryPrice,
-      watchedValues.exitPrice,
-      watchedValues.stopLoss || 0,
-      watchedValues.takeProfit || 0,
+      absolutePrices.exitPrice,
+      absolutePrices.stopLoss || 0,
+      absolutePrices.takeProfit || 0,
       selectedMarket,
-      watchedValues.maxFavorablePrice
+      absolutePrices.maxFavorablePrice
     );
-  }, [watchedValues, selectedMarket]);
+  }, [watchedValues, selectedMarket, absolutePrices]);
 
   // Handle market selection and update selected market
   useEffect(() => {
@@ -150,6 +220,14 @@ export default function NewTradeForm({
       entryDate: new Date(data.entryDate),
       exitDate: data.exitDate ? new Date(data.exitDate) : undefined,
       imageUrl: imagePreview || undefined,
+      // Convert points back to absolute prices for storage
+      stopLoss: absolutePrices.stopLoss,
+      takeProfit: absolutePrices.takeProfit,
+      exitPrice: absolutePrices.exitPrice,
+      maxFavorablePrice: absolutePrices.maxFavorablePrice,
+      maxAdversePrice: absolutePrices.maxAdversePrice,
+      maxPotentialProfit: absolutePrices.maxPotentialProfit,
+      maxDrawdown: absolutePrices.maxDrawdown,
     };
 
     const validationErrors = validateTradeData(tradeData);
@@ -277,15 +355,16 @@ export default function NewTradeForm({
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">New Trade Entry</h2>
-        <p className="text-muted-foreground">
-          Record your trading activity with detailed analysis
-        </p>
-      </div>
+    <TooltipProvider>
+      <div className="max-w-2xl mx-auto p-6 space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight">New Trade Entry</h2>
+          <p className="text-muted-foreground">
+            Record your trading activity with detailed analysis
+          </p>
+        </div>
 
-      <Form {...form}>
+        <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
           {/* Market Selection */}
           <Card>
@@ -484,19 +563,39 @@ export default function NewTradeForm({
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
-                        name="stopLoss"
+                        name="stopLossPoints"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Stop Loss</FormLabel>
+                            <FormLabel className="flex items-center space-x-2">
+                              <span>Stop Loss (points)</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Enter the number of points from your entry price where you want to set your stop loss.
+                                    For LONG: Stop = Entry - Points | For SHORT: Stop = Entry + Points
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </FormLabel>
                             <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                {...field}
-                                value={field.value || ''}
-                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                              />
+                              <div className="space-y-2">
+                                <Input
+                                  type="number"
+                                  step={selectedMarket?.tickSize || "0.01"}
+                                  placeholder="0"
+                                  {...field}
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                />
+                                {field.value && watchedValues.entryPrice && (
+                                  <p className="text-xs text-muted-foreground">
+                                    = {absolutePrices.stopLoss?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                  </p>
+                                )}
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -505,19 +604,39 @@ export default function NewTradeForm({
 
                       <FormField
                         control={form.control}
-                        name="takeProfit"
+                        name="takeProfitPoints"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Take Profit</FormLabel>
+                            <FormLabel className="flex items-center space-x-2">
+                              <span>Take Profit (points)</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Enter the number of points from your entry price where you want to take profit.
+                                    For LONG: Profit = Entry + Points | For SHORT: Profit = Entry - Points
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </FormLabel>
                             <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                {...field}
-                                value={field.value || ''}
-                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                              />
+                              <div className="space-y-2">
+                                <Input
+                                  type="number"
+                                  step={selectedMarket?.tickSize || "0.01"}
+                                  placeholder="0"
+                                  {...field}
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                />
+                                {field.value && watchedValues.entryPrice && (
+                                  <p className="text-xs text-muted-foreground">
+                                    = {absolutePrices.takeProfit?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                  </p>
+                                )}
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -525,21 +644,69 @@ export default function NewTradeForm({
                       />
                     </div>
 
+                    {/* Risk/Reward Summary */}
+                    {watchedValues.stopLossPoints && watchedValues.takeProfitPoints && watchedValues.entryPrice && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-4 p-3 bg-muted/30 rounded-lg border"
+                      >
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="space-y-1">
+                            <p className="text-muted-foreground">Risk/Reward Ratio</p>
+                            <p className="font-semibold text-lg">
+                              1:{(watchedValues.takeProfitPoints / watchedValues.stopLossPoints).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <p className="text-muted-foreground">Risk: {watchedValues.stopLossPoints} pts</p>
+                            <p className="text-muted-foreground">Reward: {watchedValues.takeProfitPoints} pts</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
                     <FormField
                       control={form.control}
-                      name="exitPrice"
+                      name="exitPricePoints"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Exit Price (if closed)</FormLabel>
+                          <FormLabel className="flex items-center space-x-2">
+                            <span>Exit Price (points from entry)</span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Enter points from entry where you exited. Use positive numbers for profit, negative for loss.
+                                  Example: +5 means you gained 5 points, -3 means you lost 3 points from entry.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </FormLabel>
                           <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="Leave empty for open position"
-                              {...field}
-                              value={field.value || ''}
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                            />
+                            <div className="space-y-2">
+                              <Input
+                                type="number"
+                                step={selectedMarket?.tickSize || "0.01"}
+                                placeholder="Leave empty for open position (use + for profit, - for loss)"
+                                {...field}
+                                value={field.value || ''}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              />
+                              {field.value && watchedValues.entryPrice && (
+                                <p className="text-xs text-muted-foreground">
+                                  = {absolutePrices.exitPrice?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                  <span className={cn(
+                                    "ml-2 font-medium",
+                                    field.value > 0 ? "text-green-600" : field.value < 0 ? "text-red-600" : "text-muted-foreground"
+                                  )}>
+                                    ({field.value > 0 ? '+' : ''}{field.value} pts)
+                                  </span>
+                                </p>
+                              )}
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -702,19 +869,26 @@ export default function NewTradeForm({
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
-                            name="maxFavorablePrice"
+                            name="maxFavorablePricePoints"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Max Favorable Price</FormLabel>
+                                <FormLabel>Max Favorable (points)</FormLabel>
                                 <FormControl>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    {...field}
-                                    value={field.value || ''}
-                                    onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                                  />
+                                  <div className="space-y-2">
+                                    <Input
+                                      type="number"
+                                      step={selectedMarket?.tickSize || "0.01"}
+                                      placeholder="0"
+                                      {...field}
+                                      value={field.value || ''}
+                                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    />
+                                    {field.value && watchedValues.entryPrice && (
+                                      <p className="text-xs text-muted-foreground">
+                                        = {absolutePrices.maxFavorablePrice?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                      </p>
+                                    )}
+                                  </div>
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -723,20 +897,120 @@ export default function NewTradeForm({
 
                           <FormField
                             control={form.control}
-                            name="maxAdversePrice"
+                            name="maxAdversePricePoints"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Max Adverse Price</FormLabel>
+                                <FormLabel>Max Adverse (points)</FormLabel>
                                 <FormControl>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    {...field}
-                                    value={field.value || ''}
-                                    onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                  <div className="space-y-2">
+                                    <Input
+                                      type="number"
+                                      step={selectedMarket?.tickSize || "0.01"}
+                                      placeholder="0"
+                                      {...field}
+                                      value={field.value || ''}
+                                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    />
+                                    {field.value && watchedValues.entryPrice && (
+                                      <p className="text-xs text-muted-foreground">
+                                        = {absolutePrices.maxAdversePrice?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {/* Break-Even Analysis Section */}
+                        <div className="space-y-4">
+                          <Separator />
+                          <div className="flex items-center space-x-2">
+                            <Target className="w-4 h-4 text-muted-foreground" />
+                            <FormLabel className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                              Break-Even Analysis
+                            </FormLabel>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="maxPotentialProfitPoints"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Max Profit (points)</FormLabel>
+                                  <FormControl>
+                                    <div className="space-y-2">
+                                      <Input
+                                        type="number"
+                                        step={selectedMarket?.tickSize || "0.01"}
+                                        placeholder="Highest profit points reached"
+                                        {...field}
+                                        value={field.value || ''}
+                                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                      />
+                                      {field.value && watchedValues.entryPrice && (
+                                        <p className="text-xs text-muted-foreground">
+                                          = {absolutePrices.maxPotentialProfit?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="maxDrawdownPoints"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Max Drawdown (points)</FormLabel>
+                                  <FormControl>
+                                    <div className="space-y-2">
+                                      <Input
+                                        type="number"
+                                        step={selectedMarket?.tickSize || "0.01"}
+                                        placeholder="Deepest drawdown points"
+                                        {...field}
+                                        value={field.value || ''}
+                                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                      />
+                                      {field.value && watchedValues.entryPrice && (
+                                        <p className="text-xs text-muted-foreground">
+                                          = {absolutePrices.maxDrawdown?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="breakEvenWorked"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value || false}
+                                    onCheckedChange={field.onChange}
                                   />
                                 </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="cursor-pointer">
+                                    Break-Even Protection Worked
+                                  </FormLabel>
+                                  <p className="text-xs text-muted-foreground">
+                                    Check if moving stop-loss to break-even protected this trade
+                                  </p>
+                                </div>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -800,5 +1074,6 @@ export default function NewTradeForm({
         </form>
       </Form>
     </div>
+    </TooltipProvider>
   );
 }

@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 /**
  * Get all available markets
  */
-export const getMarkets = async (req: Request, res: Response): Promise<void> => {
+export const getMarkets = async (_req: Request, res: Response): Promise<void> => {
   try {
     const markets = marketService.getAllMarkets();
 
@@ -435,7 +435,7 @@ export const calculatePositionSize = async (req: Request, res: Response): Promis
  * Get all available markets in simplified format
  * NEW ENDPOINT: Returns MarketInfo[] instead of full ContractSpecification[]
  */
-export const getMarketsSimplified = async (req: Request, res: Response): Promise<void> => {
+export const getMarketsSimplified = async (_req: Request, res: Response): Promise<void> => {
   try {
     const markets = getAllMarketsInfo();
 

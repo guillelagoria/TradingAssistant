@@ -54,6 +54,9 @@ model Trade {
   takeProfit        Float?
   maxFavorablePrice Float?
   maxAdversePrice   Float?
+  maxPotentialProfit Float?        // Maximum profit price reached before reversal
+  maxDrawdown        Float?        // Maximum drawdown before going to profit
+  breakEvenWorked    Boolean?      // Whether breakeven protected the trade
   timeframe         String?
   result            TradeResult?
   notes             String?

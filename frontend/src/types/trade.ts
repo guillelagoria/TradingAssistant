@@ -68,6 +68,9 @@ export interface TradeFormData {
   // Analysis Tab
   maxFavorablePrice?: number;
   maxAdversePrice?: number;
+  maxPotentialProfit?: number;  // NEW: Max profit price reached before reversal
+  maxDrawdown?: number;          // NEW: Max drawdown before going to profit
+  breakEvenWorked?: boolean;     // NEW: Whether BE protected the trade
   notes?: string;
   strategy: Strategy;
   timeframe: Timeframe;
@@ -81,7 +84,7 @@ export interface Trade extends TradeFormData {
   status: TradeStatus;
   createdAt: Date;
   updatedAt: Date;
-  
+
   // Calculated fields
   pnl: number;
   pnlPercentage: number;
@@ -90,6 +93,11 @@ export interface Trade extends TradeFormData {
   commission: number;
   netPnl: number;
   holdingPeriod?: number; // in minutes
+
+  // BE Analysis metrics (calculated)
+  beEfficiency?: number;       // How well BE performed
+  profitCaptureRate?: number;  // actualProfit / maxPotentialProfit
+  drawdownTolerance?: number;  // maxDrawdown / stopLossDistance
 }
 
 export interface TradeCalculationResult {
@@ -102,6 +110,12 @@ export interface TradeCalculationResult {
   maxDrawdown?: number;
   maxGain?: number;
   holdingPeriod?: number;
+
+  // BE Analysis results
+  beEfficiency?: number;
+  profitCaptureRate?: number;
+  drawdownTolerance?: number;
+  optimalBEDistance?: number;
 }
 
 export interface TradeFilters {
@@ -209,6 +223,13 @@ export interface TradeStats {
   avgEfficiency: number;
   totalCommission: number;
   netPnl: number;
+
+  // BE Statistics
+  tradesWithBE: number;
+  beSuccessRate: number;      // % of times BE worked
+  avgProfitCaptureRate: number; // Average profit capture
+  avgDrawdownTolerance: number; // Average drawdown tolerance
+  beProtectedProfit: number;   // Total profit protected by BE
 }
 
 export interface PositionSizeCalculation {
@@ -277,6 +298,9 @@ export interface NewTrade {
   // Optional fields
   maxFavorablePrice?: number;
   maxAdversePrice?: number;
+  maxPotentialProfit?: number;  // NEW
+  maxDrawdown?: number;          // NEW
+  breakEvenWorked?: boolean;     // NEW
   notes?: string;
 
   // Auto-calculated fields
@@ -303,6 +327,9 @@ export interface TradeFormState {
   imageUrl: string;
   maxFavorablePrice: string;
   maxAdversePrice: string;
+  maxPotentialProfit: string;   // NEW
+  maxDrawdown: string;           // NEW
+  breakEvenWorked: boolean;      // NEW
   notes: string;
 }
 

@@ -4,11 +4,12 @@ import { Download, FileBarChart, Zap, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTradeStore } from '@/store/tradeStore';
 import {
-  StatsCards,
-  PnLChart,
-  WinRateChart,
-  DailyPnLChart,
-  EfficiencyChart,
+  AnimatedStatsCards,
+  AnimatedPnLChart,
+  AnimatedWinRateChart,
+  AnimatedDailyPnLChart,
+  AnimatedEfficiencyChart,
+  AnimatedBEStatsCard,
 } from '@/components/dashboard';
 import { WhatIfAnalysis } from '@/components/analysis';
 import { ExportDialog } from '@/components/export';
@@ -100,14 +101,14 @@ function Dashboard() {
         </div>
       </div>
       
-      {/* Stats Cards */}
-      <StatsCards />
-      
+      {/* Stats Cards - ANIMATED VERSION */}
+      <AnimatedStatsCards />
+
       {/* Main Charts Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* P&L Evolution Chart */}
         <div ref={pnlChartRef}>
-          <PnLChart height={350} className="lg:col-span-2" />
+          <AnimatedPnLChart height={350} className="lg:col-span-2" />
         </div>
       </div>
       
@@ -115,20 +116,28 @@ function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Win Rate Donut Chart */}
         <div ref={winRateChartRef}>
-          <WinRateChart height={300} />
+          <AnimatedWinRateChart height={300} />
         </div>
-        
+
         {/* Daily P&L Bar Chart */}
         <div ref={dailyPnlChartRef}>
-          <DailyPnLChart height={300} days={21} />
+          <AnimatedDailyPnLChart height={300} days={21} />
         </div>
         
         {/* Efficiency Scatter Plot */}
         <div ref={efficiencyChartRef}>
-          <EfficiencyChart height={300} />
+          <AnimatedEfficiencyChart height={300} />
         </div>
       </div>
-      
+
+      {/* Break-Even Analysis Section */}
+      <div className="space-y-6">
+        <AnimatedBEStatsCard
+          refreshTrigger={trades.length}
+          onViewDetails={() => navigate('/analysis/break-even')}
+        />
+      </div>
+
       {/* What-If Analysis Section */}
       <div className="space-y-6">
         <WhatIfAnalysis />
@@ -137,9 +146,9 @@ function Dashboard() {
       {/* Additional Analysis Section */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Extended Daily P&L for longer period */}
-        <DailyPnLChart 
-          height={280} 
-          days={90} 
+        <AnimatedDailyPnLChart
+          height={280}
+          days={90}
           className="lg:col-span-2"
         />
       </div>

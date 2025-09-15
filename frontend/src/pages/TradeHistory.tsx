@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TradeTable, TradeFilters, TradeDetails } from '@/components/trades';
-import { StatsCards } from '@/components/dashboard';
+import { AnimatedStatsCards } from '@/components/dashboard';
 import { ConfirmDialog } from '@/components/shared';
 import { useTradeStore } from '@/store/tradeStore';
 import { Trade } from '@/types';
@@ -187,7 +187,7 @@ function TradeHistory() {
       </div>
 
       {/* Stats Cards */}
-      <StatsCards />
+      <AnimatedStatsCards />
 
       {/* Search and Actions Bar */}
       <Card>

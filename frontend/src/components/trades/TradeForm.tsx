@@ -1,6 +1,9 @@
-// Legacy TradeForm - now uses EnhancedTradeForm for better keyboard navigation
+// Modern simplified TradeForm - uses NewTradeForm for better UX
 import React from 'react';
-import EnhancedTradeForm from './EnhancedTradeForm';
+import NewTradeForm from './NewTradeForm';
+import { TradeFormData } from '@/types';
+import { tradesService } from '@/services/tradesService';
+import { toast } from 'sonner';
 
 interface TradeFormProps {
   tradeId?: string;
@@ -9,12 +12,31 @@ interface TradeFormProps {
 }
 
 function TradeForm({ tradeId, onSuccess, onCancel }: TradeFormProps) {
-  // Simply delegate to the enhanced version with keyboard navigation
+  const handleSubmit = async (tradeData: TradeFormData) => {
+    try {
+      if (tradeId) {
+        await tradesService.updateTrade(tradeId, tradeData);
+        toast.success('Trade updated successfully!');
+      } else {
+        await tradesService.createTrade(tradeData);
+        toast.success('Trade created successfully!');
+      }
+      onSuccess?.(tradeData);
+    } catch (error) {
+      console.error('Error saving trade:', error);
+      toast.error('Failed to save trade');
+    }
+  };
+
+  const handleCancel = () => {
+    onCancel?.();
+  };
+
   return (
-    <EnhancedTradeForm
-      tradeId={tradeId}
-      onSuccess={onSuccess}
-      onCancel={onCancel}
+    <NewTradeForm
+      onSubmit={handleSubmit}
+      onCancel={handleCancel}
+      isLoading={false}
     />
   );
 }
