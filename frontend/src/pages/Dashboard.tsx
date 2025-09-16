@@ -104,12 +104,9 @@ function Dashboard() {
       {/* Stats Cards - ANIMATED VERSION */}
       <AnimatedStatsCards />
 
-      {/* Main Charts Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* P&L Evolution Chart */}
-        <div ref={pnlChartRef}>
-          <AnimatedPnLChart height={350} className="lg:col-span-2" />
-        </div>
+      {/* Main P&L Chart - Full Width */}
+      <div ref={pnlChartRef}>
+        <AnimatedPnLChart height={400} />
       </div>
       
       {/* Secondary Charts Grid */}

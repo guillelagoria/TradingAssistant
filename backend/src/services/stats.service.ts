@@ -1,63 +1,31 @@
 import { Trade, Strategy } from '@prisma/client';
+import { calculateTradeStats } from '../utils/calculations';
 
 export const calculateDashboardStats = (trades: Trade[]) => {
-  const closedTrades = trades.filter(t => t.exitPrice !== null && t.netPnl !== null);
-  
-  if (closedTrades.length === 0) {
-    return {
-      totalTrades: trades.length,
-      closedTrades: 0,
-      winRate: 0,
-      totalPnL: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      profitFactor: 0,
-      bestTrade: 0,
-      worstTrade: 0,
-      avgRMultiple: 0,
-      sharpeRatio: 0
-    };
-  }
+  // Use the comprehensive calculateTradeStats function that includes streaks
+  const stats = calculateTradeStats(trades);
 
-  const wins = closedTrades.filter(t => t.netPnl! > 0);
-  const losses = closedTrades.filter(t => t.netPnl! < 0);
-  
-  const winRate = (wins.length / closedTrades.length) * 100;
-  const totalPnL = closedTrades.reduce((sum, t) => sum + t.netPnl!, 0);
-  
-  const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + t.netPnl!, 0) / wins.length : 0;
-  const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, t) => sum + t.netPnl!, 0) / losses.length) : 0;
-  
-  const totalWins = wins.reduce((sum, t) => sum + t.netPnl!, 0);
-  const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.netPnl!, 0));
-  const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
-  
-  const bestTrade = Math.max(...closedTrades.map(t => t.netPnl!));
-  const worstTrade = Math.min(...closedTrades.map(t => t.netPnl!));
-  
-  const tradesWithRMultiple = closedTrades.filter(t => t.rMultiple !== null);
-  const avgRMultiple = tradesWithRMultiple.length > 0 
-    ? tradesWithRMultiple.reduce((sum, t) => sum + t.rMultiple!, 0) / tradesWithRMultiple.length 
-    : 0;
-
-  // Simple Sharpe ratio calculation (assuming risk-free rate of 0)
-  const returns = closedTrades.map(t => t.pnlPercentage!);
-  const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-  const stdDev = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length);
-  const sharpeRatio = stdDev > 0 ? avgReturn / stdDev : 0;
-
+  // Map to the expected format for the dashboard
   return {
-    totalTrades: trades.length,
-    closedTrades: closedTrades.length,
-    winRate: Math.round(winRate * 100) / 100,
-    totalPnL: Math.round(totalPnL * 100) / 100,
-    avgWin: Math.round(avgWin * 100) / 100,
-    avgLoss: Math.round(avgLoss * 100) / 100,
-    profitFactor: Math.round(profitFactor * 100) / 100,
-    bestTrade: Math.round(bestTrade * 100) / 100,
-    worstTrade: Math.round(worstTrade * 100) / 100,
-    avgRMultiple: Math.round(avgRMultiple * 100) / 100,
-    sharpeRatio: Math.round(sharpeRatio * 100) / 100
+    totalTrades: stats.totalTrades,
+    winTrades: stats.winTrades,
+    lossTrades: stats.lossTrades,
+    breakevenTrades: stats.breakevenTrades,
+    winRate: stats.winRate,
+    totalPnl: stats.totalPnl,
+    avgWin: stats.avgWin,
+    avgLoss: stats.avgLoss,
+    profitFactor: stats.profitFactor,
+    maxWin: stats.maxWin,
+    maxLoss: stats.maxLoss,
+    avgRMultiple: stats.avgRMultiple,
+    avgEfficiency: stats.avgEfficiency,
+    totalCommission: stats.totalCommission,
+    netPnl: stats.netPnl,
+    currentWinStreak: stats.currentWinStreak,
+    currentLossStreak: stats.currentLossStreak,
+    maxWinStreak: stats.maxWinStreak,
+    maxLossStreak: stats.maxLossStreak
   };
 };
 

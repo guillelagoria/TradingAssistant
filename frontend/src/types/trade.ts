@@ -224,6 +224,12 @@ export interface TradeStats {
   totalCommission: number;
   netPnl: number;
 
+  // Streak Statistics
+  currentWinStreak: number;
+  currentLossStreak: number;
+  maxWinStreak: number;
+  maxLossStreak: number;
+
   // BE Statistics
   tradesWithBE: number;
   beSuccessRate: number;      // % of times BE worked

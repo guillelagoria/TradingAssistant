@@ -10,7 +10,9 @@ import {
   BarChart3,
   Target,
   Activity,
-  Sparkles
+  Sparkles,
+  Flame,
+  Zap
 } from 'lucide-react';
 
 interface AnimatedStatsCardsProps {
@@ -28,6 +30,9 @@ interface StatCardData {
   gradient: string;
   glowColor: string;
   delay: number;
+  // For streak cards
+  currentValue?: number;
+  maxValue?: number;
 }
 
 // Animated Counter Component
@@ -69,10 +74,18 @@ function AnimatedCounter({
   return <span ref={ref}>{prefix}0{suffix}</span>;
 }
 
-// Individual Animated Card Component
+// Individual Animated Card Component with Toggle State
 function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false); // false = show max, true = show current
   const Icon = card.icon;
+
+  // Handle card click for streak cards
+  const handleClick = () => {
+    if (card.title === "Win Streak" || card.title === "Loss Streak") {
+      setShowCurrent(!showCurrent);
+    }
+  };
 
   const cardVariants = {
     hidden: {
@@ -127,9 +140,13 @@ function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }
       whileTap={{ scale: 0.98 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
-      style={{ perspective: 1000 }}
+      onClick={handleClick}
+      style={{
+        perspective: 1000,
+        cursor: (card.title === "Win Streak" || card.title === "Loss Streak") ? "pointer" : "default"
+      }}
     >
-      <Card className="relative overflow-hidden backdrop-blur-sm bg-background/95 border-border/50 shadow-xl">
+      <Card className="relative overflow-hidden backdrop-blur-sm bg-background/95 border-border/50 shadow-xl min-h-[140px] flex flex-col">
         {/* Animated gradient background */}
         <motion.div
           className={cn("absolute inset-0 opacity-10", card.gradient)}
@@ -157,10 +174,28 @@ function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }
           }}
         />
 
-        <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {card.title}
-          </CardTitle>
+        <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3 px-4 pt-4">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {card.title}
+            </CardTitle>
+            {/* Badge for streak cards showing current mode */}
+            {(card.title === "Win Streak" || card.title === "Loss Streak") && (
+              <motion.span
+                className={cn(
+                  "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
+                  showCurrent
+                    ? "bg-blue-500/20 text-blue-500"
+                    : "bg-purple-500/20 text-purple-500"
+                )}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                {showCurrent ? "NOW" : "MAX"}
+              </motion.span>
+            )}
+          </div>
           <motion.div
             variants={iconVariants}
             initial="initial"
@@ -189,7 +224,7 @@ function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }
           </motion.div>
         </CardHeader>
 
-        <CardContent className="relative">
+        <CardContent className="relative flex-1 flex flex-col justify-between px-4 pb-4 pt-2">
           <div className="flex items-baseline gap-2">
             <motion.div
               className={cn(
@@ -204,7 +239,13 @@ function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }
               initial={{ scale: 1 }}
               animate={isHovered ? { scale: 1.05 } : { scale: 1 }}
             >
-              {card.formattedValue || card.value}
+              {/* For streak cards, show dynamic value based on toggle state */}
+              {card.title === "Win Streak" || card.title === "Loss Streak"
+                ? (showCurrent
+                    ? (card.currentValue || 0).toString()
+                    : (card.maxValue || 0).toString())
+                : (card.formattedValue || card.value)
+              }
             </motion.div>
 
             {card.trend && (
@@ -236,7 +277,13 @@ function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }
             animate={{ opacity: 1 }}
             transition={{ delay: card.delay + 0.4 }}
           >
-            {card.description}
+            {/* For streak cards, show dynamic description */}
+            {card.title === "Win Streak" || card.title === "Loss Streak"
+              ? (showCurrent
+                  ? `Current streak • Max: ${card.maxValue || 0}`
+                  : `Historical max • Current: ${card.currentValue || 0}`)
+              : card.description
+            }
           </motion.p>
 
           {/* Animated bottom border */}
@@ -263,6 +310,9 @@ function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }
 function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
   const { stats } = useTradeStore();
 
+  // Debug: Log the full stats object
+  console.log('🔍 Full stats object:', stats);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -278,8 +328,8 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
 
   if (!stats) {
     return (
-      <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6", className)}>
-        {[...Array(6)].map((_, i) => (
+      <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4", className)}>
+        {[...Array(8)].map((_, i) => (
           <Card key={i} className="backdrop-blur-sm bg-background/95">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="h-4 bg-muted rounded animate-pulse w-24" />
@@ -312,7 +362,7 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
       title: "Win Rate",
       value: stats.winRate,
       formattedValue: formatPercentage(stats.winRate),
-      description: `${stats.winTrades}/${stats.totalTrades} winning trades`,
+      description: `${stats.winTrades} of ${stats.totalTrades} trades`,
       icon: Target,
       trend: stats.winRate >= 50 ? "up" : "down",
       color: stats.winRate >= 50 ? "green" : "red",
@@ -328,7 +378,7 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
       title: "Total P&L",
       value: stats.totalPnl,
       formattedValue: formatCurrency(stats.totalPnl),
-      description: `Net: ${formatCurrency(stats.netPnl)}`,
+      description: `Net profit/loss total`,
       icon: DollarSign,
       trend: stats.totalPnl >= 0 ? "up" : "down",
       color: stats.totalPnl >= 0 ? "green" : "red",
@@ -344,7 +394,7 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
       title: "Profit Factor",
       value: stats.profitFactor,
       formattedValue: stats.profitFactor.toFixed(2),
-      description: `Avg Win/Loss ratio`,
+      description: `Win/Loss ratio factor`,
       icon: BarChart3,
       trend: stats.profitFactor >= 1 ? "up" : "down",
       color: stats.profitFactor >= 1 ? "purple" : "amber",
@@ -379,12 +429,48 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
       gradient: "bg-gradient-to-br from-rose-400 via-red-500 to-pink-600",
       glowColor: "rgba(251, 113, 133, 0.4)",
       delay: 0.5
+    },
+    {
+      title: "Win Streak",
+      value: stats.maxWinStreak || 0, // Default show max
+      formattedValue: (stats.maxWinStreak || 0).toString(),
+      description: `Max: ${stats.maxWinStreak || 0} • Current: ${stats.currentWinStreak || 0}`,
+      icon: Flame,
+      trend: (stats.maxWinStreak || 0) > 0 ? "up" : null,
+      color: (stats.maxWinStreak || 0) > 0 ? "amber" : "default",
+      gradient: (stats.maxWinStreak || 0) > 0
+        ? "bg-gradient-to-br from-amber-400 via-orange-500 to-red-500"
+        : "bg-gradient-to-br from-gray-400 to-gray-600",
+      glowColor: (stats.maxWinStreak || 0) > 0
+        ? "rgba(251, 146, 60, 0.4)"
+        : "rgba(107, 114, 128, 0.3)",
+      delay: 0.6,
+      currentValue: stats.currentWinStreak || 0,
+      maxValue: stats.maxWinStreak || 0
+    },
+    {
+      title: "Loss Streak",
+      value: stats.maxLossStreak || 0, // Default show max
+      formattedValue: (stats.maxLossStreak || 0).toString(),
+      description: `Max: ${stats.maxLossStreak || 0} • Current: ${stats.currentLossStreak || 0}`,
+      icon: Zap,
+      trend: (stats.maxLossStreak || 0) > 0 ? "down" : null,
+      color: (stats.maxLossStreak || 0) > 0 ? "red" : "default",
+      gradient: (stats.maxLossStreak || 0) > 0
+        ? "bg-gradient-to-br from-red-400 via-rose-500 to-pink-500"
+        : "bg-gradient-to-br from-gray-400 to-gray-600",
+      glowColor: (stats.maxLossStreak || 0) > 0
+        ? "rgba(248, 113, 113, 0.4)"
+        : "rgba(107, 114, 128, 0.3)",
+      delay: 0.7,
+      currentValue: stats.currentLossStreak || 0,
+      maxValue: stats.maxLossStreak || 0
     }
   ];
 
   return (
     <motion.div
-      className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6", className)}
+      className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4", className)}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}

@@ -17,6 +17,79 @@ export interface TradeStats {
   avgEfficiency: number;
   totalCommission: number;
   netPnl: number;
+  currentWinStreak: number;
+  currentLossStreak: number;
+  maxWinStreak: number;
+  maxLossStreak: number;
+}
+
+/**
+ * Calculate winning and losing streaks from trades
+ */
+function calculateStreaks(trades: any[]) {
+  if (trades.length === 0) {
+    return {
+      currentWinStreak: 0,
+      currentLossStreak: 0,
+      maxWinStreak: 0,
+      maxLossStreak: 0
+    };
+  }
+
+  // Sort trades by date to get chronological order - use exitDate if available, otherwise entryDate
+  const sortedTrades = [...trades].sort((a, b) => {
+    const dateA = new Date(a.exitDate || a.entryDate);
+    const dateB = new Date(b.exitDate || b.entryDate);
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  let currentWinStreak = 0;
+  let currentLossStreak = 0;
+  let maxWinStreak = 0;
+  let maxLossStreak = 0;
+  let tempWinStreak = 0;
+  let tempLossStreak = 0;
+
+  // Iterate through trades to calculate streaks
+  for (let i = 0; i < sortedTrades.length; i++) {
+    const trade = sortedTrades[i];
+    const pnl = trade.pnl || 0;
+
+    if (pnl > 0) {
+      // Winning trade
+      tempWinStreak++;
+      tempLossStreak = 0;
+
+      // Update max win streak
+      if (tempWinStreak > maxWinStreak) {
+        maxWinStreak = tempWinStreak;
+      }
+    } else if (pnl < 0) {
+      // Losing trade
+      tempLossStreak++;
+      tempWinStreak = 0;
+
+      // Update max loss streak
+      if (tempLossStreak > maxLossStreak) {
+        maxLossStreak = tempLossStreak;
+      }
+    } else {
+      // Breakeven trade - reset both streaks
+      tempWinStreak = 0;
+      tempLossStreak = 0;
+    }
+  }
+
+  // Current streaks are the last calculated temp streaks
+  currentWinStreak = tempWinStreak;
+  currentLossStreak = tempLossStreak;
+
+  return {
+    currentWinStreak,
+    currentLossStreak,
+    maxWinStreak,
+    maxLossStreak
+  };
 }
 
 /**
@@ -39,7 +112,11 @@ export function calculateTradeStats(trades: any[]): TradeStats {
       avgRMultiple: 0,
       avgEfficiency: 0,
       totalCommission: 0,
-      netPnl: 0
+      netPnl: 0,
+      currentWinStreak: 0,
+      currentLossStreak: 0,
+      maxWinStreak: 0,
+      maxLossStreak: 0
     };
   }
 
@@ -61,7 +138,11 @@ export function calculateTradeStats(trades: any[]): TradeStats {
       avgRMultiple: 0,
       avgEfficiency: 0,
       totalCommission: 0,
-      netPnl: 0
+      netPnl: 0,
+      currentWinStreak: 0,
+      currentLossStreak: 0,
+      maxWinStreak: 0,
+      maxLossStreak: 0
     };
   }
 
@@ -100,6 +181,9 @@ export function calculateTradeStats(trades: any[]): TradeStats {
     .filter(e => !isNaN(e) && isFinite(e));
   const avgEfficiency = efficiencies.length > 0 ? efficiencies.reduce((sum, e) => sum + e, 0) / efficiencies.length : 0;
 
+  // Calculate streaks
+  const streakData = calculateStreaks(completedTrades);
+
   return {
     totalTrades: trades.length,
     winTrades: winningTrades.length,
@@ -115,7 +199,11 @@ export function calculateTradeStats(trades: any[]): TradeStats {
     avgRMultiple,
     avgEfficiency,
     totalCommission,
-    netPnl
+    netPnl,
+    currentWinStreak: streakData.currentWinStreak,
+    currentLossStreak: streakData.currentLossStreak,
+    maxWinStreak: streakData.maxWinStreak,
+    maxLossStreak: streakData.maxLossStreak
   };
 }
 

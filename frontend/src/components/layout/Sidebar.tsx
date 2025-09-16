@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   BarChart3,
   History,
@@ -14,52 +14,62 @@ const navigation = [
     name: 'Dashboard',
     href: '/',
     icon: BarChart3,
-    description: 'Overview, Analytics & Statistics'
+    description: 'Overview, Analytics & Statistics',
+    exact: true
   },
   {
     name: 'Trade History',
     href: '/trades',
     icon: History,
-    description: 'All your trading records'
+    description: 'All your trading records',
+    exact: true
   },
   {
     name: 'Add Trade',
     href: '/trades/new',
     icon: Plus,
-    description: 'Record new trade'
+    description: 'Record new trade',
+    exact: true
   }
 ];
 
 function Sidebar() {
+  const location = useLocation();
+
   return (
     <aside className="w-72 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 min-h-[calc(100vh-64px)]">
       <div className="flex h-full flex-col">
         {/* Main Navigation */}
         <div className="p-6">
           <nav className="space-y-1">
-            {navigation.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                className={({ isActive }) =>
-                  cn(
+            {navigation.map((item) => {
+              // Custom active check for exact matching
+              const isActive = item.exact
+                ? location.pathname === item.href
+                : location.pathname.startsWith(item.href);
+
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
                     'group flex items-center justify-between px-4 py-4 rounded-xl text-sm font-medium transition-all duration-200',
                     'hover:bg-accent hover:text-accent-foreground',
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
                       : 'text-muted-foreground'
-                  )
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  <div className="flex flex-col items-start">
-                    <span>{item.name}</span>
-                    <span className="text-xs opacity-70">{item.description}</span>
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    <div className="flex flex-col items-start">
+                      <span>{item.name}</span>
+                      <span className="text-xs opacity-70">{item.description}</span>
+                    </div>
                   </div>
-                </div>
-              </NavLink>
-            ))}
+                </NavLink>
+              );
+            })}
           </nav>
         </div>
 
