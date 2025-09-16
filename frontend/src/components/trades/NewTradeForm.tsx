@@ -23,9 +23,12 @@ import { Loader2, Upload, X, TrendingUp, TrendingDown, Calculator, Image as Imag
 import { cn } from '@/lib/utils';
 
 import { TradeFormData, TradeDirection, Strategy, Timeframe, OrderType } from '@/types';
-import { calculateTradeMetrics, validateTradeData, formatCurrency, formatPercentage, formatRMultiple } from '@/utils/tradeCalculations';
+import { calculateTradeMetrics, validateTradeData, formatCurrency, formatPercentage, formatRMultiple, calculateExitPriceFromPoints } from '@/utils/tradeCalculations';
 import { useMarketData } from '@/hooks/useMarketData';
 import { MarketInfo } from '@/services/marketService';
+import TemplateSelector from './TemplateSelector';
+import { TradeTemplate } from '@/types/template';
+import { useTemplateStore } from '@/store/templateStore';
 
 // Mood emojis for rating (1-5 scale)
 const MOOD_EMOJIS = [
@@ -76,6 +79,9 @@ export default function NewTradeForm({
   // Market data integration
   const { markets, loading: marketsLoading, error: marketsError, getMarket } = useMarketData();
   const [selectedMarket, setSelectedMarket] = useState<MarketInfo | null>(null);
+
+  // Template store
+  const { selectTemplate } = useTemplateStore();
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -140,15 +146,33 @@ export default function NewTradeForm({
     }
   }, [watchedValues.entryPrice, watchedValues.direction, selectedMarket]);
 
+  // Calculate exit price from points - handles both positive and negative points correctly
+  const calculateExitPriceFromPoints = useCallback((entryPrice: number, pointsFromEntry: number, direction: TradeDirection): number => {
+    // pointsFromEntry can be positive (profit) or negative (loss)
+    // For LONG: exit = entry + points (positive = profit, negative = loss)
+    // For SHORT: exit = entry - points (positive = profit, negative = loss)
+
+    if (direction === TradeDirection.LONG) {
+      return entryPrice + pointsFromEntry;
+    } else { // SHORT
+      return entryPrice - pointsFromEntry;
+    }
+  }, []);
+
   // Calculate absolute prices from points
   const absolutePrices = useMemo(() => {
+    const stopLoss = convertPointsToPrice(watchedValues.stopLossPoints, true);
+    const takeProfit = convertPointsToPrice(watchedValues.takeProfitPoints);
+
+
     return {
-      stopLoss: convertPointsToPrice(watchedValues.stopLossPoints, true),
-      takeProfit: convertPointsToPrice(watchedValues.takeProfitPoints),
-      exitPrice: watchedValues.exitPricePoints ?
-        (watchedValues.direction === TradeDirection.LONG ?
-          watchedValues.entryPrice + (watchedValues.exitPricePoints * (watchedValues.exitPricePoints > 0 ? 1 : -1)) :
-          watchedValues.entryPrice - (watchedValues.exitPricePoints * (watchedValues.exitPricePoints > 0 ? 1 : -1))
+      stopLoss,
+      takeProfit,
+      exitPrice: watchedValues.exitPricePoints && watchedValues.entryPrice ?
+        calculateExitPriceFromPoints(
+          watchedValues.entryPrice,
+          watchedValues.exitPricePoints,
+          watchedValues.direction
         ) : undefined,
       maxFavorablePrice: convertPointsToPrice(watchedValues.maxFavorablePricePoints),
       maxAdversePrice: convertPointsToPrice(watchedValues.maxAdversePricePoints, true),
@@ -174,7 +198,8 @@ export default function NewTradeForm({
       absolutePrices.stopLoss || 0,
       absolutePrices.takeProfit || 0,
       selectedMarket,
-      absolutePrices.maxFavorablePrice
+      absolutePrices.maxFavorablePrice,
+      watchedValues.direction // Pass the actual trade direction
     );
   }, [watchedValues, selectedMarket, absolutePrices]);
 
@@ -194,6 +219,11 @@ export default function NewTradeForm({
     }
   }, [watchedValues.symbol, isMarketSelected, markets, getMarket]);
 
+  // Clear template selection when component mounts (reset form to blank state)
+  useEffect(() => {
+    selectTemplate(null);
+  }, []); // Only run on mount
+
   const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -205,6 +235,28 @@ export default function NewTradeForm({
       reader.readAsDataURL(file);
     }
   }, []);
+
+  // Handle template application
+  const handleApplyTemplate = useCallback((template: TradeTemplate) => {
+    // Apply template values to form
+    if (template.symbol) form.setValue('symbol', template.symbol);
+    if (template.direction) form.setValue('direction', template.direction);
+    if (template.quantity) form.setValue('quantity', template.quantity);
+    if (template.orderType) form.setValue('orderType', template.orderType);
+    if (template.stopLossPoints) form.setValue('stopLossPoints', template.stopLossPoints);
+    if (template.takeProfitPoints) form.setValue('takeProfitPoints', template.takeProfitPoints);
+    if (template.strategy) form.setValue('strategy', template.strategy);
+    if (template.timeframe) form.setValue('timeframe', template.timeframe);
+
+    // If symbol is set, trigger market selection
+    if (template.symbol) {
+      const market = getMarket(template.symbol);
+      if (market) {
+        setSelectedMarket(market);
+        setIsMarketSelected(true);
+      }
+    }
+  }, [form, getMarket]);
 
   const removeImage = useCallback(() => {
     setSelectedImage(null);
@@ -295,10 +347,10 @@ export default function NewTradeForm({
                 <p className="text-sm text-muted-foreground">P&L</p>
                 <p className={cn(
                   "text-lg font-semibold",
-                  calculations.pnl > 0 ? "text-green-600" :
-                  calculations.pnl < 0 ? "text-red-600" : "text-muted-foreground"
+                  calculations.pnlUsd > 0 ? "text-green-600" :
+                  calculations.pnlUsd < 0 ? "text-red-600" : "text-muted-foreground"
                 )}>
-                  {formatCurrency(calculations.pnl)}
+                  {formatCurrency(calculations.pnlUsd)}
                 </p>
               </div>
               <div className="space-y-1">
@@ -366,6 +418,21 @@ export default function NewTradeForm({
 
         <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+          {/* Template Selector */}
+          <TemplateSelector
+            onApplyTemplate={handleApplyTemplate}
+            currentFormValues={{
+              symbol: watchedValues.symbol,
+              direction: watchedValues.direction,
+              quantity: watchedValues.quantity,
+              orderType: watchedValues.orderType,
+              stopLossPoints: watchedValues.stopLossPoints,
+              takeProfitPoints: watchedValues.takeProfitPoints,
+              strategy: watchedValues.strategy,
+              timeframe: watchedValues.timeframe
+            }}
+          />
+
           {/* Market Selection */}
           <Card>
             <CardHeader>
@@ -590,11 +657,17 @@ export default function NewTradeForm({
                                   value={field.value || ''}
                                   onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                                 />
-                                {field.value && watchedValues.entryPrice && (
-                                  <p className="text-xs text-muted-foreground">
-                                    = {absolutePrices.stopLoss?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
-                                  </p>
-                                )}
+                                {(() => {
+                                  const shouldShow = field.value > 0 &&
+                                                    watchedValues.entryPrice > 0 &&
+                                                    absolutePrices.stopLoss !== undefined &&
+                                                    absolutePrices.stopLoss > 0;
+                                  return shouldShow ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      = {absolutePrices.stopLoss.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                    </p>
+                                  ) : null;
+                                })()}
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -631,11 +704,17 @@ export default function NewTradeForm({
                                   value={field.value || ''}
                                   onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                                 />
-                                {field.value && watchedValues.entryPrice && (
-                                  <p className="text-xs text-muted-foreground">
-                                    = {absolutePrices.takeProfit?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
-                                  </p>
-                                )}
+                                {(() => {
+                                  const shouldShow = field.value > 0 &&
+                                                    watchedValues.entryPrice > 0 &&
+                                                    absolutePrices.takeProfit !== undefined &&
+                                                    absolutePrices.takeProfit > 0;
+                                  return shouldShow ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      = {absolutePrices.takeProfit.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                    </p>
+                                  ) : null;
+                                })()}
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -645,7 +724,12 @@ export default function NewTradeForm({
                     </div>
 
                     {/* Risk/Reward Summary */}
-                    {watchedValues.stopLossPoints && watchedValues.takeProfitPoints && watchedValues.entryPrice && (
+                    {(() => {
+                      const shouldShowRisk = watchedValues.stopLossPoints && watchedValues.stopLossPoints > 0 &&
+                                           watchedValues.takeProfitPoints && watchedValues.takeProfitPoints > 0 &&
+                                           watchedValues.entryPrice && watchedValues.entryPrice > 0;
+
+                      return shouldShowRisk ? (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -664,7 +748,8 @@ export default function NewTradeForm({
                           </div>
                         </div>
                       </motion.div>
-                    )}
+                      ) : null;
+                    })()}
 
                     <FormField
                       control={form.control}
@@ -679,8 +764,13 @@ export default function NewTradeForm({
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
-                                  Enter points from entry where you exited. Use positive numbers for profit, negative for loss.
-                                  Example: +5 means you gained 5 points, -3 means you lost 3 points from entry.
+                                  Enter points from entry where you exited. Use positive for profit, negative for loss.
+                                  <br /><br />
+                                  <strong>Examples:</strong><br />
+                                  • +5 = gained 5 points (profit)<br />
+                                  • -5 = lost 5 points (loss)<br />
+                                  <br />
+                                  The system calculates exit price automatically based on direction.
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -695,9 +785,9 @@ export default function NewTradeForm({
                                 value={field.value || ''}
                                 onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                               />
-                              {field.value && watchedValues.entryPrice && (
+                              {field.value && watchedValues.entryPrice && watchedValues.entryPrice > 0 && absolutePrices.exitPrice !== undefined && (
                                 <p className="text-xs text-muted-foreground">
-                                  = {absolutePrices.exitPrice?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                  = {absolutePrices.exitPrice.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
                                   <span className={cn(
                                     "ml-2 font-medium",
                                     field.value > 0 ? "text-green-600" : field.value < 0 ? "text-red-600" : "text-muted-foreground"
@@ -883,9 +973,9 @@ export default function NewTradeForm({
                                       value={field.value || ''}
                                       onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                                     />
-                                    {field.value && watchedValues.entryPrice && (
+                                    {field.value && field.value > 0 && watchedValues.entryPrice && watchedValues.entryPrice > 0 && absolutePrices.maxFavorablePrice !== undefined && (
                                       <p className="text-xs text-muted-foreground">
-                                        = {absolutePrices.maxFavorablePrice?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                        = {absolutePrices.maxFavorablePrice.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
                                       </p>
                                     )}
                                   </div>
@@ -911,9 +1001,9 @@ export default function NewTradeForm({
                                       value={field.value || ''}
                                       onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                                     />
-                                    {field.value && watchedValues.entryPrice && (
+                                    {field.value && field.value > 0 && watchedValues.entryPrice && watchedValues.entryPrice > 0 && absolutePrices.maxAdversePrice !== undefined && (
                                       <p className="text-xs text-muted-foreground">
-                                        = {absolutePrices.maxAdversePrice?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                        = {absolutePrices.maxAdversePrice.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
                                       </p>
                                     )}
                                   </div>
@@ -951,9 +1041,9 @@ export default function NewTradeForm({
                                         value={field.value || ''}
                                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                                       />
-                                      {field.value && watchedValues.entryPrice && (
+                                      {field.value && field.value > 0 && watchedValues.entryPrice && watchedValues.entryPrice > 0 && absolutePrices.maxPotentialProfit !== undefined && (
                                         <p className="text-xs text-muted-foreground">
-                                          = {absolutePrices.maxPotentialProfit?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                          = {absolutePrices.maxPotentialProfit.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
                                         </p>
                                       )}
                                     </div>
@@ -979,9 +1069,9 @@ export default function NewTradeForm({
                                         value={field.value || ''}
                                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                                       />
-                                      {field.value && watchedValues.entryPrice && (
+                                      {field.value && field.value > 0 && watchedValues.entryPrice && watchedValues.entryPrice > 0 && absolutePrices.maxDrawdown !== undefined && (
                                         <p className="text-xs text-muted-foreground">
-                                          = {absolutePrices.maxDrawdown?.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
+                                          = {absolutePrices.maxDrawdown.toFixed(selectedMarket?.tickSize === 0.01 ? 2 : selectedMarket?.tickSize === 1 ? 0 : 4)}
                                         </p>
                                       )}
                                     </div>

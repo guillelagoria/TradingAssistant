@@ -27,18 +27,23 @@ export function calculateTradeMetrics(
   stopLoss: number,
   takeProfit: number,
   market: MarketInfo,
-  maxFavorablePrice?: number
+  maxFavorablePrice?: number,
+  tradeDirection?: TradeDirection
 ): TradeMetrics {
-  const direction = determineDirection(entryPrice, exitPrice);
+  // Use provided trade direction or fall back to determining from prices
+  const direction: Direction = tradeDirection === TradeDirection.LONG ? 'long' :
+                               tradeDirection === TradeDirection.SHORT ? 'short' :
+                               determineDirection(entryPrice, exitPrice);
 
-  // P&L calculations
+  // P&L calculations - this now correctly uses the actual trade direction
   const pnlPoints = calculatePnLPoints(entryPrice, exitPrice, direction);
   const grossPnlUsd = pnlPoints * market.pointValue;
   const commission = market.commission;
   const netPnl = grossPnlUsd - commission;
 
-  // P&L percentage calculation
-  const pnlPercentage = entryPrice > 0 ? ((exitPrice - entryPrice) / entryPrice) * 100 * (direction === 'long' ? 1 : -1) : 0;
+  // P&L percentage calculation based on contract value
+  const contractValue = entryPrice * market.pointValue;
+  const pnlPercentage = contractValue > 0 ? (grossPnlUsd / contractValue) * 100 : 0;
 
   // Risk/Reward calculations
   const riskPoints = calculateRiskPoints(entryPrice, stopLoss, direction);
@@ -83,6 +88,44 @@ export function calculatePnLPoints(
   if (direction === 'long') {
     return exitPrice - entryPrice;
   } else {
+    return entryPrice - exitPrice;
+  }
+}
+
+/**
+ * Calculate exit price from points for a given entry and direction
+ * Points can be positive (profit) or negative (loss)
+ */
+export function calculateExitPriceFromPoints(
+  entryPrice: number,
+  pointsFromEntry: number,
+  direction: TradeDirection
+): number {
+  // pointsFromEntry can be positive (profit) or negative (loss)
+  // For LONG: exit = entry + points (positive = profit, negative = loss)
+  // For SHORT: exit = entry - points (positive = profit, negative = loss)
+
+  if (direction === TradeDirection.LONG) {
+    return entryPrice + pointsFromEntry;
+  } else { // SHORT
+    return entryPrice - pointsFromEntry;
+  }
+}
+
+/**
+ * Calculate points from entry and exit prices
+ */
+export function calculatePointsFromPrices(
+  entryPrice: number,
+  exitPrice: number,
+  direction: TradeDirection
+): number {
+  // Returns points gained/lost from entry to exit
+  // Positive = profit, Negative = loss
+
+  if (direction === TradeDirection.LONG) {
+    return exitPrice - entryPrice;
+  } else { // SHORT
     return entryPrice - exitPrice;
   }
 }

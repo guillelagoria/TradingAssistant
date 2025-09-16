@@ -211,6 +211,44 @@ export class MarketService {
   }
 
   /**
+   * Calculate exit price from points for a given entry and direction
+   * Points can be positive (profit) or negative (loss)
+   */
+  calculateExitPriceFromPoints(
+    entryPrice: number,
+    pointsFromEntry: number,
+    direction: 'LONG' | 'SHORT'
+  ): number {
+    // pointsFromEntry can be positive (profit) or negative (loss)
+    // For LONG: exit = entry + points (positive = profit, negative = loss)
+    // For SHORT: exit = entry - points (positive = profit, negative = loss)
+
+    if (direction === 'LONG') {
+      return entryPrice + pointsFromEntry;
+    } else { // SHORT
+      return entryPrice - pointsFromEntry;
+    }
+  }
+
+  /**
+   * Calculate points from entry and exit prices
+   */
+  calculatePointsFromPrices(
+    entryPrice: number,
+    exitPrice: number,
+    direction: 'LONG' | 'SHORT'
+  ): number {
+    // Returns points gained/lost from entry to exit
+    // Positive = profit, Negative = loss
+
+    if (direction === 'LONG') {
+      return exitPrice - entryPrice;
+    } else { // SHORT
+      return entryPrice - exitPrice;
+    }
+  }
+
+  /**
    * Calculate R-multiple for a trade
    */
   calculateRMultiple(
