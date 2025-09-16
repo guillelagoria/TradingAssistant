@@ -226,6 +226,21 @@ export const tradesService = {
   },
 
   /**
+   * Bulk delete trades
+   */
+  async bulkDeleteTrades(ids: string[]): Promise<number> {
+    try {
+      const response = await apiClient.post<ApiResponse<{ deleted: number }>>('/trades/bulk-delete', {
+        ids
+      });
+      return response.data.data.deleted;
+    } catch (error) {
+      console.error('Failed to bulk delete trades:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Bulk operations
    */
   
@@ -353,6 +368,7 @@ export const {
   createTrade,
   updateTrade,
   deleteTrade,
+  bulkDeleteTrades,
   importTrades,
   exportTrades,
   getTradeStats,

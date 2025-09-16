@@ -29,12 +29,13 @@ import {
 
 function TradeHistory() {
   const navigate = useNavigate();
-  const { 
-    trades, 
-    loading, 
-    error, 
-    fetchTrades, 
+  const {
+    trades,
+    loading,
+    error,
+    fetchTrades,
     deleteTrade,
+    bulkDeleteTrades,
     pagination,
     filters,
     stats
@@ -92,7 +93,7 @@ function TradeHistory() {
 
   const confirmBulkDelete = async () => {
     try {
-      await Promise.all(selectedTrades.map(id => deleteTrade(id)));
+      await bulkDeleteTrades(selectedTrades);
       setSelectedTrades([]);
       setShowBulkDeleteConfirm(false);
     } catch (error) {
@@ -296,6 +297,10 @@ function TradeHistory() {
         onEdit={handleEditTrade}
         onDelete={handleDeleteTrade}
         loading={loading}
+        showSelection={true}
+        selectedTrades={selectedTrades}
+        onSelectTrade={handleSelectTrade}
+        onSelectAll={handleSelectAll}
       />
 
       {/* Pagination */}

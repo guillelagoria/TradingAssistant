@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,16 +44,25 @@ interface TradeTableProps {
   loading?: boolean;
   showExport?: boolean;
   exportTitle?: string;
+  // Selection props
+  selectedTrades?: string[];
+  onSelectTrade?: (tradeId: string, selected: boolean) => void;
+  onSelectAll?: (selected: boolean) => void;
+  showSelection?: boolean;
 }
 
-function TradeTable({ 
-  trades: propTrades, 
-  onView, 
-  onEdit, 
+function TradeTable({
+  trades: propTrades,
+  onView,
+  onEdit,
   onDelete,
   loading = false,
   showExport = true,
-  exportTitle = "Export Trades"
+  exportTitle = "Export Trades",
+  selectedTrades = [],
+  onSelectTrade,
+  onSelectAll,
+  showSelection = false
 }: TradeTableProps) {
   const { 
     trades: storeTrades, 
@@ -180,6 +190,12 @@ function TradeTable({
           <Card key={trade.id} className="p-4">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
+                {showSelection && onSelectTrade && (
+                  <Checkbox
+                    checked={selectedTrades.includes(trade.id)}
+                    onCheckedChange={(checked) => onSelectTrade(trade.id, checked as boolean)}
+                  />
+                )}
                 {getDirectionIcon(trade.direction)}
                 <span className="font-semibold">{trade.symbol}</span>
                 {getResultBadge(trade.result, trade.pnl)}
@@ -257,9 +273,17 @@ function TradeTable({
         <Table>
           <TableHeader>
             <TableRow>
+              {showSelection && (
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={selectedTrades.length === trades.length && trades.length > 0}
+                    onCheckedChange={onSelectAll}
+                  />
+                </TableHead>
+              )}
               <TableHead>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => handleSort('symbol')}
                   className="h-8 p-0 font-semibold"
                 >
@@ -307,6 +331,14 @@ function TradeTable({
           <TableBody>
             {trades.map((trade) => (
               <TableRow key={trade.id} className="hover:bg-muted/50">
+                {showSelection && (
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedTrades.includes(trade.id)}
+                      onCheckedChange={(checked) => onSelectTrade?.(trade.id, checked as boolean)}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {getDirectionIcon(trade.direction)}

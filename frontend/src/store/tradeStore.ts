@@ -57,6 +57,7 @@ interface TradeState {
   addTrade: (tradeData: TradeFormData) => Promise<Trade>;
   updateTrade: (id: string, tradeData: Partial<TradeFormData>) => Promise<Trade>;
   deleteTrade: (id: string) => Promise<void>;
+  bulkDeleteTrades: (ids: string[]) => Promise<number>;
   
   // Individual trade operations
   getTrade: (id: string) => Promise<Trade | null>;
@@ -259,22 +260,48 @@ export const useTradeStore = create<TradeState>()(
       // Delete trade
       deleteTrade: async (id) => {
         set({ loading: true, error: null });
-        
+
         try {
           await tradesService.deleteTrade(id);
-          
+
           set(state => ({
             trades: state.trades.filter(trade => trade.id !== id),
             currentTrade: state.currentTrade?.id === id ? null : state.currentTrade,
             loading: false
           }));
-          
+
           get().refreshStats();
-          
+
         } catch (error) {
-          set({ 
-            error: error instanceof Error ? error.message : 'Failed to delete trade', 
-            loading: false 
+          set({
+            error: error instanceof Error ? error.message : 'Failed to delete trade',
+            loading: false
+          });
+          throw error;
+        }
+      },
+
+      // Bulk delete trades
+      bulkDeleteTrades: async (ids) => {
+        set({ loading: true, error: null });
+
+        try {
+          const deletedCount = await tradesService.bulkDeleteTrades(ids);
+
+          set(state => ({
+            trades: state.trades.filter(trade => !ids.includes(trade.id)),
+            currentTrade: state.currentTrade && ids.includes(state.currentTrade.id) ? null : state.currentTrade,
+            loading: false
+          }));
+
+          get().refreshStats();
+
+          return deletedCount;
+
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Failed to delete trades',
+            loading: false
           });
           throw error;
         }
