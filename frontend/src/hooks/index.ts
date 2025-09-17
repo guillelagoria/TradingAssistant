@@ -10,3 +10,6 @@ export { default as useKeyboardNavigation } from './useKeyboardNavigation';
 export { useMarketData, usePopularMarkets, useMarketValidation } from './useMarketData';
 export { useFormAnimations, useLoadingAnimation, useStaggeredAnimation, useValueTransition } from './useFormAnimations';
 export { default as useTradeForm } from './useTradeForm';
+
+// Multi-account system hooks
+export { useAccountChangeHandler, useAccountIntegration, useAccountGuard } from './useAccountChangeHandler';

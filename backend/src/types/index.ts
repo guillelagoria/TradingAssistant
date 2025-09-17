@@ -41,6 +41,7 @@ export interface AuthResponse {
 
 // Trade types
 export interface CreateTradeRequest {
+  accountId: string;
   symbol: string;
   market?: string;
   direction: 'LONG' | 'SHORT';
@@ -65,6 +66,7 @@ export interface UpdateTradeRequest extends Partial<CreateTradeRequest> {}
 export interface TradeFilters {
   page?: number;
   limit?: number;
+  accountId?: string;
   symbol?: string;
   market?: string;
   strategyId?: string;
@@ -157,6 +159,76 @@ export interface UserProfile extends Omit<User, 'password'> {
     trades: number;
     strategies: number;
   };
+}
+
+// Account types
+export interface CreateAccountRequest {
+  name: string;
+  accountType?: 'DEMO' | 'LIVE';
+  currency?: string;
+  creationDate: string;
+  initialBalance: number;
+  currentBalance?: number;
+  maxDrawdown?: number;
+  profitTarget?: number;
+  dataInfoName?: string;
+  dataInfoPassword?: string;
+  dataInfoNotes?: string;
+}
+
+export interface UpdateAccountRequest {
+  name?: string;
+  accountType?: 'DEMO' | 'LIVE';
+  currency?: string;
+  creationDate?: string;
+  initialBalance?: number;
+  currentBalance?: number;
+  maxDrawdown?: number;
+  profitTarget?: number;
+  dataInfoName?: string;
+  dataInfoPassword?: string;
+  dataInfoNotes?: string;
+  isActive?: boolean;
+}
+
+export interface AccountWithStats {
+  id: string;
+  userId: string;
+  name: string;
+  accountType: 'DEMO' | 'LIVE';
+  currency: string;
+  creationDate: Date;
+  initialBalance: number;
+  currentBalance?: number | null;
+  maxDrawdown?: number | null;
+  profitTarget?: number | null;
+  dataInfoName?: string | null;
+  dataInfoPassword?: string | null;
+  dataInfoNotes?: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    trades: number;
+  };
+}
+
+export interface AccountStatsResponse {
+  totalTrades: number;
+  closedTrades: number;
+  openTrades: number;
+  totalPnL: number;
+  totalNetPnL: number;
+  winRate: number;
+  avgWin: number;
+  avgLoss: number;
+  profitFactor: number;
+  currentBalance: number;
+  totalDeposited: number;
+  totalWithdrawn: number;
+  roi: number;
+  maxDrawdown: number;
+  currentDrawdown: number;
 }
 
 // Export market types

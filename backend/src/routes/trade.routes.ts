@@ -23,6 +23,7 @@ router.get(
   [
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
+    query('accountId').optional().isString(),
     query('symbol').optional().isString(),
     query('market').optional().isString(),
     query('strategy').optional().isString(),
@@ -41,6 +42,7 @@ router.get(
 router.post(
   '/',
   [
+    body('accountId').optional().isString(),
     body('symbol').notEmpty().trim(),
     body('market').optional().isString().isLength({ min: 1, max: 10 }),
     body('direction').isIn(['LONG', 'SHORT']),
@@ -71,12 +73,20 @@ router.post(
 );
 
 // Get single trade
-router.get('/:id', getTrade);
+router.get(
+  '/:id',
+  [
+    query('accountId').optional().isString(),
+    handleValidationErrors
+  ],
+  getTrade
+);
 
 // Update trade
 router.put(
   '/:id',
   [
+    body('accountId').optional().isString(),
     body('symbol').optional().notEmpty().trim(),
     body('market').optional().isString().isLength({ min: 1, max: 10 }),
     body('direction').optional().isIn(['LONG', 'SHORT']),
@@ -106,7 +116,14 @@ router.put(
 );
 
 // Delete trade
-router.delete('/:id', deleteTrade);
+router.delete(
+  '/:id',
+  [
+    query('accountId').optional().isString(),
+    handleValidationErrors
+  ],
+  deleteTrade
+);
 
 // Bulk delete trades
 router.post(

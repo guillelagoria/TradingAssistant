@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Download, FileBarChart, Zap, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTradeStore } from '@/store/tradeStore';
+import { useActiveAccount } from '@/store/accountStore';
 import {
   AnimatedStatsCards,
   AnimatedPnLChart,
@@ -16,7 +17,8 @@ import { ExportDialog } from '@/components/export';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { fetchTrades, refreshStats, trades, stats } = useTradeStore();
+  const { fetchTrades, refreshStats, trades, stats, refreshTradesForAccount } = useTradeStore();
+  const activeAccount = useActiveAccount();
   
   // Refs for chart elements to capture for PDF export
   const pnlChartRef = useRef<HTMLDivElement>(null);
@@ -25,10 +27,12 @@ function Dashboard() {
   const efficiencyChartRef = useRef<HTMLDivElement>(null);
   const extendedDailyPnlChartRef = useRef<HTMLDivElement>(null);
 
-  // Fetch trades and refresh stats on mount
+  // Fetch trades and refresh stats on mount or when active account changes
   useEffect(() => {
-    fetchTrades();
-  }, [fetchTrades]);
+    if (activeAccount) {
+      refreshTradesForAccount(activeAccount.id);
+    }
+  }, [activeAccount, refreshTradesForAccount]);
 
   // Refresh stats when trades change
   useEffect(() => {
@@ -38,12 +42,14 @@ function Dashboard() {
   // Force refresh when the component receives focus (when navigating back from form)
   useEffect(() => {
     const handleFocus = () => {
-      fetchTrades();
+      if (activeAccount) {
+        refreshTradesForAccount(activeAccount.id);
+      }
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [fetchTrades]);
+  }, [activeAccount, refreshTradesForAccount]);
 
   // Get chart elements for PDF export
   const getChartElements = (): HTMLElement[] => {

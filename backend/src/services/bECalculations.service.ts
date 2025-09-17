@@ -4,6 +4,7 @@
  */
 
 import { TradeDirection, PrismaClient } from '@prisma/client';
+import { accountService } from './account.service';
 
 const prisma = new PrismaClient();
 
@@ -120,8 +121,28 @@ export class BECalculationsService {
   /**
    * Calculate stop loss optimization suggestions
    */
-  static async calculateStopLossOptimization(userId: string, tradeId?: string): Promise<StopLossOptimization[]> {
+  static async calculateStopLossOptimization(userId: string, tradeId?: string, accountId?: string): Promise<StopLossOptimization[]> {
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
     const whereClause: any = { userId, stopLoss: { not: null }, maxDrawdown: { not: null } };
+
+    // Handle account filtering
+    if (accountId) {
+      whereClause.accountId = accountId;
+    } else {
+      // If no specific account, get default account
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (defaultAccount) {
+        whereClause.accountId = defaultAccount.id;
+      }
+    }
+
     if (tradeId) {
       whereClause.id = tradeId;
     }
@@ -206,13 +227,33 @@ export class BECalculationsService {
   /**
    * Calculate take profit optimization suggestions
    */
-  static async calculateTakeProfitOptimization(userId: string, tradeId?: string): Promise<TakeProfitOptimization[]> {
+  static async calculateTakeProfitOptimization(userId: string, tradeId?: string, accountId?: string): Promise<TakeProfitOptimization[]> {
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
     const whereClause: any = {
       userId,
       takeProfit: { not: null },
       maxPotentialProfit: { not: null },
       exitPrice: { not: null }
     };
+
+    // Handle account filtering
+    if (accountId) {
+      whereClause.accountId = accountId;
+    } else {
+      // If no specific account, get default account
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (defaultAccount) {
+        whereClause.accountId = defaultAccount.id;
+      }
+    }
+
     if (tradeId) {
       whereClause.id = tradeId;
     }
@@ -286,13 +327,34 @@ export class BECalculationsService {
   /**
    * Calculate Break-Even efficiency metrics
    */
-  static async calculateBEEfficiency(userId: string): Promise<BEEfficiencyMetrics> {
+  static async calculateBEEfficiency(userId: string, accountId?: string): Promise<BEEfficiencyMetrics> {
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
+    const whereClause: any = {
+      userId,
+      breakEvenWorked: { not: null },
+      exitPrice: { not: null }
+    };
+
+    // Handle account filtering
+    if (accountId) {
+      whereClause.accountId = accountId;
+    } else {
+      // If no specific account, get default account
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (defaultAccount) {
+        whereClause.accountId = defaultAccount.id;
+      }
+    }
+
     const tradesWithBE = await prisma.trade.findMany({
-      where: {
-        userId,
-        breakEvenWorked: { not: null },
-        exitPrice: { not: null }
-      },
+      where: whereClause,
       orderBy: { entryDate: 'desc' }
     });
 
@@ -370,16 +432,24 @@ export class BECalculationsService {
   /**
    * Generate personalized BE recommendations
    */
-  static async generatePersonalizedRecommendations(userId: string): Promise<{
+  static async generatePersonalizedRecommendations(userId: string, accountId?: string): Promise<{
     stopLossRecommendations: string[];
     takeProfitRecommendations: string[];
     breakEvenRecommendations: string[];
     riskManagementScore: number;
   }> {
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
     const [slOptimizations, tpOptimizations, beEfficiency] = await Promise.all([
-      this.calculateStopLossOptimization(userId),
-      this.calculateTakeProfitOptimization(userId),
-      this.calculateBEEfficiency(userId)
+      this.calculateStopLossOptimization(userId, undefined, accountId),
+      this.calculateTakeProfitOptimization(userId, undefined, accountId),
+      this.calculateBEEfficiency(userId, accountId)
     ]);
 
     const stopLossRecommendations: string[] = [];

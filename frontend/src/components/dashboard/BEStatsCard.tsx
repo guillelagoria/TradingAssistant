@@ -21,6 +21,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { BEAnalysisService, BEStatsData } from '@/services/beAnalysisService';
+import { useActiveAccount } from '@/store/accountStore';
 
 interface BEStatsCardProps {
   onViewDetails?: () => void;
@@ -81,15 +82,23 @@ const formatPercentage = (value: number | undefined) => {
 };
 
 export function BEStatsCard({ onViewDetails, refreshTrigger = 0 }: BEStatsCardProps) {
+  const activeAccount = useActiveAccount();
   const [data, setData] = useState<BEStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchBEData = async () => {
+    if (!activeAccount) {
+      setData(null);
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
+
     try {
       setError(null);
-      const beData = await BEAnalysisService.getBEMetrics();
+      const beData = await BEAnalysisService.getBEMetrics(activeAccount.id);
       setData(beData);
     } catch (err) {
       console.error('Failed to fetch BE data:', err);
@@ -102,7 +111,7 @@ export function BEStatsCard({ onViewDetails, refreshTrigger = 0 }: BEStatsCardPr
 
   useEffect(() => {
     fetchBEData();
-  }, [refreshTrigger]);
+  }, [activeAccount, refreshTrigger]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

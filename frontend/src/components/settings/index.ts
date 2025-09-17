@@ -8,3 +8,4 @@ export { StrategyManager } from './StrategyManager';
 export { FavoriteSymbols } from './FavoriteSymbols';
 export { CommissionSettings } from './CommissionSettings';
 export { default as MarketConfiguration } from './MarketConfiguration';
+export { default as TradingAccountManager } from './TradingAccountManager';

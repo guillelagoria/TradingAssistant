@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { TradeService } from './trade.service';
 import { calculateTradeStats } from '../utils/calculations';
+import { accountService } from './account.service';
 
 const prisma = new PrismaClient();
 
@@ -9,6 +10,7 @@ interface WhatIfOptions {
   tradeIds?: string[];
   scenarios?: string[];
   includeCache?: boolean;
+  accountId?: string;
 }
 
 interface GenerateWhatIfOptions {
@@ -16,17 +18,20 @@ interface GenerateWhatIfOptions {
   scenarios?: string[];
   _customScenarios?: any[];
   _accountSize?: number;
+  accountId?: string;
 }
 
 interface SuggestionOptions {
   tradeIds?: string[];
   priority?: string;
   category?: string;
+  accountId?: string;
 }
 
 interface PortfolioOptions {
   period: string;
   includeOpenTrades: boolean;
+  accountId?: string;
 }
 
 interface WhatIfScenario {
@@ -166,8 +171,16 @@ export class AnalysisService {
    */
   static async getWhatIfAnalysis(userId: string, options: WhatIfOptions) {
     try {
+      // Validate account ownership if accountId is provided
+      if (options.accountId) {
+        const accountExists = await accountService.validateAccountOwnership(options.accountId, userId);
+        if (!accountExists) {
+          throw new Error('Account not found or access denied');
+        }
+      }
+
       const cacheKey = `whatif-${userId}-${JSON.stringify(options)}`;
-      
+
       // Check cache first
       if (options.includeCache) {
         const cached = this.getCachedResult(cacheKey);
@@ -177,10 +190,11 @@ export class AnalysisService {
         }
       }
 
-      // Get user's trades
+      // Get user's trades for the specified account
       const trades = await TradeService.getUserTrades(userId, {
         tradeIds: options.tradeIds,
-        includeCalculations: true
+        includeCalculations: true,
+        accountId: options.accountId
       });
 
       if (trades.length === 0) {
@@ -215,10 +229,19 @@ export class AnalysisService {
    */
   static async generateWhatIfAnalysis(userId: string, options: GenerateWhatIfOptions) {
     try {
-      // Get user's trades
+      // Validate account ownership if accountId is provided
+      if (options.accountId) {
+        const accountExists = await accountService.validateAccountOwnership(options.accountId, userId);
+        if (!accountExists) {
+          throw new Error('Account not found or access denied');
+        }
+      }
+
+      // Get user's trades for the specified account
       const trades = await TradeService.getUserTrades(userId, {
         tradeIds: options.tradeIds,
-        includeCalculations: true
+        includeCalculations: true,
+        accountId: options.accountId
       });
 
       if (trades.length === 0) {
@@ -246,8 +269,16 @@ export class AnalysisService {
    */
   static async getImprovementSuggestions(userId: string, options: SuggestionOptions) {
     try {
+      // Validate account ownership if accountId is provided
+      if (options.accountId) {
+        const accountExists = await accountService.validateAccountOwnership(options.accountId, userId);
+        if (!accountExists) {
+          throw new Error('Account not found or access denied');
+        }
+      }
+
       const cacheKey = `suggestions-${userId}-${JSON.stringify(options)}`;
-      
+
       // Check cache first
       const cached = this.getCachedResult(cacheKey);
       if (cached) {
@@ -257,7 +288,8 @@ export class AnalysisService {
       // Get what-if analysis first
       const whatIfAnalysis = await this.getWhatIfAnalysis(userId, {
         tradeIds: options.tradeIds,
-        includeCache: true
+        includeCache: true,
+        accountId: options.accountId
       });
 
       // Generate suggestions based on analysis
@@ -278,16 +310,24 @@ export class AnalysisService {
    */
   static async getPortfolioAnalysis(userId: string, options: PortfolioOptions) {
     try {
+      // Validate account ownership if accountId is provided
+      if (options.accountId) {
+        const accountExists = await accountService.validateAccountOwnership(options.accountId, userId);
+        if (!accountExists) {
+          throw new Error('Account not found or access denied');
+        }
+      }
+
       const cacheKey = `portfolio-${userId}-${JSON.stringify(options)}`;
-      
+
       // Check cache first
       const cached = this.getCachedResult(cacheKey);
       if (cached) {
         return cached;
       }
 
-      // Get user's trades based on period
-      const trades = await this.getTradesByPeriod(userId, options.period, options.includeOpenTrades);
+      // Get user's trades based on period for the specified account
+      const trades = await this.getTradesByPeriod(userId, options.period, options.includeOpenTrades, options.accountId);
 
       // Calculate portfolio metrics
       const analysis = {
@@ -504,12 +544,12 @@ export class AnalysisService {
   }
 
   /**
-   * Get trades by time period
+   * Get trades by time period for a specific account
    */
-  private static async getTradesByPeriod(userId: string, period: string, includeOpenTrades: boolean) {
+  private static async getTradesByPeriod(userId: string, period: string, includeOpenTrades: boolean, accountId?: string) {
     let dateFilter: any = {};
     const now = new Date();
-    
+
     switch (period) {
       case '1m':
         dateFilter = { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
@@ -528,6 +568,18 @@ export class AnalysisService {
     }
 
     const where: any = { userId };
+
+    // Handle account filtering
+    if (accountId) {
+      where.accountId = accountId;
+    } else {
+      // If no specific account, get default account
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (defaultAccount) {
+        where.accountId = defaultAccount.id;
+      }
+    }
+
     if (dateFilter) {
       where.entryDate = dateFilter;
     }

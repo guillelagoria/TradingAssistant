@@ -1,5 +1,6 @@
 import { TradeDirection, PrismaClient } from '@prisma/client';
 import { calculateTradeMetrics as calcMetrics } from '../utils/calculations';
+import { accountService } from './account.service';
 
 const prisma = new PrismaClient();
 
@@ -131,22 +132,41 @@ export const calculateRiskReward = (
 
 export class TradeService {
   /**
-   * Get user trades with optional filtering
+   * Get user trades with optional filtering and account support
    */
   static async getUserTrades(
-    userId: string, 
+    userId: string,
     options?: {
       tradeIds?: string[];
       includeCalculations?: boolean;
       includeOpen?: boolean;
+      accountId?: string;
     }
   ) {
+    // Build where clause starting with userId
     const where: any = { userId };
-    
+
+    // Handle account filtering
+    if (options?.accountId) {
+      // Validate user owns the account
+      const accountExists = await accountService.validateAccountOwnership(options.accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+      where.accountId = options.accountId;
+    } else {
+      // If no specific account requested, get default account
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (defaultAccount) {
+        where.accountId = defaultAccount.id;
+      }
+      // If no default account, return all trades (backward compatibility)
+    }
+
     if (options?.tradeIds && options.tradeIds.length > 0) {
       where.id = { in: options.tradeIds };
     }
-    
+
     if (!options?.includeOpen) {
       where.exitPrice = { not: null };
     }
@@ -171,11 +191,22 @@ export class TradeService {
   }
 
   /**
-   * Get a single trade by ID
+   * Get a single trade by ID with account validation
    */
-  static async getTrade(tradeId: string, userId: string) {
+  static async getTrade(tradeId: string, userId: string, accountId?: string) {
+    const where: any = { id: tradeId, userId };
+
+    // If accountId is specified, validate ownership and add to filter
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+      where.accountId = accountId;
+    }
+
     const trade = await prisma.trade.findFirst({
-      where: { id: tradeId, userId }
+      where
     });
 
     if (!trade) {
@@ -187,5 +218,91 @@ export class TradeService {
       ...trade,
       ...calculations
     };
+  }
+
+  /**
+   * Get all trades for a specific account
+   */
+  static async getAccountTrades(
+    accountId: string,
+    userId: string,
+    options?: {
+      tradeIds?: string[];
+      includeCalculations?: boolean;
+      includeOpen?: boolean;
+    }
+  ) {
+    // Validate account ownership
+    const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+    if (!accountExists) {
+      throw new Error('Account not found or access denied');
+    }
+
+    return this.getUserTrades(userId, {
+      ...options,
+      accountId
+    });
+  }
+
+  /**
+   * Get trades across multiple accounts (for admin/overview purposes)
+   */
+  static async getTradesAllAccounts(
+    userId: string,
+    options?: {
+      tradeIds?: string[];
+      includeCalculations?: boolean;
+      includeOpen?: boolean;
+      accountIds?: string[];
+    }
+  ) {
+    const where: any = { userId };
+
+    // If specific accounts are requested, validate ownership
+    if (options?.accountIds && options.accountIds.length > 0) {
+      for (const accountId of options.accountIds) {
+        const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+        if (!accountExists) {
+          throw new Error(`Account ${accountId} not found or access denied`);
+        }
+      }
+      where.accountId = { in: options.accountIds };
+    }
+
+    if (options?.tradeIds && options.tradeIds.length > 0) {
+      where.id = { in: options.tradeIds };
+    }
+
+    if (!options?.includeOpen) {
+      where.exitPrice = { not: null };
+    }
+
+    const trades = await prisma.trade.findMany({
+      where,
+      include: {
+        account: {
+          select: {
+            id: true,
+            name: true,
+            accountType: true,
+            currency: true
+          }
+        }
+      },
+      orderBy: { entryDate: 'desc' }
+    });
+
+    // Add calculations if requested
+    if (options?.includeCalculations) {
+      return trades.map(trade => {
+        const calculations = calcMetrics(trade);
+        return {
+          ...trade,
+          ...calculations
+        };
+      });
+    }
+
+    return trades;
   }
 }

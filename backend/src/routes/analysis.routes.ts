@@ -13,6 +13,10 @@ const router = Router();
 router.get(
   '/whatif',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('tradeIds')
       .optional()
       .isArray()
@@ -37,6 +41,10 @@ router.get(
 router.post(
   '/whatif',
   [
+    body('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     body('tradeIds')
       .optional()
       .isArray()
@@ -71,6 +79,10 @@ router.get('/scenarios', AnalysisController.getAvailableScenarios);
 router.get(
   '/suggestions',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('tradeIds')
       .optional()
       .isArray()
@@ -95,6 +107,10 @@ router.get(
 router.get(
   '/portfolio',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('period')
       .optional()
       .isIn(['1m', '3m', '6m', '1y', 'all'])
@@ -112,19 +128,49 @@ router.get(
  * GET /api/analysis/be
  * Get Break-Even analysis and recommendations
  */
-router.get('/be', AnalysisController.getBEAnalysis);
+router.get(
+  '/be',
+  [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
+    handleValidationErrors
+  ],
+  AnalysisController.getBEAnalysis
+);
 
 /**
  * GET /api/analysis/be/scenarios
  * Generate Break-Even optimization scenarios
  */
-router.get('/be/scenarios', AnalysisController.getBEScenarios);
+router.get(
+  '/be/scenarios',
+  [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
+    handleValidationErrors
+  ],
+  AnalysisController.getBEScenarios
+);
 
 /**
  * GET /api/analysis/be/metrics
  * Get portfolio-level BE metrics
  */
-router.get('/be/metrics', AnalysisController.getBEMetrics);
+router.get(
+  '/be/metrics',
+  [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
+    handleValidationErrors
+  ],
+  AnalysisController.getBEMetrics
+);
 
 /**
  * GET /api/analysis/be/stop-loss-optimization
@@ -133,6 +179,10 @@ router.get('/be/metrics', AnalysisController.getBEMetrics);
 router.get(
   '/be/stop-loss-optimization',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('tradeId')
       .optional()
       .isString()
@@ -149,6 +199,10 @@ router.get(
 router.get(
   '/be/take-profit-optimization',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('tradeId')
       .optional()
       .isString()
@@ -162,13 +216,33 @@ router.get(
  * GET /api/analysis/be/efficiency
  * Get Break-Even efficiency analysis
  */
-router.get('/be/efficiency', AnalysisController.getBEEfficiency);
+router.get(
+  '/be/efficiency',
+  [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
+    handleValidationErrors
+  ],
+  AnalysisController.getBEEfficiency
+);
 
 /**
  * GET /api/analysis/be/recommendations
  * Get personalized risk management recommendations
  */
-router.get('/be/recommendations', AnalysisController.getRiskManagementRecommendations);
+router.get(
+  '/be/recommendations',
+  [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
+    handleValidationErrors
+  ],
+  AnalysisController.getRiskManagementRecommendations
+);
 
 /**
  * POST /api/analysis/be/validate
@@ -236,6 +310,10 @@ router.post(
 router.get(
   '/be/effectiveness',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('period')
       .optional()
       .isIn(['1m', '3m', '6m', '1y', 'all'])
@@ -260,6 +338,10 @@ router.get(
 router.get(
   '/be/risk-adjusted',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('period')
       .optional()
       .isIn(['1m', '3m', '6m', '1y', 'all'])
@@ -284,6 +366,10 @@ router.get(
 router.get(
   '/be/portfolio-impact',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('period')
       .optional()
       .isIn(['1m', '3m', '6m', '1y', 'all'])
@@ -312,6 +398,10 @@ router.get(
 router.get(
   '/be/optimization-recommendations',
   [
+    query('accountId')
+      .optional()
+      .isString()
+      .withMessage('accountId must be a string'),
     query('period')
       .optional()
       .isIn(['1m', '3m', '6m', '1y', 'all'])

@@ -66,13 +66,16 @@ apiClient.interceptors.response.use(
 );
 
 // Build query string from filters
-function buildQueryParams(filters: TradeFilters = {}, page?: number, limit?: number): string {
+function buildQueryParams(filters: TradeFilters = {}, page?: number, limit?: number, accountId?: string): string {
   const params = new URLSearchParams();
-  
+
+  // Add accountId param if provided
+  if (accountId) params.append('accountId', accountId);
+
   // Add pagination params
   if (page) params.append('page', page.toString());
   if (limit) params.append('limit', limit.toString());
-  
+
   // Add filter params
   if (filters.symbol) params.append('symbol', filters.symbol);
   if (filters.direction) params.append('direction', filters.direction);
@@ -107,10 +110,11 @@ export const tradesService = {
   async getTrades(
     filters: TradeFilters = {},
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
+    accountId?: string
   ): Promise<PaginatedResponse<Trade>> {
     try {
-      const queryParams = buildQueryParams(filters, page, limit);
+      const queryParams = buildQueryParams(filters, page, limit, accountId);
       const response = await apiClient.get<PaginatedResponse<Trade>>(`/trades${queryParams}`);
       
       // Convert date strings back to Date objects
@@ -136,10 +140,14 @@ export const tradesService = {
   /**
    * Get a single trade by ID
    */
-  async getTrade(id: string): Promise<Trade> {
+  async getTrade(id: string, accountId?: string): Promise<Trade> {
     try {
-      const response = await apiClient.get<ApiResponse<Trade>>(`/trades/${id}`);
-      
+      const params = new URLSearchParams();
+      if (accountId) params.append('accountId', accountId);
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+
+      const response = await apiClient.get<ApiResponse<Trade>>(`/trades/${id}${queryString}`);
+
       // Convert date strings back to Date objects
       const trade = response.data.data;
       return {
@@ -158,13 +166,14 @@ export const tradesService = {
   /**
    * Create a new trade
    */
-  async createTrade(tradeData: TradeFormData): Promise<Trade> {
+  async createTrade(tradeData: TradeFormData, accountId?: string): Promise<Trade> {
     try {
       // Convert Date objects to ISO strings for API
       const tradePayload = {
         ...tradeData,
         entryDate: tradeData.entryDate.toISOString(),
-        exitDate: tradeData.exitDate?.toISOString()
+        exitDate: tradeData.exitDate?.toISOString(),
+        accountId: accountId // Always include accountId
       };
       
       const response = await apiClient.post<ApiResponse<Trade>>('/trades', tradePayload);
@@ -187,13 +196,14 @@ export const tradesService = {
   /**
    * Update an existing trade
    */
-  async updateTrade(id: string, tradeData: Partial<TradeFormData>): Promise<Trade> {
+  async updateTrade(id: string, tradeData: Partial<TradeFormData>, accountId?: string): Promise<Trade> {
     try {
       // Convert Date objects to ISO strings for API
       const tradePayload = {
         ...tradeData,
         entryDate: tradeData.entryDate?.toISOString(),
-        exitDate: tradeData.exitDate?.toISOString()
+        exitDate: tradeData.exitDate?.toISOString(),
+        ...(accountId && { accountId })
       };
       
       const response = await apiClient.put<ApiResponse<Trade>>(`/trades/${id}`, tradePayload);
@@ -216,9 +226,13 @@ export const tradesService = {
   /**
    * Delete a trade
    */
-  async deleteTrade(id: string): Promise<void> {
+  async deleteTrade(id: string, accountId?: string): Promise<void> {
     try {
-      await apiClient.delete(`/trades/${id}`);
+      const params = new URLSearchParams();
+      if (accountId) params.append('accountId', accountId);
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+
+      await apiClient.delete(`/trades/${id}${queryString}`);
     } catch (error) {
       console.error(`Failed to delete trade ${id}:`, error);
       throw error;
@@ -228,10 +242,11 @@ export const tradesService = {
   /**
    * Bulk delete trades
    */
-  async bulkDeleteTrades(ids: string[]): Promise<number> {
+  async bulkDeleteTrades(ids: string[], accountId?: string): Promise<number> {
     try {
       const response = await apiClient.post<ApiResponse<{ deleted: number }>>('/trades/bulk-delete', {
-        ids
+        ids,
+        ...(accountId && { accountId })
       });
       return response.data.data.deleted;
     } catch (error) {
@@ -247,14 +262,15 @@ export const tradesService = {
   /**
    * Import multiple trades
    */
-  async importTrades(trades: TradeFormData[]): Promise<Trade[]> {
+  async importTrades(trades: TradeFormData[], accountId?: string): Promise<Trade[]> {
     try {
       const tradesPayload = trades.map(trade => ({
         ...trade,
         entryDate: trade.entryDate.toISOString(),
-        exitDate: trade.exitDate?.toISOString()
+        exitDate: trade.exitDate?.toISOString(),
+        ...(accountId && { accountId })
       }));
-      
+
       const response = await apiClient.post<ApiResponse<Trade[]>>('/trades/bulk', {
         trades: tradesPayload
       });
@@ -278,12 +294,14 @@ export const tradesService = {
    */
   async exportTrades(
     format: 'csv' | 'json' = 'csv',
-    filters: TradeFilters = {}
+    filters: TradeFilters = {},
+    accountId?: string
   ): Promise<Blob> {
     try {
-      const queryParams = buildQueryParams(filters);
+      const queryParams = buildQueryParams(filters, undefined, undefined, accountId);
+      const separator = queryParams ? '&' : '?';
       const response = await apiClient.get(
-        `/trades/export${queryParams}&format=${format}`,
+        `/trades/export${queryParams}${separator}format=${format}`,
         { responseType: 'blob' }
       );
       
@@ -297,11 +315,11 @@ export const tradesService = {
   /**
    * Get trade statistics
    */
-  async getTradeStats(filters: TradeFilters = {}): Promise<any> {
+  async getTradeStats(filters: TradeFilters = {}, accountId?: string): Promise<any> {
     try {
-      const queryParams = buildQueryParams(filters);
+      const queryParams = buildQueryParams(filters, undefined, undefined, accountId);
       const response = await apiClient.get<ApiResponse<any>>(`/trades/stats${queryParams}`);
-      
+
       return response.data.data;
     } catch (error) {
       console.error('Failed to fetch trade statistics:', error);
@@ -312,11 +330,12 @@ export const tradesService = {
   /**
    * Upload trade image/screenshot
    */
-  async uploadTradeImage(tradeId: string, file: File): Promise<string> {
+  async uploadTradeImage(tradeId: string, file: File, accountId?: string): Promise<string> {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      
+      if (accountId) formData.append('accountId', accountId);
+
       const response = await apiClient.post<ApiResponse<{ imageUrl: string }>>(
         `/trades/${tradeId}/image`,
         formData,
@@ -337,9 +356,13 @@ export const tradesService = {
   /**
    * Delete trade image
    */
-  async deleteTradeImage(tradeId: string): Promise<void> {
+  async deleteTradeImage(tradeId: string, accountId?: string): Promise<void> {
     try {
-      await apiClient.delete(`/trades/${tradeId}/image`);
+      const params = new URLSearchParams();
+      if (accountId) params.append('accountId', accountId);
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+
+      await apiClient.delete(`/trades/${tradeId}/image${queryString}`);
     } catch (error) {
       console.error('Failed to delete trade image:', error);
       throw error;

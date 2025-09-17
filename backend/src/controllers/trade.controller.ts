@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../server';
 import { calculateTradeMetrics } from '../services/trade.service';
 import { BECalculationsService } from '../services/bECalculations.service';
+import { accountService } from '../services/account.service';
 
 export const getTrades = async (
   req: AuthRequest,
@@ -13,6 +14,7 @@ export const getTrades = async (
     const {
       page = 1,
       limit = 20,
+      accountId,
       symbol,
       market,
       strategy,
@@ -34,6 +36,7 @@ export const getTrades = async (
       userId
     };
 
+    if (accountId) where.accountId = String(accountId);
     if (symbol) where.symbol = { contains: String(symbol), mode: 'insensitive' };
     if (market) where.market = String(market);
     if (strategy) where.strategy = String(strategy);
@@ -131,9 +134,43 @@ export const createTrade = async (
 
     console.log('Creating trade with body:', req.body);
 
+    // Get accountId from request or use default account
+    let accountId = req.body.accountId;
+
+    if (!accountId) {
+      // If no accountId provided, get user's default account
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (!defaultAccount) {
+        // Create a default account if user has none
+        const newAccount = await accountService.createAccount(userId, {
+          name: 'Default Account',
+          creationDate: new Date(),
+          initialBalance: 10000,
+          currency: 'USD'
+        });
+        accountId = newAccount.id;
+      } else {
+        accountId = defaultAccount.id;
+      }
+    } else {
+      // Verify the account belongs to the user
+      const accountBelongsToUser = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountBelongsToUser) {
+        res.status(403).json({
+          success: false,
+          error: {
+            message: 'Access denied: Account does not belong to user',
+            statusCode: 403
+          }
+        });
+        return;
+      }
+    }
+
     const tradeData = {
       ...req.body,
       userId,
+      accountId,
       entryDate: new Date(req.body.entryDate),
       exitDate: req.body.exitDate ? new Date(req.body.exitDate) : null
     };
@@ -171,6 +208,7 @@ export const createTrade = async (
     // Clean data to match Prisma schema exactly
     const cleanTradeData = {
       userId,
+      accountId,
       symbol: tradeData.symbol,
       market: tradeData.market,
       direction: tradeData.direction,
@@ -205,6 +243,14 @@ export const createTrade = async (
     const trade = await prisma.trade.create({
       data: cleanTradeData,
     });
+
+    // Update account balance after creating trade
+    try {
+      await accountService.recalculateAccountBalance(accountId, userId);
+    } catch (balanceError) {
+      console.warn('Failed to update account balance after creating trade:', balanceError);
+      // Don't fail the trade creation if balance update fails
+    }
 
     res.status(201).json({
       success: true,
@@ -285,6 +331,14 @@ export const updateTrade = async (
       },
     });
 
+    // Update account balance after updating trade
+    try {
+      await accountService.recalculateAccountBalance(existingTrade.accountId, userId);
+    } catch (balanceError) {
+      console.warn('Failed to update account balance after updating trade:', balanceError);
+      // Don't fail the trade update if balance update fails
+    }
+
     res.json({
       success: true,
       data: trade
@@ -322,9 +376,20 @@ export const deleteTrade = async (
       return;
     }
 
+    // Store accountId before deletion for balance update
+    const accountId = trade.accountId;
+
     await prisma.trade.delete({
       where: { id: req.params.id }
     });
+
+    // Update account balance after deleting trade
+    try {
+      await accountService.recalculateAccountBalance(accountId, userId);
+    } catch (balanceError) {
+      console.warn('Failed to update account balance after deleting trade:', balanceError);
+      // Don't fail the trade deletion if balance update fails
+    }
 
     res.json({
       success: true,
@@ -345,13 +410,36 @@ export const bulkDelete = async (
 
     // Temporarily use a default test user ID for development
     const userId = req.userId || 'test-user-id';
-    
+
+    // Get affected accounts before deletion for balance updates
+    const tradesToDelete = await prisma.trade.findMany({
+      where: {
+        id: { in: ids },
+        userId
+      },
+      select: {
+        accountId: true
+      }
+    });
+
+    const affectedAccountIds = [...new Set(tradesToDelete.map(t => t.accountId))];
+
     const result = await prisma.trade.deleteMany({
       where: {
         id: { in: ids },
         userId
       }
     });
+
+    // Update balance for all affected accounts
+    for (const accountId of affectedAccountIds) {
+      try {
+        await accountService.recalculateAccountBalance(accountId, userId);
+      } catch (balanceError) {
+        console.warn(`Failed to update account balance for account ${accountId} after bulk delete:`, balanceError);
+        // Continue with other accounts even if one fails
+      }
+    }
 
     res.json({
       success: true,

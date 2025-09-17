@@ -9,6 +9,8 @@ import {
   BERecommendation,
   BEStatsByStrategy
 } from '@/types/beAnalysis';
+import { BEAnalysisService } from '@/services/beAnalysisService';
+import { useActiveAccount } from '@/store/accountStore';
 
 interface BEAnalysisData {
   shouldUseBE: boolean;
@@ -48,6 +50,8 @@ interface UseBEAnalysisReturn {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 export function useBEAnalysis(): UseBEAnalysisReturn {
+  const activeAccount = useActiveAccount();
+
   // Data state
   const [beAnalysis, setBEAnalysis] = useState<BEAnalysisData | null>(null);
   const [beMetrics, setBEMetrics] = useState<BEAnalysisMetrics | null>(null);
@@ -66,84 +70,66 @@ export function useBEAnalysis(): UseBEAnalysisReturn {
 
   // Fetch BE analysis and recommendations
   const fetchBEAnalysis = useCallback(async () => {
+    if (!activeAccount) {
+      setBEAnalysis(null);
+      return;
+    }
+
     setIsLoadingAnalysis(true);
     setAnalysisError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/analysis/be`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch BE analysis: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        setBEAnalysis(result.data);
-      } else {
-        throw new Error(result.message || 'Failed to fetch BE analysis');
-      }
+      const result = await BEAnalysisService.getBERecommendations(activeAccount.id);
+      setBEAnalysis(result);
     } catch (error) {
       console.error('Error fetching BE analysis:', error);
       setAnalysisError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsLoadingAnalysis(false);
     }
-  }, []);
+  }, [activeAccount]);
 
   // Fetch BE metrics only
   const fetchBEMetrics = useCallback(async () => {
+    if (!activeAccount) {
+      setBEMetrics(null);
+      return;
+    }
+
     setIsLoadingMetrics(true);
     setMetricsError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/analysis/be/metrics`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch BE metrics: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        setBEMetrics(result.data);
-      } else {
-        throw new Error(result.message || 'Failed to fetch BE metrics');
-      }
+      const result = await BEAnalysisService.getBEMetrics(activeAccount.id);
+      setBEMetrics(result);
     } catch (error) {
       console.error('Error fetching BE metrics:', error);
       setMetricsError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsLoadingMetrics(false);
     }
-  }, []);
+  }, [activeAccount]);
 
   // Fetch BE scenarios
   const fetchBEScenarios = useCallback(async () => {
+    if (!activeAccount) {
+      setBEScenarios([]);
+      return;
+    }
+
     setIsLoadingScenarios(true);
     setScenariosError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/analysis/be/scenarios`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch BE scenarios: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        setBEScenarios(result.data);
-      } else {
-        throw new Error(result.message || 'Failed to fetch BE scenarios');
-      }
+      const result = await BEAnalysisService.getBEScenarios(activeAccount.id);
+      setBEScenarios(result);
     } catch (error) {
       console.error('Error fetching BE scenarios:', error);
       setScenariosError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsLoadingScenarios(false);
     }
-  }, []);
+  }, [activeAccount]);
 
   // Refresh functions
   const refreshAnalysis = useCallback(async () => {
@@ -166,10 +152,12 @@ export function useBEAnalysis(): UseBEAnalysisReturn {
     ]);
   }, [fetchBEAnalysis, fetchBEMetrics, fetchBEScenarios]);
 
-  // Load initial data
+  // Load initial data when active account changes
   useEffect(() => {
-    refreshAll();
-  }, [refreshAll]);
+    if (activeAccount) {
+      refreshAll();
+    }
+  }, [activeAccount, refreshAll]);
 
   return {
     // Data

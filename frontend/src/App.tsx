@@ -2,14 +2,30 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { MainLayout } from '@/components/layout';
-import { Dashboard, TradeHistory, TradeForm } from '@/pages';
+import { Dashboard, TradeHistory, TradeForm, Settings } from '@/pages';
 import { setupTestAuth } from '@/utils/setupAuth';
+import { useAccountChangeHandler } from '@/hooks/useAccountChangeHandler';
+import { initializeAccountStore } from '@/store/accountStore';
 
 function App() {
+  // Initialize account change handling
+  useAccountChangeHandler();
+
   useEffect(() => {
-    // Set up test authentication on app startup
-    // In production, this would be replaced with proper auth flow
-    setupTestAuth();
+    // Initialize account store and set up test authentication on app startup
+    const initializeApp = async () => {
+      try {
+        // Set up test authentication first
+        setupTestAuth();
+
+        // Initialize account store
+        await initializeAccountStore();
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+      }
+    };
+
+    initializeApp();
   }, []);
 
   return (
@@ -20,6 +36,7 @@ function App() {
           <Route path="/trades" element={<TradeHistory />} />
           <Route path="/trades/new" element={<TradeForm />} />
           <Route path="/trades/:id/edit" element={<TradeForm />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </MainLayout>
       <Toaster richColors position="top-right" />

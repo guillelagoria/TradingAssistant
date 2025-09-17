@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient, TradeDirection } from '@prisma/client';
+import { accountService } from './account.service';
 
 const prisma = new PrismaClient();
 
@@ -148,9 +149,30 @@ export class BEAnalysisService {
   /**
    * Calculate portfolio-level BE metrics
    */
-  static async calculatePortfolioBEMetrics(userId: string): Promise<PortfolioBEMetrics> {
+  static async calculatePortfolioBEMetrics(userId: string, accountId?: string): Promise<PortfolioBEMetrics> {
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
+    const whereClause: any = { userId };
+
+    // Handle account filtering
+    if (accountId) {
+      whereClause.accountId = accountId;
+    } else {
+      // If no specific account, get default account
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (defaultAccount) {
+        whereClause.accountId = defaultAccount.id;
+      }
+    }
+
     const trades = await prisma.trade.findMany({
-      where: { userId },
+      where: whereClause,
       orderBy: { entryDate: 'desc' }
     });
 
@@ -230,14 +252,36 @@ export class BEAnalysisService {
   /**
    * Generate BE optimization scenarios
    */
-  static async generateBEOptimizationScenarios(userId: string): Promise<BEOptimizationScenario[]> {
-    const portfolioMetrics = await this.calculatePortfolioBEMetrics(userId);
+  static async generateBEOptimizationScenarios(userId: string, accountId?: string): Promise<BEOptimizationScenario[]> {
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
+    const portfolioMetrics = await this.calculatePortfolioBEMetrics(userId, accountId);
+
+    const whereClause: any = {
+      userId,
+      exitPrice: { not: null },
+      takeProfit: { not: null }
+    };
+
+    // Handle account filtering
+    if (accountId) {
+      whereClause.accountId = accountId;
+    } else {
+      // If no specific account, get default account
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (defaultAccount) {
+        whereClause.accountId = defaultAccount.id;
+      }
+    }
+
     const trades = await prisma.trade.findMany({
-      where: {
-        userId,
-        exitPrice: { not: null },
-        takeProfit: { not: null }
-      },
+      where: whereClause,
       orderBy: { entryDate: 'desc' },
       take: 100 // Analyze last 100 trades for scenarios
     });
@@ -446,10 +490,18 @@ export class BEAnalysisService {
   /**
    * Get BE analysis recommendations for a user
    */
-  static async getBERecommendations(userId: string) {
+  static async getBERecommendations(userId: string, accountId?: string) {
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
     const [portfolioMetrics, scenarios] = await Promise.all([
-      this.calculatePortfolioBEMetrics(userId),
-      this.generateBEOptimizationScenarios(userId)
+      this.calculatePortfolioBEMetrics(userId, accountId),
+      this.generateBEOptimizationScenarios(userId, accountId)
     ]);
 
     const topScenario = scenarios[0];

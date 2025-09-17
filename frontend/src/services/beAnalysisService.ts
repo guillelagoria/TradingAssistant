@@ -61,9 +61,10 @@ export class BEAnalysisService {
   /**
    * Get portfolio-level BE metrics
    */
-  static async getBEMetrics(): Promise<BEStatsData> {
+  static async getBEMetrics(accountId?: string): Promise<BEStatsData> {
     try {
-      const response = await api.get('/api/analysis/be/metrics');
+      const params = accountId ? { accountId } : {};
+      const response = await api.get('/api/analysis/be/metrics', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching BE metrics:', error);
@@ -74,9 +75,10 @@ export class BEAnalysisService {
   /**
    * Get BE optimization scenarios
    */
-  static async getBEScenarios(): Promise<BEScenario[]> {
+  static async getBEScenarios(accountId?: string): Promise<BEScenario[]> {
     try {
-      const response = await api.get('/api/analysis/be/scenarios');
+      const params = accountId ? { accountId } : {};
+      const response = await api.get('/api/analysis/be/scenarios', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching BE scenarios:', error);
@@ -87,9 +89,10 @@ export class BEAnalysisService {
   /**
    * Get comprehensive BE recommendations
    */
-  static async getBERecommendations(): Promise<BERecommendations> {
+  static async getBERecommendations(accountId?: string): Promise<BERecommendations> {
     try {
-      const response = await api.get('/api/analysis/be/recommendations');
+      const params = accountId ? { accountId } : {};
+      const response = await api.get('/api/analysis/be/recommendations', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching BE recommendations:', error);
@@ -100,11 +103,12 @@ export class BEAnalysisService {
   /**
    * Get BE efficiency metrics with trends
    */
-  static async getBEEfficiencyMetrics(period: string = '3m'): Promise<BEEfficiencyMetrics> {
+  static async getBEEfficiencyMetrics(period: string = '3m', accountId?: string): Promise<BEEfficiencyMetrics> {
     try {
-      const response = await api.get('/api/analysis/be/effectiveness', {
-        params: { period }
-      });
+      const params: any = { period };
+      if (accountId) params.accountId = accountId;
+
+      const response = await api.get('/api/analysis/be/effectiveness', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching BE efficiency metrics:', error);
@@ -115,13 +119,14 @@ export class BEAnalysisService {
   /**
    * Get stop loss optimization score
    */
-  static async getStopLossOptimization(): Promise<{
+  static async getStopLossOptimization(accountId?: string): Promise<{
     currentScore: number;
     potentialImprovement: number;
     recommendations: string[];
   }> {
     try {
-      const response = await api.get('/api/analysis/be/stop-loss-optimization');
+      const params = accountId ? { accountId } : {};
+      const response = await api.get('/api/analysis/be/stop-loss-optimization', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching stop loss optimization:', error);
@@ -132,13 +137,14 @@ export class BEAnalysisService {
   /**
    * Get take profit optimization score
    */
-  static async getTakeProfitOptimization(): Promise<{
+  static async getTakeProfitOptimization(accountId?: string): Promise<{
     currentScore: number;
     potentialImprovement: number;
     recommendations: string[];
   }> {
     try {
-      const response = await api.get('/api/analysis/be/take-profit-optimization');
+      const params = accountId ? { accountId } : {};
+      const response = await api.get('/api/analysis/be/take-profit-optimization', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching take profit optimization:', error);
@@ -149,7 +155,7 @@ export class BEAnalysisService {
   /**
    * Get risk-adjusted metrics comparing BE vs non-BE performance
    */
-  static async getRiskAdjustedMetrics(period: string = '3m'): Promise<{
+  static async getRiskAdjustedMetrics(period: string = '3m', accountId?: string): Promise<{
     withBE: {
       sharpeRatio: number;
       maxDrawdown: number;
@@ -170,9 +176,10 @@ export class BEAnalysisService {
     };
   }> {
     try {
-      const response = await api.get('/api/analysis/be/risk-adjusted', {
-        params: { period }
-      });
+      const params: any = { period };
+      if (accountId) params.accountId = accountId;
+
+      const response = await api.get('/api/analysis/be/risk-adjusted', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching risk-adjusted metrics:', error);
@@ -183,7 +190,7 @@ export class BEAnalysisService {
   /**
    * Get portfolio impact analysis
    */
-  static async getPortfolioImpact(period: string = '3m', accountSize?: number): Promise<{
+  static async getPortfolioImpact(period: string = '3m', accountSize?: number, accountId?: string): Promise<{
     totalImpact: number;
     monthlyImpact: number;
     impactPercentage: number;
@@ -194,6 +201,7 @@ export class BEAnalysisService {
     try {
       const params: any = { period };
       if (accountSize) params.accountSize = accountSize;
+      if (accountId) params.accountId = accountId;
 
       const response = await api.get('/api/analysis/be/portfolio-impact', { params });
       return response.data;
@@ -215,13 +223,17 @@ export class BEAnalysisService {
     takeProfit?: number;
     stopLoss?: number;
     breakEvenWorked?: boolean;
-  }): Promise<{
+  }, accountId?: string): Promise<{
     isValid: boolean;
     warnings: string[];
     suggestions: string[];
   }> {
     try {
-      const response = await api.post('/api/analysis/be/validate', tradeData);
+      const payload = {
+        ...tradeData,
+        ...(accountId && { accountId })
+      };
+      const response = await api.post('/api/analysis/be/validate', payload);
       return response.data;
     } catch (error) {
       console.error('Error validating BE fields:', error);
@@ -232,7 +244,7 @@ export class BEAnalysisService {
   /**
    * Calculate what-if scenario for BE modifications
    */
-  static async calculateBEWhatIf(originalTrade: any, modifications: any): Promise<{
+  static async calculateBEWhatIf(originalTrade: any, modifications: any, accountId?: string): Promise<{
     originalPnL: number;
     modifiedPnL: number;
     improvement: number;
@@ -241,10 +253,12 @@ export class BEAnalysisService {
     recommendation: string;
   }> {
     try {
-      const response = await api.post('/api/analysis/be/what-if', {
+      const payload = {
         originalTrade,
-        modifications
-      });
+        modifications,
+        ...(accountId && { accountId })
+      };
+      const response = await api.post('/api/analysis/be/what-if', payload);
       return response.data;
     } catch (error) {
       console.error('Error calculating BE what-if:', error);

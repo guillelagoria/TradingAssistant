@@ -25,6 +25,7 @@ import {
   Zap
 } from 'lucide-react';
 import { BEAnalysisService, BEStatsData } from '@/services/beAnalysisService';
+import { useActiveAccount } from '@/store/accountStore';
 
 interface AnimatedBEStatsCardProps {
   onViewDetails?: () => void;
@@ -107,6 +108,7 @@ function AnimatedCounter({
 }
 
 export function AnimatedBEStatsCard({ onViewDetails, refreshTrigger = 0 }: AnimatedBEStatsCardProps) {
+  const activeAccount = useActiveAccount();
   const [data, setData] = useState<BEStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,9 +116,16 @@ export function AnimatedBEStatsCard({ onViewDetails, refreshTrigger = 0 }: Anima
   const [isHovered, setIsHovered] = useState(false);
 
   const fetchBEData = async () => {
+    if (!activeAccount) {
+      setData(null);
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
+
     try {
       setError(null);
-      const beData = await BEAnalysisService.getBEMetrics();
+      const beData = await BEAnalysisService.getBEMetrics(activeAccount.id);
       setData(beData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load break-even data');
@@ -128,7 +137,7 @@ export function AnimatedBEStatsCard({ onViewDetails, refreshTrigger = 0 }: Anima
 
   useEffect(() => {
     fetchBEData();
-  }, [refreshTrigger]);
+  }, [activeAccount, refreshTrigger]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

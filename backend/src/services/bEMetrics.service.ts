@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { accountService } from './account.service';
 
 const prisma = new PrismaClient();
 
@@ -90,9 +91,18 @@ export class BEMetricsService {
    */
   static async getBEEffectivenessMetrics(
     userId: string,
-    timeframe: BEMetricsTimeframe = { period: 'all' }
+    timeframe: BEMetricsTimeframe = { period: 'all' },
+    accountId?: string
   ): Promise<BEEffectivenessMetrics> {
-    const whereClause = this.buildWhereClause(userId, timeframe);
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
+    const whereClause = this.buildWhereClause(userId, timeframe, accountId);
 
     const [allTrades, tradesWithBE] = await Promise.all([
       prisma.trade.findMany({
@@ -141,9 +151,9 @@ export class BEMetricsService {
     const netBEImpact = totalProtected - totalMissed;
 
     // Calculate by-strategy metrics
-    const byStrategy = await this.calculateBEByStrategy(userId, timeframe);
-    const bySymbol = await this.calculateBEBySymbol(userId, timeframe);
-    const byTimeframe = await this.calculateBEByTimeframe(userId, timeframe);
+    const byStrategy = await this.calculateBEByStrategy(userId, timeframe, accountId);
+    const bySymbol = await this.calculateBEBySymbol(userId, timeframe, accountId);
+    const byTimeframe = await this.calculateBEByTimeframe(userId, timeframe, accountId);
 
     // Find best and worst performing strategies
     const bestStrategy = byStrategy.reduce((best, current) =>
@@ -156,7 +166,7 @@ export class BEMetricsService {
     );
 
     // Calculate trends
-    const trends = await this.calculateBETrends(userId, timeframe);
+    const trends = await this.calculateBETrends(userId, timeframe, accountId);
 
     return {
       totalTrades,
@@ -180,9 +190,18 @@ export class BEMetricsService {
    */
   static async calculateRiskAdjustedMetrics(
     userId: string,
-    timeframe: BEMetricsTimeframe = { period: 'all' }
+    timeframe: BEMetricsTimeframe = { period: 'all' },
+    accountId?: string
   ): Promise<RiskAdjustedMetrics> {
-    const whereClause = this.buildWhereClause(userId, timeframe);
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
+    const whereClause = this.buildWhereClause(userId, timeframe, accountId);
 
     const trades = await prisma.trade.findMany({
       where: {
@@ -252,9 +271,18 @@ export class BEMetricsService {
   static async calculateBEPortfolioImpact(
     userId: string,
     accountSize: number = 100000,
-    timeframe: BEMetricsTimeframe = { period: 'all' }
+    timeframe: BEMetricsTimeframe = { period: 'all' },
+    accountId?: string
   ): Promise<BEPortfolioImpact> {
-    const whereClause = this.buildWhereClause(userId, timeframe);
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
+    const whereClause = this.buildWhereClause(userId, timeframe, accountId);
 
     const trades = await prisma.trade.findMany({
       where: {
@@ -307,16 +335,25 @@ export class BEMetricsService {
    */
   static async generateBEOptimizationRecommendations(
     userId: string,
-    timeframe: BEMetricsTimeframe = { period: 'all' }
+    timeframe: BEMetricsTimeframe = { period: 'all' },
+    accountId?: string
   ): Promise<{
     priority: 'high' | 'medium' | 'low';
     recommendations: string[];
     actionItems: Array<{ action: string; impact: string; difficulty: string }>;
   }> {
+    // Validate account ownership if accountId is provided
+    if (accountId) {
+      const accountExists = await accountService.validateAccountOwnership(accountId, userId);
+      if (!accountExists) {
+        throw new Error('Account not found or access denied');
+      }
+    }
+
     const [metrics, , portfolioImpact] = await Promise.all([
-      this.getBEEffectivenessMetrics(userId, timeframe),
-      this.calculateRiskAdjustedMetrics(userId, timeframe),
-      this.calculateBEPortfolioImpact(userId, 100000, timeframe)
+      this.getBEEffectivenessMetrics(userId, timeframe, accountId),
+      this.calculateRiskAdjustedMetrics(userId, timeframe, accountId),
+      this.calculateBEPortfolioImpact(userId, 100000, timeframe, accountId)
     ]);
 
     const recommendations: string[] = [];
@@ -399,8 +436,13 @@ export class BEMetricsService {
 
   // Private helper methods
 
-  private static buildWhereClause(userId: string, timeframe: BEMetricsTimeframe) {
+  private static buildWhereClause(userId: string, timeframe: BEMetricsTimeframe, accountId?: string) {
     const where: any = { userId };
+
+    // Handle account filtering
+    if (accountId) {
+      where.accountId = accountId;
+    }
 
     if (timeframe.period !== 'all') {
       const now = new Date();
@@ -449,9 +491,10 @@ export class BEMetricsService {
 
   private static async calculateBEByStrategy(
     userId: string,
-    timeframe: BEMetricsTimeframe
+    timeframe: BEMetricsTimeframe,
+    accountId?: string
   ): Promise<BEStrategyMetrics[]> {
-    const whereClause = this.buildWhereClause(userId, timeframe);
+    const whereClause = this.buildWhereClause(userId, timeframe, accountId);
 
     const trades = await prisma.trade.findMany({
       where: whereClause,
@@ -508,9 +551,10 @@ export class BEMetricsService {
 
   private static async calculateBEBySymbol(
     userId: string,
-    timeframe: BEMetricsTimeframe
+    timeframe: BEMetricsTimeframe,
+    accountId?: string
   ): Promise<BESymbolMetrics[]> {
-    const whereClause = this.buildWhereClause(userId, timeframe);
+    const whereClause = this.buildWhereClause(userId, timeframe, accountId);
 
     const trades = await prisma.trade.findMany({
       where: whereClause
@@ -577,9 +621,10 @@ export class BEMetricsService {
 
   private static async calculateBEByTimeframe(
     userId: string,
-    timeframe: BEMetricsTimeframe
+    timeframe: BEMetricsTimeframe,
+    accountId?: string
   ): Promise<BETimeframeMetrics[]> {
-    const whereClause = this.buildWhereClause(userId, timeframe);
+    const whereClause = this.buildWhereClause(userId, timeframe, accountId);
 
     const trades = await prisma.trade.findMany({
       where: whereClause
@@ -633,9 +678,10 @@ export class BEMetricsService {
 
   private static async calculateBETrends(
     userId: string,
-    timeframe: BEMetricsTimeframe
+    timeframe: BEMetricsTimeframe,
+    accountId?: string
   ): Promise<BETrendMetrics> {
-    const whereClause = this.buildWhereClause(userId, timeframe);
+    const whereClause = this.buildWhereClause(userId, timeframe, accountId);
 
     const trades = await prisma.trade.findMany({
       where: whereClause,

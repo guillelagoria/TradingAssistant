@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import AccountSelector from './AccountSelector';
 
 function Header() {
   const navigate = useNavigate();
@@ -16,11 +17,16 @@ function Header() {
     navigate('/settings');
   };
 
+  const handleCreateAccount = () => {
+    // Navigate to settings page with accounts tab
+    navigate('/settings?tab=accounts');
+  };
+
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container flex h-16 items-center justify-between px-6">
         {/* Brand */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600">
               <TrendingUp className="h-4 w-4 text-white" />
@@ -29,6 +35,15 @@ function Header() {
               <h1 className="text-lg font-bold text-foreground">Trading Diary</h1>
               <p className="text-xs text-muted-foreground hidden sm:block">Professional Trading Journal</p>
             </div>
+          </div>
+
+          {/* Account Selector */}
+          <div className="hidden lg:block">
+            <AccountSelector
+              showBalance={true}
+              showCreateButton={true}
+              onCreateAccount={handleCreateAccount}
+            />
           </div>
         </div>
 

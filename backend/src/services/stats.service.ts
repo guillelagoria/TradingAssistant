@@ -259,5 +259,5 @@ export const calculateStrategyPerformance = (trades: (Trade & { strategy: Strate
     };
   });
 
-  return performance.sort((a, b) => b.totalPnL - a.totalPnL);
+  return performance.sort((a, b) => b.totalPnl - a.totalPnl);
 };

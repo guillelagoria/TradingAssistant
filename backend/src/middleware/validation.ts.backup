@@ -105,6 +105,161 @@ export const validateTradeData = (
 };
 
 /**
+ * Validation rules for creating an account
+ */
+export const validateCreateAccount = [
+  body('name')
+    .notEmpty()
+    .withMessage('Account name is required')
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Account name must be between 1 and 100 characters')
+    .trim(),
+
+  body('accountType')
+    .optional()
+    .isIn(['DEMO', 'LIVE'])
+    .withMessage('Account type must be either DEMO or LIVE'),
+
+  body('currency')
+    .optional()
+    .isLength({ min: 3, max: 3 })
+    .withMessage('Currency must be 3 characters')
+    .toUpperCase(),
+
+  body('creationDate')
+    .notEmpty()
+    .withMessage('Creation date is required')
+    .isISO8601()
+    .withMessage('Creation date must be a valid ISO 8601 date'),
+
+  body('initialBalance')
+    .notEmpty()
+    .withMessage('Initial balance is required')
+    .isFloat({ min: 0 })
+    .withMessage('Initial balance must be a positive number'),
+
+  body('currentBalance')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Current balance must be a positive number'),
+
+  body('maxDrawdown')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Max drawdown must be a positive number'),
+
+  body('profitTarget')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Profit target must be a positive number'),
+
+  body('dataInfoName')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Data info name must be less than 200 characters'),
+
+  body('dataInfoPassword')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Data info password must be less than 200 characters'),
+
+  body('dataInfoNotes')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Data info notes must be less than 1000 characters'),
+
+  handleValidationErrors
+];
+
+/**
+ * Validation rules for updating an account
+ */
+export const validateUpdateAccount = [
+  param('accountId')
+    .notEmpty()
+    .withMessage('Account ID is required')
+    .isString()
+    .withMessage('Account ID must be a string'),
+
+  body('name')
+    .optional()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Account name must be between 1 and 100 characters')
+    .trim(),
+
+  body('accountType')
+    .optional()
+    .isIn(['DEMO', 'LIVE'])
+    .withMessage('Account type must be either DEMO or LIVE'),
+
+  body('currency')
+    .optional()
+    .isLength({ min: 3, max: 3 })
+    .withMessage('Currency must be 3 characters')
+    .toUpperCase(),
+
+  body('creationDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Creation date must be a valid ISO 8601 date'),
+
+  body('initialBalance')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Initial balance must be a positive number'),
+
+  body('currentBalance')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Current balance must be a positive number'),
+
+  body('maxDrawdown')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Max drawdown must be a positive number'),
+
+  body('profitTarget')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Profit target must be a positive number'),
+
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive must be a boolean'),
+
+  body('dataInfoName')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Data info name must be less than 200 characters'),
+
+  body('dataInfoPassword')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Data info password must be less than 200 characters'),
+
+  body('dataInfoNotes')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Data info notes must be less than 1000 characters'),
+
+  handleValidationErrors
+];
+
+/**
+ * Validation rules for account ID parameter
+ */
+export const validateAccountId = [
+  param('accountId')
+    .notEmpty()
+    .withMessage('Account ID is required')
+    .isString()
+    .withMessage('Account ID must be a string'),
+
+  handleValidationErrors
+];
+
+/**
  * Middleware to validate price alignment to market tick size
  */
 export const validatePriceTicks = (
@@ -185,6 +340,161 @@ export const validatePriceTicks = (
     return;
   }
 };
+
+/**
+ * Validation rules for creating an account
+ */
+export const validateCreateAccount = [
+  body('name')
+    .notEmpty()
+    .withMessage('Account name is required')
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Account name must be between 1 and 100 characters')
+    .trim(),
+
+  body('accountType')
+    .optional()
+    .isIn(['DEMO', 'LIVE'])
+    .withMessage('Account type must be either DEMO or LIVE'),
+
+  body('currency')
+    .optional()
+    .isLength({ min: 3, max: 3 })
+    .withMessage('Currency must be 3 characters')
+    .toUpperCase(),
+
+  body('creationDate')
+    .notEmpty()
+    .withMessage('Creation date is required')
+    .isISO8601()
+    .withMessage('Creation date must be a valid ISO 8601 date'),
+
+  body('initialBalance')
+    .notEmpty()
+    .withMessage('Initial balance is required')
+    .isFloat({ min: 0 })
+    .withMessage('Initial balance must be a positive number'),
+
+  body('currentBalance')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Current balance must be a positive number'),
+
+  body('maxDrawdown')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Max drawdown must be a positive number'),
+
+  body('profitTarget')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Profit target must be a positive number'),
+
+  body('dataInfoName')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Data info name must be less than 200 characters'),
+
+  body('dataInfoPassword')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Data info password must be less than 200 characters'),
+
+  body('dataInfoNotes')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Data info notes must be less than 1000 characters'),
+
+  handleValidationErrors
+];
+
+/**
+ * Validation rules for updating an account
+ */
+export const validateUpdateAccount = [
+  param('accountId')
+    .notEmpty()
+    .withMessage('Account ID is required')
+    .isString()
+    .withMessage('Account ID must be a string'),
+
+  body('name')
+    .optional()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Account name must be between 1 and 100 characters')
+    .trim(),
+
+  body('accountType')
+    .optional()
+    .isIn(['DEMO', 'LIVE'])
+    .withMessage('Account type must be either DEMO or LIVE'),
+
+  body('currency')
+    .optional()
+    .isLength({ min: 3, max: 3 })
+    .withMessage('Currency must be 3 characters')
+    .toUpperCase(),
+
+  body('creationDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Creation date must be a valid ISO 8601 date'),
+
+  body('initialBalance')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Initial balance must be a positive number'),
+
+  body('currentBalance')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Current balance must be a positive number'),
+
+  body('maxDrawdown')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Max drawdown must be a positive number'),
+
+  body('profitTarget')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Profit target must be a positive number'),
+
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive must be a boolean'),
+
+  body('dataInfoName')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Data info name must be less than 200 characters'),
+
+  body('dataInfoPassword')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Data info password must be less than 200 characters'),
+
+  body('dataInfoNotes')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Data info notes must be less than 1000 characters'),
+
+  handleValidationErrors
+];
+
+/**
+ * Validation rules for account ID parameter
+ */
+export const validateAccountId = [
+  param('accountId')
+    .notEmpty()
+    .withMessage('Account ID is required')
+    .isString()
+    .withMessage('Account ID must be a string'),
+
+  handleValidationErrors
+];
 
 /**
  * Middleware to validate market parameter exists and is active

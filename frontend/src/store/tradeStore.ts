@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { 
-  Trade, 
-  TradeFormData, 
-  TradeFilters, 
-  TradeSortConfig, 
-  TradeStats, 
-  TradeDraft, 
+import {
+  Trade,
+  TradeFormData,
+  TradeFilters,
+  TradeSortConfig,
+  TradeStats,
+  TradeDraft,
   TradeStatus,
   TradeResult,
   FilterPreset,
@@ -16,9 +16,10 @@ import { calculateTradeMetrics, calculateTradeStats } from '@/utils/tradeCalcula
 import { tradesService } from '@/services/tradesService';
 import { applyFilters } from '@/utils/filterHelpers';
 import { searchTrades, SearchOptions, DEFAULT_SEARCH_OPTIONS } from '@/utils/searchHelpers';
+import useAccountStore from './accountStore';
 
 interface TradeState {
-  // Trade data
+  // Trade data state
   trades: Trade[];
   currentTrade: Trade | null;
   tradeDraft: TradeDraft | null;
@@ -84,6 +85,9 @@ interface TradeState {
   // Search options
   setSearchOptions: (options: Partial<SearchOptions>) => void;
   
+  // Account management
+  refreshTradesForAccount: (accountId?: string) => Promise<void>;
+
   // Utility functions
   getFilteredTrades: () => Trade[];
   getSortedTrades: (trades: Trade[]) => Trade[];
@@ -141,7 +145,9 @@ export const useTradeStore = create<TradeState>()(
         set({ loading: true, error: null });
 
         try {
-          const response = await tradesService.getTrades(filters, page, limit);
+          // Get active account ID
+          const fetchActiveAccountId = useAccountStore.getState().getActiveAccountId();
+          const response = await tradesService.getTrades(filters, page, limit, fetchActiveAccountId);
 
           const tradesWithCalculations = response.data.map(trade => {
             // Only recalculate if values don't exist
@@ -181,16 +187,32 @@ export const useTradeStore = create<TradeState>()(
         set({ loading: true, error: null });
 
         try {
-          // For now, let the backend handle calculations
-          // TODO: Update to use new calculateTradeMetrics signature
+          // Get active account ID
+          const addActiveAccountId = useAccountStore.getState().getActiveAccountId();
+          if (!addActiveAccountId) {
+            // Try to initialize account store and get default account
+            const accountStore = useAccountStore.getState();
+            if (accountStore.accounts.length === 0) {
+              throw new Error('No accounts available. Please create an account first.');
+            }
+            // If accounts exist but no active account, use the first one
+            const firstAccount = accountStore.accounts[0];
+            if (firstAccount) {
+              await accountStore.setActiveAccount(firstAccount.id);
+            } else {
+              throw new Error('No active account selected');
+            }
+          }
 
           const tradeWithMetrics = {
             ...tradeData,
             status: tradeData.exitPrice ? TradeStatus.CLOSED : TradeStatus.OPEN,
             result: undefined // Let backend calculate this
           };
-          
-          const newTrade = await tradesService.createTrade(tradeWithMetrics);
+
+          // Get the current active account ID (might have changed)
+          const finalActiveAccountId = useAccountStore.getState().getActiveAccountId();
+          const newTrade = await tradesService.createTrade(tradeWithMetrics, finalActiveAccountId);
           
           set(state => ({
             trades: [newTrade, ...state.trades],
@@ -199,7 +221,11 @@ export const useTradeStore = create<TradeState>()(
           
           get().refreshStats();
           get().clearDraft();
-          
+
+          // Refresh account balance after adding trade
+          const accountStore = useAccountStore.getState();
+          await accountStore.refreshAccount();
+
           return newTrade;
           
         } catch (error) {
@@ -214,27 +240,30 @@ export const useTradeStore = create<TradeState>()(
       // Update existing trade
       updateTrade: async (id, tradeData) => {
         set({ loading: true, error: null });
-        
+
         try {
+          // Get active account ID
+          const updateActiveAccountId = useAccountStore.getState().getActiveAccountId();
+
           const existingTrade = get().trades.find(t => t.id === id);
           if (!existingTrade) {
             throw new Error('Trade not found');
           }
-          
+
           const updatedData = { ...existingTrade, ...tradeData };
           const calculatedMetrics = calculateTradeMetrics(updatedData);
-          
+
           const tradeWithMetrics = {
             ...updatedData,
             ...calculatedMetrics,
             status: updatedData.exitPrice ? TradeStatus.CLOSED : TradeStatus.OPEN,
-            result: updatedData.exitPrice 
-              ? (calculatedMetrics.pnl > 0 ? TradeResult.WIN : 
+            result: updatedData.exitPrice
+              ? (calculatedMetrics.pnl > 0 ? TradeResult.WIN :
                  calculatedMetrics.pnl < 0 ? TradeResult.LOSS : TradeResult.BREAKEVEN)
               : undefined
           };
-          
-          const updatedTrade = await tradesService.updateTrade(id, tradeWithMetrics);
+
+          const updatedTrade = await tradesService.updateTrade(id, tradeWithMetrics, updateActiveAccountId);
           
           set(state => ({
             trades: state.trades.map(trade => 
@@ -245,7 +274,11 @@ export const useTradeStore = create<TradeState>()(
           }));
           
           get().refreshStats();
-          
+
+          // Refresh account balance after updating trade
+          const accountStore = useAccountStore.getState();
+          await accountStore.refreshAccount();
+
           return updatedTrade;
           
         } catch (error) {
@@ -262,7 +295,9 @@ export const useTradeStore = create<TradeState>()(
         set({ loading: true, error: null });
 
         try {
-          await tradesService.deleteTrade(id);
+          // Get active account ID
+          const deleteActiveAccountId = useAccountStore.getState().getActiveAccountId();
+          await tradesService.deleteTrade(id, deleteActiveAccountId);
 
           set(state => ({
             trades: state.trades.filter(trade => trade.id !== id),
@@ -271,6 +306,10 @@ export const useTradeStore = create<TradeState>()(
           }));
 
           get().refreshStats();
+
+          // Refresh account balance after deleting trade
+          const accountStore = useAccountStore.getState();
+          await accountStore.refreshAccount();
 
         } catch (error) {
           set({
@@ -286,7 +325,9 @@ export const useTradeStore = create<TradeState>()(
         set({ loading: true, error: null });
 
         try {
-          const deletedCount = await tradesService.bulkDeleteTrades(ids);
+          // Get active account ID
+          const bulkActiveAccountId = useAccountStore.getState().getActiveAccountId();
+          const deletedCount = await tradesService.bulkDeleteTrades(ids, bulkActiveAccountId);
 
           set(state => ({
             trades: state.trades.filter(trade => !ids.includes(trade.id)),
@@ -295,6 +336,10 @@ export const useTradeStore = create<TradeState>()(
           }));
 
           get().refreshStats();
+
+          // Refresh account balance after bulk deleting trades
+          const accountStore = useAccountStore.getState();
+          await accountStore.refreshAccount();
 
           return deletedCount;
 
@@ -313,11 +358,13 @@ export const useTradeStore = create<TradeState>()(
         if (existingTrade) {
           return existingTrade;
         }
-        
+
         set({ loading: true, error: null });
-        
+
         try {
-          const trade = await tradesService.getTrade(id);
+          // Get active account ID
+          const getActiveAccountId = useAccountStore.getState().getActiveAccountId();
+          const trade = await tradesService.getTrade(id, getActiveAccountId);
           const tradeWithCalculations = {
             ...trade,
             ...calculateTradeMetrics(trade)
@@ -499,6 +546,23 @@ export const useTradeStore = create<TradeState>()(
         set(state => ({
           searchOptions: { ...state.searchOptions, ...options }
         }));
+      },
+
+      // Account management
+      refreshTradesForAccount: async (accountId) => {
+        const targetAccountId = accountId || useAccountStore.getState().getActiveAccountId();
+        if (!targetAccountId) {
+          // Clear trades if no account is active
+          set({ trades: [], stats: null });
+          return;
+        }
+
+        try {
+          // Fetch trades for the specified account
+          await get().fetchTrades();
+        } catch (error) {
+          console.error('Failed to refresh trades for account:', error);
+        }
       }
       };
     },

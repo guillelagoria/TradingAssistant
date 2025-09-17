@@ -16,6 +16,7 @@ import { TradeTable, TradeFilters, TradeDetails } from '@/components/trades';
 import { AnimatedStatsCards } from '@/components/dashboard';
 import { ConfirmDialog } from '@/components/shared';
 import { useTradeStore } from '@/store/tradeStore';
+import { useActiveAccount } from '@/store/accountStore';
 import { Trade } from '@/types';
 import { 
   Plus, 
@@ -29,6 +30,7 @@ import {
 
 function TradeHistory() {
   const navigate = useNavigate();
+  const activeAccount = useActiveAccount();
   const {
     trades,
     loading,
@@ -38,7 +40,8 @@ function TradeHistory() {
     bulkDeleteTrades,
     pagination,
     filters,
-    stats
+    stats,
+    refreshTradesForAccount
   } = useTradeStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,10 +53,12 @@ function TradeHistory() {
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  // Fetch trades on component mount
+  // Fetch trades on component mount or when active account changes
   useEffect(() => {
-    fetchTrades();
-  }, [fetchTrades]);
+    if (activeAccount) {
+      refreshTradesForAccount(activeAccount.id);
+    }
+  }, [activeAccount, refreshTradesForAccount]);
 
   const handleAddTrade = () => {
     navigate('/trades/new');

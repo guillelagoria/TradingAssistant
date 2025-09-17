@@ -21,9 +21,10 @@ export class AnalysisController {
         return;
       }
 
-      const { tradeIds, scenarios, includeCache = true } = req.query;
+      const { accountId, tradeIds, scenarios, includeCache = true } = req.query;
 
       const analysis = await AnalysisService.getWhatIfAnalysis(userId, {
+        accountId: accountId as string | undefined,
         tradeIds: tradeIds as string[] | undefined,
         scenarios: scenarios as string[] | undefined,
         includeCache: includeCache as boolean
@@ -57,9 +58,10 @@ export class AnalysisController {
         return;
       }
 
-      const { tradeIds, scenarios, customScenarios, accountSize } = req.body;
-      
+      const { accountId, tradeIds, scenarios, customScenarios, accountSize } = req.body;
+
       const analysis = await AnalysisService.generateWhatIfAnalysis(userId, {
+        accountId,
         tradeIds,
         scenarios,
         _customScenarios: customScenarios,
@@ -115,9 +117,10 @@ export class AnalysisController {
         return;
       }
 
-      const { tradeIds, priority, category } = req.query;
-      
+      const { accountId, tradeIds, priority, category } = req.query;
+
       const suggestions = await AnalysisService.getImprovementSuggestions(userId, {
+        accountId: accountId as string | undefined,
         tradeIds: tradeIds as string[] | undefined,
         priority: priority as string | undefined,
         category: category as string | undefined
@@ -151,9 +154,10 @@ export class AnalysisController {
         return;
       }
 
-      const { period = 'all', includeOpenTrades = false } = req.query;
-      
+      const { accountId, period = 'all', includeOpenTrades = false } = req.query;
+
       const analysis = await AnalysisService.getPortfolioAnalysis(userId, {
+        accountId: accountId as string | undefined,
         period: period as string,
         includeOpenTrades: includeOpenTrades as boolean
       });
@@ -178,8 +182,9 @@ export class AnalysisController {
   static async getBEAnalysis(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id'; // TODO: Remove fallback when auth is implemented
+      const { accountId } = req.query;
 
-      const analysis = await BEAnalysisService.getBERecommendations(userId);
+      const analysis = await BEAnalysisService.getBERecommendations(userId, accountId as string | undefined);
 
       res.json({
         success: true,
@@ -201,8 +206,9 @@ export class AnalysisController {
   static async getBEScenarios(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id'; // TODO: Remove fallback when auth is implemented
+      const { accountId } = req.query;
 
-      const scenarios = await BEAnalysisService.generateBEOptimizationScenarios(userId);
+      const scenarios = await BEAnalysisService.generateBEOptimizationScenarios(userId, accountId as string | undefined);
 
       res.json({
         success: true,
@@ -224,8 +230,9 @@ export class AnalysisController {
   static async getBEMetrics(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id'; // TODO: Remove fallback when auth is implemented
+      const { accountId } = req.query;
 
-      const metrics = await BEAnalysisService.calculatePortfolioBEMetrics(userId);
+      const metrics = await BEAnalysisService.calculatePortfolioBEMetrics(userId, accountId as string | undefined);
 
       res.json({
         success: true,
@@ -247,11 +254,12 @@ export class AnalysisController {
   static async getStopLossOptimization(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id';
-      const { tradeId } = req.query;
+      const { accountId, tradeId } = req.query;
 
       const optimizations = await BECalculationsService.calculateStopLossOptimization(
         userId,
-        tradeId as string | undefined
+        tradeId as string | undefined,
+        accountId as string | undefined
       );
 
       res.json({
@@ -274,11 +282,12 @@ export class AnalysisController {
   static async getTakeProfitOptimization(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id';
-      const { tradeId } = req.query;
+      const { accountId, tradeId } = req.query;
 
       const optimizations = await BECalculationsService.calculateTakeProfitOptimization(
         userId,
-        tradeId as string | undefined
+        tradeId as string | undefined,
+        accountId as string | undefined
       );
 
       res.json({
@@ -301,8 +310,9 @@ export class AnalysisController {
   static async getBEEfficiency(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id';
+      const { accountId } = req.query;
 
-      const efficiency = await BECalculationsService.calculateBEEfficiency(userId);
+      const efficiency = await BECalculationsService.calculateBEEfficiency(userId, accountId as string | undefined);
 
       res.json({
         success: true,
@@ -324,8 +334,9 @@ export class AnalysisController {
   static async getRiskManagementRecommendations(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id';
+      const { accountId } = req.query;
 
-      const recommendations = await BECalculationsService.generatePersonalizedRecommendations(userId);
+      const recommendations = await BECalculationsService.generatePersonalizedRecommendations(userId, accountId as string | undefined);
 
       res.json({
         success: true,
@@ -393,7 +404,7 @@ export class AnalysisController {
   static async getBEEffectivenessMetrics(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id';
-      const { period = 'all', startDate, endDate } = req.query;
+      const { accountId, period = 'all', startDate, endDate } = req.query;
 
       const timeframe = {
         period: period as 'all' | '1m' | '3m' | '6m' | '1y',
@@ -401,7 +412,7 @@ export class AnalysisController {
         endDate: endDate ? new Date(endDate as string) : undefined
       };
 
-      const metrics = await BEMetricsService.getBEEffectivenessMetrics(userId, timeframe);
+      const metrics = await BEMetricsService.getBEEffectivenessMetrics(userId, timeframe, accountId as string | undefined);
 
       res.json({
         success: true,
@@ -423,7 +434,7 @@ export class AnalysisController {
   static async getRiskAdjustedMetrics(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id';
-      const { period = 'all', startDate, endDate } = req.query;
+      const { accountId, period = 'all', startDate, endDate } = req.query;
 
       const timeframe = {
         period: period as 'all' | '1m' | '3m' | '6m' | '1y',
@@ -431,7 +442,7 @@ export class AnalysisController {
         endDate: endDate ? new Date(endDate as string) : undefined
       };
 
-      const riskMetrics = await BEMetricsService.calculateRiskAdjustedMetrics(userId, timeframe);
+      const riskMetrics = await BEMetricsService.calculateRiskAdjustedMetrics(userId, timeframe, accountId as string | undefined);
 
       res.json({
         success: true,
@@ -453,7 +464,7 @@ export class AnalysisController {
   static async getBEPortfolioImpact(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id';
-      const { period = 'all', startDate, endDate, accountSize = 100000 } = req.query;
+      const { accountId, period = 'all', startDate, endDate, accountSize = 100000 } = req.query;
 
       const timeframe = {
         period: period as 'all' | '1m' | '3m' | '6m' | '1y',
@@ -464,7 +475,8 @@ export class AnalysisController {
       const impact = await BEMetricsService.calculateBEPortfolioImpact(
         userId,
         Number(accountSize),
-        timeframe
+        timeframe,
+        accountId as string | undefined
       );
 
       res.json({
@@ -487,7 +499,7 @@ export class AnalysisController {
   static async getBEOptimizationRecommendations(req: any, res: Response): Promise<void> {
     try {
       const userId = req.user?.id || 'test-user-id';
-      const { period = 'all', startDate, endDate } = req.query;
+      const { accountId, period = 'all', startDate, endDate } = req.query;
 
       const timeframe = {
         period: period as 'all' | '1m' | '3m' | '6m' | '1y',
@@ -495,7 +507,7 @@ export class AnalysisController {
         endDate: endDate ? new Date(endDate as string) : undefined
       };
 
-      const recommendations = await BEMetricsService.generateBEOptimizationRecommendations(userId, timeframe);
+      const recommendations = await BEMetricsService.generateBEOptimizationRecommendations(userId, timeframe, accountId as string | undefined);
 
       res.json({
         success: true,

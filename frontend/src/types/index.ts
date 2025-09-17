@@ -35,10 +35,35 @@ export type {
   NotificationPreferences,
   SettingsCategoryId
 } from './user';
-export { 
+export {
   DEFAULT_PREFERENCES,
   SETTINGS_CATEGORIES
 } from './user';
+
+export type {
+  Account,
+  CreateAccountRequest,
+  UpdateAccountRequest,
+  AccountFormData,
+  AccountStats,
+  AccountSummary,
+  AccountResponse,
+  AccountsResponse,
+  AccountStatsResponse,
+  AccountSummaryResponse,
+  AccountState,
+  AccountValidationErrors,
+  AccountSelectorProps,
+  AccountCardProps,
+  SupportedCurrency
+} from './account';
+
+export {
+  AccountType,
+  SubscriptionTier,
+  SUPPORTED_CURRENCIES,
+  ACCOUNT_TYPE_OPTIONS
+} from './account';
 
 // Filter types are now exported above from './trade'
 

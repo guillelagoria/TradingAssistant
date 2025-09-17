@@ -18,6 +18,7 @@ import userRoutes from './routes/user.routes';
 import statsRoutes from './routes/stats.routes';
 import analysisRoutes from './routes/analysis.routes';
 import marketRoutes from './routes/market.routes';
+import accountRoutes from './routes/account.routes';
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient();
@@ -71,6 +72,7 @@ app.get('/health', (_req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/accounts', accountRoutes);
 app.use('/api/trades', tradeRoutes);
 app.use('/api/strategies', strategyRoutes);
 app.use('/api/users', userRoutes);
