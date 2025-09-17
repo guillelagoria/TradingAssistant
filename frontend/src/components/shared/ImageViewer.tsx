@@ -326,11 +326,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="relative max-w-full max-h-full overflow-hidden"
+              className="relative max-w-full max-h-full overflow-hidden transition-transform duration-200 ease-out"
               style={{
                 transform: `scale(${zoom}) rotate(${rotation}deg) translate(${imagePosition.x}px, ${imagePosition.y}px)`,
                 cursor: zoom > 1 ? 'move' : 'default',
