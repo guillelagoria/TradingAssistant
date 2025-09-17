@@ -114,264 +114,255 @@ export default function TemplateSelector({ onApplyTemplate, currentFormValues }:
   };
 
   return (
-    <Card className="mb-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-50" />
-
-      <CardHeader className="relative">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <FileText className="w-5 h-5" />
-            <span>Quick Templates</span>
-            <Badge variant="secondary" className="ml-2">
-              {templates.length} Available
-            </Badge>
+    <div className="mb-4 p-3 bg-muted/30 rounded-lg border">
+      {/* Single line layout */}
+      <div className="flex items-center justify-between gap-3">
+        {/* Left side: Title and Select */}
+        <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+            <FileText className="w-4 h-4 flex-shrink-0" />
+            <span className="font-medium whitespace-nowrap">Templates:</span>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Dialog open={isSavingCurrent} onOpenChange={setIsSavingCurrent}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline" className="flex items-center space-x-1">
-                  <Save className="w-4 h-4" />
-                  <span>Save Current</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Save Current Settings as Template</DialogTitle>
-                  <DialogDescription>
-                    Create a new template from your current form settings
-                  </DialogDescription>
-                </DialogHeader>
+          <div className="flex-1 min-w-0">
+            <Select value={selectedTemplateId || 'none'} onValueChange={(value) => handleSelectTemplate(value === 'none' ? null : value)}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Quick-fill form" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">None - Start from scratch</span>
+                </SelectItem>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="template-name">Template Name *</Label>
-                    <Input
-                      id="template-name"
-                      value={newTemplateName}
-                      onChange={(e) => setNewTemplateName(e.target.value)}
-                      placeholder="e.g., ES Morning Scalp"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="template-description">Description</Label>
-                    <Textarea
-                      id="template-description"
-                      value={newTemplateDescription}
-                      onChange={(e) => setNewTemplateDescription(e.target.value)}
-                      placeholder="Describe when to use this template..."
-                      className="h-20"
-                    />
-                  </div>
-
-                  <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-sm font-medium mb-2">Template will include:</p>
-                    <div className="text-xs space-y-1 text-muted-foreground">
-                      {currentFormValues?.symbol && <div>• Market: {currentFormValues.symbol}</div>}
-                      {currentFormValues?.direction && <div>• Direction: {currentFormValues.direction}</div>}
-                      {currentFormValues?.quantity && <div>• Quantity: {currentFormValues.quantity}</div>}
-                      {currentFormValues?.stopLossPoints && <div>• Stop Loss: {currentFormValues.stopLossPoints} pts</div>}
-                      {currentFormValues?.takeProfitPoints && <div>• Take Profit: {currentFormValues.takeProfitPoints} pts</div>}
-                    </div>
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsSavingCurrent(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSaveCurrentAsTemplate}
-                    disabled={!newTemplateName.trim()}
-                  >
-                    Save Template
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline" className="flex items-center space-x-1">
-                  <Edit2 className="w-4 h-4" />
-                  <span>Manage</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                  <DialogTitle>Manage Templates</DialogTitle>
-                  <DialogDescription>
-                    Create, edit, and organize your trading templates
-                  </DialogDescription>
-                </DialogHeader>
-
-                <Tabs defaultValue="all">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="all">All Templates</TabsTrigger>
-                    <TabsTrigger value="defaults">Defaults</TabsTrigger>
-                    <TabsTrigger value="custom">Custom</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="all">
-                    <ScrollArea className="h-[400px] w-full pr-4">
-                      <div className="space-y-2">
-                        {sortedTemplates.map((template) => (
-                          <TemplateCard
-                            key={template.id}
-                            template={template}
-                            onEdit={(t) => setEditingTemplate(t)}
-                            onDelete={() => handleDeleteTemplate(template.id)}
-                            isSelected={selectedTemplateId === template.id}
-                          />
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </TabsContent>
-
-                  <TabsContent value="defaults">
-                    <ScrollArea className="h-[400px] w-full pr-4">
-                      <div className="space-y-2">
-                        {sortedTemplates.filter(t => t.isDefault).map((template) => (
-                          <TemplateCard
-                            key={template.id}
-                            template={template}
-                            onEdit={(t) => setEditingTemplate(t)}
-                            onDelete={() => handleDeleteTemplate(template.id)}
-                            isSelected={selectedTemplateId === template.id}
-                          />
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </TabsContent>
-
-                  <TabsContent value="custom">
-                    <ScrollArea className="h-[400px] w-full pr-4">
-                      <div className="space-y-2">
-                        {sortedTemplates.filter(t => !t.isDefault).map((template) => (
-                          <TemplateCard
-                            key={template.id}
-                            template={template}
-                            onEdit={(t) => setEditingTemplate(t)}
-                            onDelete={() => handleDeleteTemplate(template.id)}
-                            isSelected={selectedTemplateId === template.id}
-                          />
-                        ))}
-                        {sortedTemplates.filter(t => !t.isDefault).length === 0 && (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                            <p className="text-sm">No custom templates yet</p>
-                            <p className="text-xs">Save your current settings to create one</p>
-                          </div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="relative">
-        <div className="space-y-3">
-          <Select value={selectedTemplateId || 'none'} onValueChange={(value) => handleSelectTemplate(value === 'none' ? null : value)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a template to quick-fill the form" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">
-                <span className="text-muted-foreground">None - Start from scratch</span>
-              </SelectItem>
-
-              {sortedTemplates.length > 0 && (
-                <>
-                  {sortedTemplates.filter(t => t.isDefault).length > 0 && (
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                      Default Templates
-                    </div>
-                  )}
-
-                  {sortedTemplates.filter(t => t.isDefault).map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center space-x-2">
-                          <Star className="w-3 h-3 text-yellow-500" />
-                          <span className="font-medium">{template.name}</span>
-                        </div>
-                        <div className="flex items-center space-x-2 text-xs text-muted-foreground ml-4">
-                          {formatTemplateDetails(template).map((detail, i) => (
-                            <React.Fragment key={i}>
-                              {i > 0 && <span>·</span>}
-                              {detail}
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-
-                  {sortedTemplates.filter(t => !t.isDefault).length > 0 && (
-                    <>
+                {sortedTemplates.length > 0 && (
+                  <>
+                    {sortedTemplates.filter(t => t.isDefault).length > 0 && (
                       <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                        Custom Templates
+                        Default Templates
                       </div>
+                    )}
 
-                      {sortedTemplates.filter(t => !t.isDefault).map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          <div className="flex items-center justify-between w-full">
+                    {sortedTemplates.filter(t => t.isDefault).map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center space-x-2">
+                            <Star className="w-3 h-3 text-yellow-500" />
                             <span className="font-medium">{template.name}</span>
-                            <div className="flex items-center space-x-2 text-xs text-muted-foreground ml-4">
-                              {formatTemplateDetails(template).map((detail, i) => (
-                                <React.Fragment key={i}>
-                                  {i > 0 && <span>·</span>}
-                                  {detail}
-                                </React.Fragment>
-                              ))}
-                            </div>
                           </div>
-                        </SelectItem>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
-            </SelectContent>
-          </Select>
+                          <div className="flex items-center space-x-2 text-xs text-muted-foreground ml-4">
+                            {formatTemplateDetails(template).map((detail, i) => (
+                              <React.Fragment key={i}>
+                                {i > 0 && <span>·</span>}
+                                {detail}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
 
-          {selectedTemplateId && getTemplateById(selectedTemplateId) && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3 bg-primary/5 rounded-lg border border-primary/20"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium flex items-center space-x-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    <span>Template Applied</span>
-                  </p>
-                  {getTemplateById(selectedTemplateId)?.description && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {getTemplateById(selectedTemplateId)?.description}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => selectTemplate(null)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
+                    {sortedTemplates.filter(t => !t.isDefault).length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                          Custom Templates
+                        </div>
+
+                        {sortedTemplates.filter(t => !t.isDefault).map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            <div className="flex items-center justify-between w-full">
+                              <span className="font-medium">{template.name}</span>
+                              <div className="flex items-center space-x-2 text-xs text-muted-foreground ml-4">
+                                {formatTemplateDetails(template).map((detail, i) => (
+                                  <React.Fragment key={i}>
+                                    {i > 0 && <span>·</span>}
+                                    {detail}
+                                  </React.Fragment>
+                                ))}
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Right side: Action buttons */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Dialog open={isSavingCurrent} onOpenChange={setIsSavingCurrent}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Save current form as template">
+                <Save className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Save Current Settings as Template</DialogTitle>
+                <DialogDescription>
+                  Create a new template from your current form settings
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="template-name">Template Name *</Label>
+                  <Input
+                    id="template-name"
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    placeholder="e.g., ES Morning Scalp"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="template-description">Description</Label>
+                  <Textarea
+                    id="template-description"
+                    value={newTemplateDescription}
+                    onChange={(e) => setNewTemplateDescription(e.target.value)}
+                    placeholder="Describe when to use this template..."
+                    className="h-20"
+                  />
+                </div>
+
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm font-medium mb-2">Template will include:</p>
+                  <div className="text-xs space-y-1 text-muted-foreground">
+                    {currentFormValues?.symbol && <div>• Market: {currentFormValues.symbol}</div>}
+                    {currentFormValues?.direction && <div>• Direction: {currentFormValues.direction}</div>}
+                    {currentFormValues?.quantity && <div>• Quantity: {currentFormValues.quantity}</div>}
+                    {currentFormValues?.stopLossPoints && <div>• Stop Loss: {currentFormValues.stopLossPoints} pts</div>}
+                    {currentFormValues?.takeProfitPoints && <div>• Take Profit: {currentFormValues.takeProfitPoints} pts</div>}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsSavingCurrent(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveCurrentAsTemplate}
+                  disabled={!newTemplateName.trim()}
+                >
+                  Save Template
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Manage templates">
+                <Edit2 className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Manage Templates</DialogTitle>
+                <DialogDescription>
+                  Create, edit, and organize your trading templates
+                </DialogDescription>
+              </DialogHeader>
+
+              <Tabs defaultValue="all">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="all">All Templates</TabsTrigger>
+                  <TabsTrigger value="defaults">Defaults</TabsTrigger>
+                  <TabsTrigger value="custom">Custom</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="all">
+                  <ScrollArea className="h-[400px] w-full pr-4">
+                    <div className="space-y-2">
+                      {sortedTemplates.map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          onEdit={(t) => setEditingTemplate(t)}
+                          onDelete={() => handleDeleteTemplate(template.id)}
+                          isSelected={selectedTemplateId === template.id}
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="defaults">
+                  <ScrollArea className="h-[400px] w-full pr-4">
+                    <div className="space-y-2">
+                      {sortedTemplates.filter(t => t.isDefault).map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          onEdit={(t) => setEditingTemplate(t)}
+                          onDelete={() => handleDeleteTemplate(template.id)}
+                          isSelected={selectedTemplateId === template.id}
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="custom">
+                  <ScrollArea className="h-[400px] w-full pr-4">
+                    <div className="space-y-2">
+                      {sortedTemplates.filter(t => !t.isDefault).map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          onEdit={(t) => setEditingTemplate(t)}
+                          onDelete={() => handleDeleteTemplate(template.id)}
+                          isSelected={selectedTemplateId === template.id}
+                        />
+                      ))}
+                      {sortedTemplates.filter(t => !t.isDefault).length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p className="text-sm">No custom templates yet</p>
+                          <p className="text-xs">Save your current settings to create one</p>
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Template applied notification - compact */}
+      <AnimatePresence>
+        {selectedTemplateId && getTemplateById(selectedTemplateId) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-2 pt-2 border-t border-muted-foreground/20"
+          >
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1 text-primary">
+                <Sparkles className="w-3 h-3" />
+                <span className="font-medium">{getTemplateById(selectedTemplateId)?.name} applied</span>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => selectTemplate(null)}
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

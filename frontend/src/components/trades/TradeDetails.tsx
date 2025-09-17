@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -96,9 +97,9 @@ function TradeDetails({ trade, open, onOpenChange, onEdit }: TradeDetailsProps) 
                   {trade.symbol} {trade.direction}
                   {getResultBadge()}
                 </DialogTitle>
-                <p className="text-muted-foreground">
-                  {format(new Date(trade.entryDate), 'MMMM dd, yyyy at HH:mm')}
-                </p>
+                <DialogDescription>
+                  Detailed view of your trading activity on {format(new Date(trade.entryDate), 'MMMM dd, yyyy at HH:mm')}
+                </DialogDescription>
               </div>
             </div>
             <Button onClick={() => onEdit?.(trade)} size="sm">

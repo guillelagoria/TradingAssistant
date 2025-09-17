@@ -84,43 +84,8 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
     return dataArray;
   };
 
-  // TEMP: Create demo data to test red bars
-  const createDemoData = (): DailyPnLData[] => {
-    const demoData: DailyPnLData[] = [];
-    const endDate = new Date();
 
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(endDate);
-      date.setDate(date.getDate() - i);
-
-      const dateKey = date.toLocaleDateString('en-US');
-      let pnl = 0;
-      let trades = 0;
-
-      // Add some demo data
-      if (i === 18) { pnl = 350; trades = 1; } // Your real trade
-      else if (i === 15) { pnl = -180; trades = 1; } // Demo loss
-      else if (i === 12) { pnl = 120; trades = 1; } // Demo win
-      else if (i === 9) { pnl = -95; trades = 1; } // Demo loss
-      else if (i === 6) { pnl = 240; trades = 1; } // Demo win
-      else if (i === 3) { pnl = -160; trades = 1; } // Demo loss
-
-      demoData.push({
-        date: dateKey,
-        pnl,
-        trades,
-        formattedDate: date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric'
-        })
-      });
-    }
-
-    return demoData;
-  };
-
-  // TEMP: Use demo data to show red/green bars
-  const chartData = createDemoData();
+  const chartData = generateDailyPnLData();
 
   useEffect(() => {
     // Always show the chart if we have data (even if all zeros)
@@ -215,12 +180,6 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
                 : `Found ${trades.length} trades, but no daily P&L data to display`
               }
             </p>
-            {/* Debug info */}
-            {trades.length > 0 && (
-              <p className="text-xs mt-2 text-muted-foreground/50">
-                Debug: {trades.filter(t => t.pnl !== undefined && t.pnl !== null).length} trades with P&L
-              </p>
-            )}
           </motion.div>
         </CardContent>
       </Card>
@@ -228,7 +187,11 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
   }
 
   const totalPnL = chartData.reduce((sum, d) => sum + d.pnl, 0);
-  const avgDailyPnL = totalPnL / chartData.length;
+
+  // Only count days with actual trades (pnl != 0)
+  const tradingDays = chartData.filter(d => d.pnl !== 0);
+  const avgDailyPnL = tradingDays.length > 0 ? totalPnL / tradingDays.length : 0;
+
   const profitDays = chartData.filter(d => d.pnl > 0).length;
   const lossDays = chartData.filter(d => d.pnl < 0).length;
 
@@ -281,7 +244,7 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
               {formatCurrency(avgDailyPnL)}
             </div>
             <div className="text-xs text-muted-foreground">
-              Avg Daily
+              {tradingDays.length > 0 ? `Avg (${tradingDays.length} trading days)` : 'Avg Daily'}
             </div>
           </motion.div>
         </div>

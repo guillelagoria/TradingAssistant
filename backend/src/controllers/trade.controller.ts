@@ -117,6 +117,10 @@ export const createTrade = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    console.log('=== CREATE TRADE CALLED ===');
+    console.log('Request method:', req.method);
+    console.log('Request path:', req.path);
+
     // Temporarily use a default test user ID for development
     const userId = req.userId || 'test-user-id';
 
@@ -132,7 +136,9 @@ export const createTrade = async (
       }
     });
 
-    console.log('Creating trade with body:', req.body);
+    console.log('Creating trade with body size:', JSON.stringify(req.body).length, 'bytes');
+    console.log('ImageUrl size:', req.body.imageUrl ? req.body.imageUrl.length : 0, 'characters');
+    console.log('Trade data keys:', Object.keys(req.body));
 
     // Get accountId from request or use default account
     let accountId = req.body.accountId;
@@ -167,10 +173,14 @@ export const createTrade = async (
       }
     }
 
+    // Auto-derive market from symbol if not provided
+    const market = req.body.market || req.body.symbol;
+
     const tradeData = {
       ...req.body,
       userId,
       accountId,
+      market, // Use derived market
       entryDate: new Date(req.body.entryDate),
       exitDate: req.body.exitDate ? new Date(req.body.exitDate) : null
     };
@@ -210,9 +220,10 @@ export const createTrade = async (
       userId,
       accountId,
       symbol: tradeData.symbol,
-      market: tradeData.market,
+      market: tradeData.market, // Use derived market from above
       direction: tradeData.direction,
       orderType: tradeData.orderType,
+      strategyId: null, // TODO: Handle strategy name to ID mapping
       entryDate: tradeData.entryDate,
       entryPrice: tradeData.entryPrice,
       quantity: tradeData.quantity,
@@ -258,7 +269,22 @@ export const createTrade = async (
     });
   } catch (error) {
     console.error('Error creating trade:', error);
-    next(error);
+
+    // Check for Prisma validation errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      console.error('Prisma error code:', error.code);
+      console.error('Prisma error meta:', (error as any).meta);
+    }
+
+    // Send more detailed error response for debugging
+    res.status(400).json({
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : 'Failed to create trade',
+        statusCode: 400,
+        details: error instanceof Error ? error.stack : error
+      }
+    });
   }
 };
 

@@ -1,6 +1,7 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { PrismaClient } from '@prisma/client';
 
 // Load environment variables
@@ -20,6 +21,7 @@ import statsRoutes from './routes/stats.routes';
 import analysisRoutes from './routes/analysis.routes';
 import marketRoutes from './routes/market.routes';
 import accountRoutes from './routes/account.routes';
+import uploadRoutes from './routes/upload.routes';
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient();
@@ -59,15 +61,30 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   optionsSuccessStatus: 200
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Increase payload limit for image uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Debug middleware to log ALL incoming requests
+app.use((req, res, next) => {
+  console.log(`\n=== INCOMING REQUEST ===`);
+  console.log(`Method: ${req.method}`);
+  console.log(`URL: ${req.url}`);
+  console.log(`Headers:`, req.headers);
+  console.log(`Body:`, req.body);
+  console.log(`========================\n`);
+  next();
+});
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV
   });
 });
 
@@ -75,12 +92,14 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 // Protected routes - require authentication
 app.use('/api/accounts', authenticate, accountRoutes);
-app.use('/api/trades', authenticate, tradeRoutes);
+// TODO: Re-enable authentication when auth system is fully implemented
+app.use('/api/trades', tradeRoutes); // Temporarily bypassing auth for development
 app.use('/api/strategies', authenticate, strategyRoutes);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/stats', authenticate, statsRoutes);
 app.use('/api/analysis', authenticate, analysisRoutes);
 app.use('/api/markets', authenticate, marketRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

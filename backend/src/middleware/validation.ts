@@ -194,10 +194,10 @@ export const validateMarketExists = (
   res: Response,
   next: NextFunction
 ): void => {
-  const { market } = req.body;
+  const { market, symbol } = req.body;
 
-  // If no market specified, default to ES (backward compatibility)
-  const marketSymbol = market || 'ES';
+  // If no market specified, derive from symbol or default to ES
+  const marketSymbol = market || symbol || 'ES';
 
   try {
     // Check if market exists using the simplified market service

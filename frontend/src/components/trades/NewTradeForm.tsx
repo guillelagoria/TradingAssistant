@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
+import { uploadService } from '@/services/uploadService';
 // Fixed form structure
 import {
   Form,
@@ -72,6 +73,8 @@ export default function NewTradeForm({
 }: NewTradeFormProps) {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(initialData?.imageUrl || null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [isMarketSelected, setIsMarketSelected] = useState(!!initialData?.symbol);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -225,17 +228,73 @@ export default function NewTradeForm({
     selectTemplate(null);
   }, []); // Only run on mount
 
-  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  // Image compression utility
+  const compressImage = useCallback((file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+
+      img.onload = () => {
+        // Calculate new dimensions maintaining aspect ratio
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        // Set canvas size
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(resolve, 'image/jpeg', quality);
+      };
+
+      img.src = URL.createObjectURL(file);
+    });
+  }, []);
+
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Check file size - if larger than 2MB, compress it
+        if (file.size > 2 * 1024 * 1024) {
+          const compressedBlob = await compressImage(file);
+          const compressedFile = new File([compressedBlob!], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          setSelectedImage(compressedFile);
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setImagePreview(e.target?.result as string);
+          };
+          reader.readAsDataURL(compressedFile);
+        } else {
+          // Use original file if small enough
+          setSelectedImage(file);
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setImagePreview(e.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      } catch (error) {
+        console.error('Error processing image:', error);
+        // Fallback to original file
+        setSelectedImage(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
-  }, []);
+  }, [compressImage]);
 
   // Handle template application
   const handleApplyTemplate = useCallback((template: TradeTemplate) => {
@@ -262,17 +321,38 @@ export default function NewTradeForm({
   const removeImage = useCallback(() => {
     setSelectedImage(null);
     setImagePreview(null);
+    setUploadedImageUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }, []);
 
   const handleFormSubmit = async (data: FormValues) => {
+    let finalImageUrl: string | undefined = uploadedImageUrl || undefined;
+
+    // Upload image if one is selected and not already uploaded
+    if (selectedImage && !uploadedImageUrl) {
+      try {
+        setIsUploadingImage(true);
+        const uploadedUrl = await uploadService.uploadImage(selectedImage);
+        finalImageUrl = uploadedUrl;
+        setUploadedImageUrl(uploadedUrl);
+      } catch (error) {
+        console.error('Image upload failed:', error);
+        form.setError('root', {
+          message: 'Failed to upload image. Trade will be saved without image.'
+        });
+        // Continue without image
+      } finally {
+        setIsUploadingImage(false);
+      }
+    }
+
     const tradeData: TradeFormData = {
       ...data,
       entryDate: new Date(data.entryDate),
       exitDate: data.exitDate ? new Date(data.exitDate) : undefined,
-      imageUrl: imagePreview || undefined,
+      imageUrl: finalImageUrl, // Use the uploaded image URL
       // Convert points back to absolute prices for storage
       stopLoss: absolutePrices.stopLoss,
       takeProfit: absolutePrices.takeProfit,
@@ -1050,9 +1130,10 @@ export default function NewTradeForm({
                               className="hidden"
                             />
 
-                            <AnimatePresence>
+                            <AnimatePresence mode="wait">
                               {imagePreview ? (
                                 <motion.div
+                                  key="image-preview"
                                   initial={{ opacity: 0, scale: 0.9 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                   exit={{ opacity: 0, scale: 0.9 }}
@@ -1074,12 +1155,18 @@ export default function NewTradeForm({
                                   </Button>
                                 </motion.div>
                               ) : (
-                                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
+                                <motion.div
+                                  key="image-placeholder"
+                                  initial={{ opacity: 0, scale: 0.9 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.9 }}
+                                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center"
+                                >
                                   <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
                                   <p className="text-xs text-muted-foreground">
                                     Upload a chart screenshot
                                   </p>
-                                </div>
+                                </motion.div>
                               )}
                             </AnimatePresence>
                           </div>
@@ -1116,11 +1203,11 @@ export default function NewTradeForm({
             <div className="flex items-center space-x-3 pt-2">
               <Button
                 type="submit"
-                disabled={isLoading || !isMarketSelected}
+                disabled={isLoading || isUploadingImage || !isMarketSelected}
                 className="flex-1"
               >
-                {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Save Trade
+                {(isLoading || isUploadingImage) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isUploadingImage ? 'Uploading Image...' : 'Save Trade'}
               </Button>
               <Button
                 type="button"

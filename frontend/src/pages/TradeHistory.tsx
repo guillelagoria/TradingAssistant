@@ -12,20 +12,29 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { TradeTable, TradeFilters, TradeDetails } from '@/components/trades';
+import {
+  TradeTable,
+  TradeFilters,
+  TradeDetails,
+  TradeCalendarView,
+  CompactSearchBar,
+  ModernFilterSystem
+} from '@/components/trades';
 import { AnimatedStatsCards } from '@/components/dashboard';
 import { ConfirmDialog } from '@/components/shared';
 import { useTradeStore } from '@/store/tradeStore';
 import { useActiveAccount } from '@/store/accountStore';
 import { Trade } from '@/types';
-import { 
-  Plus, 
-  Download, 
+import {
+  Plus,
+  Download,
   Search,
   Filter,
   Trash2,
   RefreshCw,
-  MoreHorizontal
+  MoreHorizontal,
+  Table,
+  Calendar
 } from 'lucide-react';
 
 function TradeHistory() {
@@ -52,6 +61,10 @@ function TradeHistory() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
+  // Calendar view state
+  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
   // Fetch trades on component mount or when active account changes
   useEffect(() => {
@@ -158,6 +171,26 @@ function TradeHistory() {
     window.URL.revokeObjectURL(url);
   };
 
+  // Calendar handlers
+  const handleCalendarDayClick = (date: Date, dayTrades: Trade[]) => {
+    if (dayTrades.length === 1) {
+      // If only one trade, show details directly
+      handleViewTrade(dayTrades[0]);
+    } else if (dayTrades.length > 1) {
+      // If multiple trades, could show a summary or list
+      // For now, let's show the details of the first trade
+      // TODO: Could implement a day summary modal
+      handleViewTrade(dayTrades[0]);
+    } else {
+      // No trades on this day - could navigate to add trade form with this date
+      navigate('/trades/new');
+    }
+  };
+
+  const handleMonthChange = (newMonth: Date) => {
+    setCalendarMonth(newMonth);
+  };
+
   const filteredTrades = trades.filter(trade =>
     searchQuery === '' || 
     trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -175,7 +208,29 @@ function TradeHistory() {
             View and manage all your trading records.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center border rounded-md">
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              onClick={() => setViewMode('table')}
+              size="sm"
+              className="rounded-r-none border-0 flex-1 sm:flex-initial"
+            >
+              <Table className="h-4 w-4 mr-1" />
+              <span className="hidden xs:inline">Table</span>
+            </Button>
+            <Button
+              variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+              onClick={() => setViewMode('calendar')}
+              size="sm"
+              className="rounded-l-none border-0 flex-1 sm:flex-initial"
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              <span className="hidden xs:inline">Calendar</span>
+            </Button>
+          </div>
+
           <Button
             variant="outline"
             onClick={() => fetchTrades()}
@@ -192,78 +247,27 @@ function TradeHistory() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <AnimatedStatsCards />
+      {/* Stats Cards - Hidden to avoid duplication with Dashboard */}
+      {/* <AnimatedStatsCards /> */}
 
-      {/* Search and Actions Bar */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search trades..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                size="sm"
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-                {Object.keys(filters).length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {Object.keys(filters).length}
-                  </Badge>
-                )}
-              </Button>
-            </div>
+      {/* Compact Search and Filter System */}
+      <CompactSearchBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        selectedTrades={selectedTrades}
+        onBulkDelete={handleBulkDelete}
+        onExportCSV={handleExportCSV}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        showFilters={showFilters}
+      />
 
-            <div className="flex items-center gap-2">
-              {selectedTrades.length > 0 && (
-                <>
-                  <Badge variant="outline">
-                    {selectedTrades.length} selected
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleBulkDelete}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Selected
-                  </Button>
-                </>
-              )}
-              <Button
-                variant="outline"
-                onClick={handleExportCSV}
-                disabled={trades.length === 0}
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+      {/* Modern Filter System */}
+      {showFilters && (
+        <ModernFilterSystem />
+      )}
 
-        {/* Filters */}
-        {showFilters && (
-          <CardContent className="pt-0">
-            <TradeFilters />
-          </CardContent>
-        )}
-      </Card>
-
-      {/* Selection Controls */}
-      {trades.length > 0 && (
+      {/* Selection Controls - Only show in table view */}
+      {viewMode === 'table' && trades.length > 0 && (
         <div className="flex items-center gap-4 px-4 py-2 bg-muted/50 rounded-lg">
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -295,21 +299,31 @@ function TradeHistory() {
         </Card>
       )}
 
-      {/* Trades Table */}
-      <TradeTable
-        trades={filteredTrades}
-        onView={handleViewTrade}
-        onEdit={handleEditTrade}
-        onDelete={handleDeleteTrade}
-        loading={loading}
-        showSelection={true}
-        selectedTrades={selectedTrades}
-        onSelectTrade={handleSelectTrade}
-        onSelectAll={handleSelectAll}
-      />
+      {/* Trades Display - Table or Calendar */}
+      {viewMode === 'table' ? (
+        <TradeTable
+          trades={filteredTrades}
+          onView={handleViewTrade}
+          onEdit={handleEditTrade}
+          onDelete={handleDeleteTrade}
+          loading={loading}
+          showSelection={true}
+          selectedTrades={selectedTrades}
+          onSelectTrade={handleSelectTrade}
+          onSelectAll={handleSelectAll}
+        />
+      ) : (
+        <TradeCalendarView
+          trades={filteredTrades}
+          currentMonth={calendarMonth}
+          onMonthChange={handleMonthChange}
+          onDayClick={handleCalendarDayClick}
+          loading={loading}
+        />
+      )}
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
+      {/* Pagination - Only show in table view */}
+      {viewMode === 'table' && pagination.totalPages > 1 && (
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
