@@ -9,6 +9,7 @@ dotenv.config();
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
+import { authenticate } from './middleware/auth';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -72,13 +73,14 @@ app.get('/health', (_req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/accounts', accountRoutes);
-app.use('/api/trades', tradeRoutes);
-app.use('/api/strategies', strategyRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/analysis', analysisRoutes);
-app.use('/api/markets', marketRoutes);
+// Protected routes - require authentication
+app.use('/api/accounts', authenticate, accountRoutes);
+app.use('/api/trades', authenticate, tradeRoutes);
+app.use('/api/strategies', authenticate, strategyRoutes);
+app.use('/api/users', authenticate, userRoutes);
+app.use('/api/stats', authenticate, statsRoutes);
+app.use('/api/analysis', authenticate, analysisRoutes);
+app.use('/api/markets', authenticate, marketRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

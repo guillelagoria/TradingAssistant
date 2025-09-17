@@ -323,7 +323,7 @@ export const initializeAccountStore = async () => {
           store.refreshAccountStats(activeAccount.id);
         }
       } catch (error) {
-        console.log('No active account set on server');
+        // No active account set on server
       }
     }
   } catch (error) {

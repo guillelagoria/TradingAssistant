@@ -274,3 +274,48 @@ export const recalculateBalance = async (
     next(error);
   }
 };
+
+/**
+ * Get the active account for the authenticated user
+ */
+export const getActiveAccount = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Use the actual user ID from auth token
+    const userId = req.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          message: 'Authentication required',
+          statusCode: 401
+        }
+      });
+      return;
+    }
+
+    const account = await accountService.getActiveAccount(userId);
+
+    if (!account) {
+      res.status(404).json({
+        success: false,
+        error: {
+          message: 'No active account found',
+          statusCode: 404
+        }
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: account
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -666,6 +666,46 @@ class AccountService {
 
     return !!account;
   }
+
+  /**
+   * Get the active account for a user
+   */
+  async getActiveAccount(userId: string): Promise<Account | null> {
+    // First get the user with their active account ID
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        activeAccountId: true
+      }
+    });
+
+    if (!user || !user.activeAccountId) {
+      // If no active account is set, try to get the default account
+      return this.getDefaultAccount(userId);
+    }
+
+    // Get the active account
+    const account = await prisma.account.findFirst({
+      where: {
+        id: user.activeAccountId,
+        userId
+      },
+      include: {
+        _count: {
+          select: {
+            trades: true
+          }
+        }
+      }
+    });
+
+    // If the active account doesn't exist, fall back to default
+    if (!account) {
+      return this.getDefaultAccount(userId);
+    }
+
+    return account;
+  }
 }
 
 // Export singleton instance

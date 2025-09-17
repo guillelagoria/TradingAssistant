@@ -24,8 +24,6 @@ export function useAccountChangeHandler() {
           // Refresh account statistics
           await refreshAccountStats(activeAccount.id);
 
-          // Log the account switch for debugging
-          console.log(`Switched to account: ${activeAccount.name} (${activeAccount.id})`);
         } catch (error) {
           console.error('Error refreshing data for account change:', error);
         }
@@ -55,7 +53,6 @@ export function useAccountIntegration() {
     try {
       await switchAccount(accountId);
     } catch (error) {
-      console.error('Failed to switch account:', error);
       throw error;
     }
   };
@@ -65,7 +62,6 @@ export function useAccountIntegration() {
       const newAccount = await createAccount(accountData);
       return newAccount;
     } catch (error) {
-      console.error('Failed to create account:', error);
       throw error;
     }
   };
@@ -75,7 +71,6 @@ export function useAccountIntegration() {
       const updatedAccount = await updateAccount(accountId, updates);
       return updatedAccount;
     } catch (error) {
-      console.error('Failed to update account:', error);
       throw error;
     }
   };

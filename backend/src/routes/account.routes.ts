@@ -9,7 +9,8 @@ import {
   getAccountStats,
   getDefaultAccount,
   canCreateAccount,
-  recalculateBalance
+  recalculateBalance,
+  getActiveAccount
 } from '../controllers/account.controller';
 import {
   validateCreateAccount,
@@ -26,7 +27,10 @@ const router = Router();
 // Get all accounts for authenticated user
 router.get('/', getAccounts);
 
-// Get user's default/active account
+// Get user's active account (preferred over default)
+router.get('/active', getActiveAccount);
+
+// Get user's default/active account (legacy route)
 router.get('/default', getDefaultAccount);
 
 // Check if user can create more accounts

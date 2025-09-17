@@ -310,9 +310,6 @@ function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }
 function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
   const { stats } = useTradeStore();
 
-  // Debug: Log the full stats object
-  console.log('🔍 Full stats object:', stats);
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',

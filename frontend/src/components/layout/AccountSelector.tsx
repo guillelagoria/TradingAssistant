@@ -30,6 +30,7 @@ import {
   useAccountLoading,
   useAccountError
 } from '@/store/accountStore';
+import { useTradeStore } from '@/store/tradeStore';
 import { AccountType, SUPPORTED_CURRENCIES } from '@/types/account';
 
 interface AccountSelectorProps {
@@ -51,6 +52,7 @@ const AccountSelector: React.FC<AccountSelectorProps> = ({
   const { switchAccount } = useAccountActions();
   const loading = useAccountLoading();
   const error = useAccountError();
+  const { stats: tradeStats } = useTradeStore(); // Use trade stats instead
 
   const formatCurrency = (amount: number, currency: string = 'USD') => {
     const currencyInfo = SUPPORTED_CURRENCIES.find(c => c.value === currency);
@@ -67,13 +69,11 @@ const AccountSelector: React.FC<AccountSelectorProps> = ({
     const currencyInfo = SUPPORTED_CURRENCIES.find(c => c.value === currency);
     const symbol = currencyInfo?.symbol || '$';
 
-    if (balance >= 1000000) {
-      return `${symbol}${(balance / 1000000).toFixed(1)}M`;
-    } else if (balance >= 1000) {
-      return `${symbol}${(balance / 1000).toFixed(1)}K`;
-    } else {
-      return `${symbol}${balance.toFixed(0)}`;
-    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'decimal',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(balance).replace(/^/, symbol);
   };
 
   const getAccountIcon = (accountType: AccountType) => {
@@ -108,10 +108,10 @@ const AccountSelector: React.FC<AccountSelectorProps> = ({
   };
 
   const renderAccountOption = (account: any) => {
-    const stats = accountStats;
-    const currentBalance = account.currentBalance || account.initialBalance;
-    const pnl = stats?.totalPnL || 0;
-    const pnlPercentage = stats?.totalPnLPercentage || 0;
+    const stats = tradeStats; // Use trade stats
+    const currentBalance = account.initialBalance + (stats?.totalPnl || 0);
+    const pnl = stats?.totalPnl || 0;
+    const pnlPercentage = stats?.totalPnl ? ((stats.totalPnl / account.initialBalance) * 100) : 0;
 
     return (
       <motion.div
@@ -176,48 +176,49 @@ const AccountSelector: React.FC<AccountSelectorProps> = ({
         disabled={loading}
       >
         <SelectTrigger className="w-[280px] h-12 bg-card border-border hover:bg-accent/50 transition-colors">
-          <div className="flex items-center gap-3 flex-1">
-            {activeAccount ? (
-              <>
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900">
-                    {activeAccount.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+          <SelectValue asChild>
+            <div className="flex items-center gap-3 flex-1">
+              {activeAccount ? (
+                <>
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900">
+                      {activeAccount.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm truncate">{activeAccount.name}</span>
-                    {getAccountIcon(activeAccount.accountType)}
-                  </div>
-
-                  {showBalance && (
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-muted-foreground">
-                        {formatBalance(activeAccount.currentBalance || activeAccount.initialBalance, activeAccount.currency)}
-                      </span>
-                      {accountStats && accountStats.totalPnL !== 0 && (
-                        <span className={cn('flex items-center gap-1', getPnLColor(accountStats.totalPnL))}>
-                          {accountStats.totalPnL > 0 ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3" />
-                          )}
-                          {accountStats.totalPnLPercentage > 0 ? '+' : ''}{accountStats.totalPnLPercentage.toFixed(1)}%
-                        </span>
-                      )}
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm truncate">{activeAccount.name}</span>
+                      {getAccountIcon(activeAccount.accountType)}
                     </div>
-                  )}
+
+                    {showBalance && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">
+                          {formatBalance((activeAccount.initialBalance + (tradeStats?.totalPnl || 0)), activeAccount.currency)}
+                        </span>
+                        {tradeStats && tradeStats.totalPnl !== 0 && (
+                          <span className={cn('flex items-center gap-1', getPnLColor(tradeStats.totalPnl))}>
+                            {tradeStats.totalPnl > 0 ? (
+                              <TrendingUp className="h-3 w-3" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3" />
+                            )}
+                            {tradeStats.totalPnl > 0 ? '+' : ''}{((tradeStats.totalPnl / activeAccount.initialBalance) * 100).toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Select Account</span>
                 </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Wallet className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Select Account</span>
-              </div>
-            )}
-          </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          </SelectValue>
         </SelectTrigger>
 
         <SelectContent className="w-[280px] max-h-[400px]">

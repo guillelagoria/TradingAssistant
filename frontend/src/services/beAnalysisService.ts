@@ -67,7 +67,6 @@ export class BEAnalysisService {
       const response = await api.get('/api/analysis/be/metrics', { params });
       return response.data;
     } catch (error) {
-      console.error('Error fetching BE metrics:', error);
       throw new Error('Failed to fetch BE metrics');
     }
   }

@@ -217,7 +217,6 @@ export const accountService = {
       if (error instanceof Error && error.message.includes('not found')) {
         return null;
       }
-      console.error('Failed to fetch active account:', error);
       throw error;
     }
   },
