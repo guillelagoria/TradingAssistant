@@ -16,3 +16,5 @@ export {
 
 // Views
 export { default as TradeCalendarView } from './views/TradeCalendarView';
+export { default as DayDetailPopover } from './views/DayDetailPopover';
+export { default as TradeCalendarViewWithPopover } from './views/TradeCalendarViewWithPopover';

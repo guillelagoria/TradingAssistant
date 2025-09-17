@@ -17,6 +17,8 @@ import {
   TradeFilters,
   TradeDetails,
   TradeCalendarView,
+  TradeCalendarViewWithPopover,
+  DayDetailPopover,
   CompactSearchBar,
   ModernFilterSystem
 } from '@/components/trades';
@@ -172,19 +174,8 @@ function TradeHistory() {
   };
 
   // Calendar handlers
-  const handleCalendarDayClick = (date: Date, dayTrades: Trade[]) => {
-    if (dayTrades.length === 1) {
-      // If only one trade, show details directly
-      handleViewTrade(dayTrades[0]);
-    } else if (dayTrades.length > 1) {
-      // If multiple trades, could show a summary or list
-      // For now, let's show the details of the first trade
-      // TODO: Could implement a day summary modal
-      handleViewTrade(dayTrades[0]);
-    } else {
-      // No trades on this day - could navigate to add trade form with this date
-      navigate('/trades/new');
-    }
+  const handleAddTradeForDate = (date: Date) => {
+    navigate('/trades/new', { state: { date } });
   };
 
   const handleMonthChange = (newMonth: Date) => {
@@ -313,11 +304,14 @@ function TradeHistory() {
           onSelectAll={handleSelectAll}
         />
       ) : (
-        <TradeCalendarView
+        <TradeCalendarViewWithPopover
           trades={filteredTrades}
           currentMonth={calendarMonth}
           onMonthChange={handleMonthChange}
-          onDayClick={handleCalendarDayClick}
+          onViewTrade={handleViewTrade}
+          onEditTrade={handleEditTrade}
+          onDeleteTrade={handleDeleteTrade}
+          onAddTrade={handleAddTradeForDate}
           loading={loading}
         />
       )}
