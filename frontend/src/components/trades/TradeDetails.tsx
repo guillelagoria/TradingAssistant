@@ -12,17 +12,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Trade, TradeDirection, TradeResult } from '@/types';
 import { cn } from '@/lib/utils';
-import { 
-  Edit, 
-  TrendingUp, 
-  TrendingDown, 
+import ImageViewer from '@/components/shared/ImageViewer';
+import { useImageViewer } from '@/hooks/useImageViewer';
+import {
+  Edit,
+  TrendingUp,
+  TrendingDown,
   Calendar,
   DollarSign,
   Target,
   Shield,
   BarChart3,
   Clock,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Expand
 } from 'lucide-react';
 
 interface TradeDetailsProps {
@@ -33,6 +36,14 @@ interface TradeDetailsProps {
 }
 
 function TradeDetails({ trade, open, onOpenChange, onEdit }: TradeDetailsProps) {
+  const {
+    isOpen: imageViewerOpen,
+    currentIndex: currentImageIndex,
+    openViewer: handleImageClick,
+    closeViewer: handleImageViewerClose,
+    setCurrentIndex: handleImageIndexChange,
+  } = useImageViewer();
+
   if (!trade) return null;
 
   const formatCurrency = (value: number) => {
@@ -71,19 +82,22 @@ function TradeDetails({ trade, open, onOpenChange, onEdit }: TradeDetailsProps) 
 
   const getHoldingPeriod = () => {
     if (!trade.exitDate) return 'Open position';
-    
+
     const entry = new Date(trade.entryDate);
     const exit = new Date(trade.exitDate);
     const diffMs = exit.getTime() - entry.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
-    
+
     if (diffDays > 0) {
       return `${diffDays} day${diffDays > 1 ? 's' : ''} ${diffHours % 24}h`;
     } else {
       return `${diffHours}h ${Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))}m`;
     }
   };
+
+  // Prepare images array for the viewer
+  const tradeImages = trade.imageUrl ? [trade.imageUrl] : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -344,12 +358,26 @@ function TradeDetails({ trade, open, onOpenChange, onEdit }: TradeDetailsProps) 
                         <ImageIcon className="h-4 w-4" />
                         Trade Image
                       </span>
-                      <div className="mt-2">
-                        <img 
-                          src={trade.imageUrl} 
-                          alt="Trade screenshot"
-                          className="max-w-full h-auto rounded-md border"
-                        />
+                      <div className="mt-2 relative group">
+                        <div
+                          onClick={() => handleImageClick(0)}
+                          className="relative cursor-pointer overflow-hidden rounded-md border border-border hover:border-primary/50 transition-all duration-200"
+                        >
+                          <img
+                            src={trade.imageUrl}
+                            alt="Trade screenshot"
+                            className="max-w-full h-auto group-hover:scale-105 transition-transform duration-200"
+                          />
+                          {/* Overlay with expand icon */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/50 backdrop-blur-sm rounded-full p-2">
+                              <Expand className="h-5 w-5 text-white" />
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 text-center">
+                          Click to view full-screen
+                        </p>
                       </div>
                     </div>
                   </>
@@ -359,6 +387,19 @@ function TradeDetails({ trade, open, onOpenChange, onEdit }: TradeDetailsProps) 
           </div>
         </div>
       </DialogContent>
+
+      {/* Image Viewer */}
+      <ImageViewer
+        images={tradeImages}
+        currentIndex={currentImageIndex}
+        isOpen={imageViewerOpen}
+        onClose={handleImageViewerClose}
+        onIndexChange={handleImageIndexChange}
+        altText={`Trade image for ${trade.symbol}`}
+        showNavigation={tradeImages.length > 1}
+        showCounter={tradeImages.length > 1}
+        showZoomControls={true}
+      />
     </Dialog>
   );
 }
