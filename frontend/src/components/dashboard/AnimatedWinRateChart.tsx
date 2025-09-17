@@ -210,6 +210,18 @@ const AnimatedWinRateChart: React.FC<AnimatedWinRateChartProps> = ({
             >
               <ResponsiveContainer width="100%" height={height}>
                 <PieChart>
+                  <defs>
+                    <linearGradient id="winGradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.9}/>
+                      <stop offset="50%" stopColor="#10b981" stopOpacity={0.9}/>
+                      <stop offset="100%" stopColor="#059669" stopOpacity={0.8}/>
+                    </linearGradient>
+                    <linearGradient id="lossGradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#fb7185" stopOpacity={0.9}/>
+                      <stop offset="50%" stopColor="#f43f5e" stopOpacity={0.9}/>
+                      <stop offset="100%" stopColor="#dc2626" stopOpacity={0.8}/>
+                    </linearGradient>
+                  </defs>
                   <Pie
                     data={data}
                     cx="50%"
@@ -223,44 +235,14 @@ const AnimatedWinRateChart: React.FC<AnimatedWinRateChartProps> = ({
                     animationDuration={1500}
                     animationEasing="ease-out"
                   >
-                    <Cell fill={COLORS.win} />
-                    <Cell fill={COLORS.loss} />
+                    <Cell fill="url(#winGradient)" stroke="rgba(255,255,255,0.2)" strokeWidth={2} />
+                    <Cell fill="url(#lossGradient)" stroke="rgba(255,255,255,0.2)" strokeWidth={2} />
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
 
-              {/* Center display */}
-              <motion.div
-                className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-              >
-                <motion.div
-                  className={cn(
-                    "text-4xl font-bold",
-                    isGoodWinRate ? "text-emerald-500" : "text-rose-500"
-                  )}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 200,
-                    delay: 1
-                  }}
-                >
-                  {animatedValue.toFixed(1)}%
-                </motion.div>
-                <motion.div
-                  className="text-xs text-muted-foreground mt-1"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.2 }}
-                >
-                  Win Rate
-                </motion.div>
-              </motion.div>
+              {/* Center is now clean - no text overlay */}
             </motion.div>
           )}
         </AnimatePresence>

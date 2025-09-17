@@ -13,6 +13,7 @@ export { default as DailyPnLChart } from './DailyPnLChart';
 export { default as AnimatedDailyPnLChart } from './AnimatedDailyPnLChart';
 export { default as EfficiencyChart } from './EfficiencyChart';
 export { default as AnimatedEfficiencyChart } from './AnimatedEfficiencyChart';
+export { default as AnimatedProfitFactorChart } from './AnimatedProfitFactorChart';
 
 // NEW: Modern components
 export { default as ModernDashboard } from './ModernDashboard';

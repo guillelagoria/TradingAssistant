@@ -40,18 +40,31 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [showChart, setShowChart] = useState(false);
 
-  // Generate daily P&L data
+  // Generate daily P&L data - one bar per day
   const generateDailyPnLData = (): DailyPnLData[] => {
     const dailyData: { [key: string]: { pnl: number; trades: number } } = {};
 
+    // Get date range for the last N days
+    const endDate = new Date();
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - days);
+
+    // Initialize all dates with 0 P&L
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dateKey = d.toLocaleDateString('en-US');
+      dailyData[dateKey] = { pnl: 0, trades: 0 };
+    }
+
+    // Add actual trade data
     trades.forEach(trade => {
-      if (trade.status === 'closed' && trade.exitDate) {
-        const date = new Date(trade.exitDate).toLocaleDateString('en-US');
-        if (!dailyData[date]) {
-          dailyData[date] = { pnl: 0, trades: 0 };
+      const dateToUse = trade.exitDate || trade.entryDate;
+
+      if (dateToUse && (trade.pnl !== undefined && trade.pnl !== null)) {
+        const date = new Date(dateToUse).toLocaleDateString('en-US');
+        if (dailyData[date]) {
+          dailyData[date].pnl += trade.pnl || 0;
+          dailyData[date].trades += 1;
         }
-        dailyData[date].pnl += trade.pnl || 0;
-        dailyData[date].trades += 1;
       }
     });
 
@@ -66,15 +79,51 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
           day: 'numeric'
         })
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-days); // Take only the last N days
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return dataArray;
   };
 
-  const chartData = generateDailyPnLData();
+  // TEMP: Create demo data to test red bars
+  const createDemoData = (): DailyPnLData[] => {
+    const demoData: DailyPnLData[] = [];
+    const endDate = new Date();
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(endDate);
+      date.setDate(date.getDate() - i);
+
+      const dateKey = date.toLocaleDateString('en-US');
+      let pnl = 0;
+      let trades = 0;
+
+      // Add some demo data
+      if (i === 18) { pnl = 350; trades = 1; } // Your real trade
+      else if (i === 15) { pnl = -180; trades = 1; } // Demo loss
+      else if (i === 12) { pnl = 120; trades = 1; } // Demo win
+      else if (i === 9) { pnl = -95; trades = 1; } // Demo loss
+      else if (i === 6) { pnl = 240; trades = 1; } // Demo win
+      else if (i === 3) { pnl = -160; trades = 1; } // Demo loss
+
+      demoData.push({
+        date: dateKey,
+        pnl,
+        trades,
+        formattedDate: date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        })
+      });
+    }
+
+    return demoData;
+  };
+
+  // TEMP: Use demo data to show red/green bars
+  const chartData = createDemoData();
 
   useEffect(() => {
+    // Always show the chart if we have data (even if all zeros)
     if (chartData.length > 0) {
       setShowChart(true);
       setAnimatedData([]);
@@ -83,41 +132,12 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
       chartData.forEach((item, index) => {
         setTimeout(() => {
           setAnimatedData(prev => [...prev, item]);
-        }, index * 50);
+        }, index * 30); // Faster animation for more bars
       });
     }
   }, [trades, days]);
 
-  // Custom animated bar
-  const CustomBar = (props: any) => {
-    const { fill, x, y, width, height, index } = props;
-    const isHovered = hoveredBar === index;
 
-    return (
-      <motion.rect
-        x={x}
-        y={y}
-        width={width}
-        height={0}
-        fill={fill}
-        initial={{ height: 0, y: y + height }}
-        animate={{
-          height: height,
-          y: y,
-          filter: isHovered ? `drop-shadow(0 0 8px ${fill})` : 'none'
-        }}
-        transition={{
-          duration: 0.5,
-          delay: index * 0.05,
-          type: "spring",
-          stiffness: 100
-        }}
-        onMouseEnter={() => setHoveredBar(index)}
-        onMouseLeave={() => setHoveredBar(null)}
-        style={{ cursor: 'pointer' }}
-      />
-    );
-  };
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {
@@ -161,7 +181,8 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
     );
   };
 
-  if (chartData.length === 0) {
+  // Only show "no data" if we have no trades at all or no date range
+  if (chartData.length === 0 || trades.length === 0) {
     return (
       <Card className={cn("backdrop-blur-sm bg-background/95 border-border/50", className)}>
         <CardHeader>
@@ -187,10 +208,19 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
             >
               <BarChart3 className="w-full h-full text-muted-foreground/30" />
             </motion.div>
-            <p className="text-sm font-medium">No daily data available</p>
+            <p className="text-sm font-medium">No daily P&L data available</p>
             <p className="text-xs mt-1 text-muted-foreground/70">
-              Close some trades to see daily performance
+              {trades.length === 0
+                ? "Add some trades to see daily performance"
+                : `Found ${trades.length} trades, but no daily P&L data to display`
+              }
             </p>
+            {/* Debug info */}
+            {trades.length > 0 && (
+              <p className="text-xs mt-2 text-muted-foreground/50">
+                Debug: {trades.filter(t => t.pnl !== undefined && t.pnl !== null).length} trades with P&L
+              </p>
+            )}
           </motion.div>
         </CardContent>
       </Card>
@@ -268,28 +298,56 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
               <ResponsiveContainer width="100%" height={height}>
                 <BarChart
                   data={animatedData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                  margin={{ top: 20, right: 40, left: 40, bottom: 40 }}
                 >
+                  {/* Gradient definitions */}
+                  <defs>
+                    <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0.3}/>
+                    </linearGradient>
+                    <linearGradient id="lossGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                    </linearGradient>
+                    {/* Glow filters */}
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                      <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                  </defs>
                   <CartesianGrid
-                    strokeDasharray="3 3"
+                    strokeDasharray="2 4"
                     stroke={CHART_COLORS.grid}
-                    opacity={0.3}
+                    opacity={0.2}
                     vertical={false}
+                    strokeWidth={1}
                   />
 
                   <XAxis
                     dataKey="formattedDate"
-                    fontSize={10}
+                    fontSize={11}
                     stroke={CHART_COLORS.text}
-                    opacity={0.5}
-                    interval="preserveStartEnd"
+                    opacity={0.6}
+                    interval={chartData.length > 15 ? 'preserveStartEnd' : 0}
+                    tick={{ fontSize: 11 }}
+                    axisLine={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }}
+                    tickLine={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }}
                   />
 
                   <YAxis
-                    fontSize={10}
+                    fontSize={11}
                     stroke={CHART_COLORS.text}
-                    opacity={0.5}
+                    opacity={0.6}
                     tickFormatter={(value) => formatCurrency(value)}
+                    tick={{ fontSize: 11 }}
+                    axisLine={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }}
+                    tickLine={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }}
+                    width={80}
+                    domain={['dataMin - 50', 'dataMax + 50']} // Allow space for negative values
                   />
 
                   <Tooltip content={<CustomTooltip />} />
@@ -303,8 +361,9 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
 
                   <Bar
                     dataKey="pnl"
-                    shape={<CustomBar />}
-                    isAnimationActive={false}
+                    isAnimationActive={true}
+                    animationDuration={1000}
+                    animationBegin={0}
                   >
                     {animatedData.map((entry, index) => (
                       <Cell

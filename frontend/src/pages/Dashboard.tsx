@@ -9,7 +9,7 @@ import {
   AnimatedPnLChart,
   AnimatedWinRateChart,
   AnimatedDailyPnLChart,
-  AnimatedEfficiencyChart,
+  AnimatedProfitFactorChart,
   AnimatedBEStatsCard,
 } from '@/components/dashboard';
 import { WhatIfAnalysis } from '@/components/analysis';
@@ -115,21 +115,23 @@ function Dashboard() {
         <AnimatedPnLChart height={400} />
       </div>
       
+      {/* Daily P&L Chart - Full Width */}
+      <div className="space-y-6">
+        <div ref={dailyPnlChartRef}>
+          <AnimatedDailyPnLChart height={350} days={21} />
+        </div>
+      </div>
+
       {/* Secondary Charts Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         {/* Win Rate Donut Chart */}
         <div ref={winRateChartRef}>
           <AnimatedWinRateChart height={300} />
         </div>
 
-        {/* Daily P&L Bar Chart */}
-        <div ref={dailyPnlChartRef}>
-          <AnimatedDailyPnLChart height={300} days={21} />
-        </div>
-        
-        {/* Efficiency Scatter Plot */}
+        {/* Profit Factor Chart */}
         <div ref={efficiencyChartRef}>
-          <AnimatedEfficiencyChart height={300} />
+          <AnimatedProfitFactorChart height={300} />
         </div>
       </div>
 

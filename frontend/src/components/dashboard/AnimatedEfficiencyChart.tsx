@@ -44,31 +44,45 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
   // Generate efficiency data
   const generateEfficiencyData = (): EfficiencyPoint[] => {
     return trades
-      .filter(trade => trade.status === 'closed' && trade.pnl !== undefined)
+      .filter(trade => trade.pnl !== undefined && trade.pnl !== null)
       .map(trade => {
         const pnl = trade.pnl || 0;
-        const maxFavorable = trade.maxFavorablePrice || 0;
         const entryPrice = trade.entryPrice || 0;
+        const exitPrice = trade.exitPrice || 0;
+        const maxFavorable = trade.maxFavorablePrice;
 
-        // Calculate theoretical max profit if direction was correct
-        const theoreticalMax = trade.direction === 'long'
-          ? maxFavorable - entryPrice
-          : entryPrice - maxFavorable;
+        let efficiency = 0;
 
-        // Efficiency = (Realized P&L / Theoretical Max) * 100
-        const efficiency = theoreticalMax > 0 ? (pnl / (theoreticalMax * trade.quantity)) * 100 : 0;
+        if (maxFavorable && maxFavorable !== 0 && entryPrice !== 0) {
+          // Original efficiency calculation with maxFavorablePrice
+          const theoreticalMax = trade.direction === 'long' || trade.direction === 'LONG'
+            ? maxFavorable - entryPrice
+            : entryPrice - maxFavorable;
+
+          if (theoreticalMax > 0) {
+            efficiency = (pnl / (theoreticalMax * (trade.quantity || 1))) * 100;
+          }
+        } else if (exitPrice && exitPrice !== 0 && entryPrice !== 0) {
+          // Alternative: efficiency based on exit vs entry price
+          const actualMove = trade.direction === 'long' || trade.direction === 'LONG'
+            ? exitPrice - entryPrice
+            : entryPrice - exitPrice;
+
+          const percentMove = (actualMove / entryPrice) * 100;
+          efficiency = Math.abs(percentMove); // Use absolute percentage as efficiency proxy
+        }
 
         return {
           pnl,
           efficiency: Math.max(0, Math.min(100, efficiency)), // Clamp between 0-100
-          maxFavorable,
+          maxFavorable: maxFavorable || exitPrice || 0,
           symbol: trade.symbol,
           date: trade.exitDate || trade.entryDate,
           isProfit: pnl >= 0,
           size: Math.abs(pnl) / 100 + 5 // Size based on P&L magnitude
         };
       })
-      .filter(point => !isNaN(point.efficiency) && isFinite(point.efficiency));
+      .filter(point => !isNaN(point.efficiency) && isFinite(point.efficiency) && point.efficiency > 0);
   };
 
   const chartData = generateEfficiencyData();
@@ -93,59 +107,75 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
     if (!payload) return null;
 
     const isHovered = hoveredPoint === index;
-    const dotColor = payload.isProfit ? '#10b981' : '#f43f5e';
-    const size = payload.size;
+    const isProfit = payload.isProfit;
+    const size = Math.max(4, Math.min(12, payload.size));
 
     return (
       <motion.g
         initial={{ scale: 0, opacity: 0 }}
         animate={{
-          scale: isHovered ? 1.5 : 1,
+          scale: isHovered ? 1.3 : 1,
           opacity: 1
         }}
         transition={{
-          duration: 0.3,
-          delay: index * 0.05,
+          duration: 0.4,
+          delay: index * 0.06,
           type: "spring",
-          stiffness: 300
+          stiffness: 260,
+          damping: 20
         }}
         onMouseEnter={() => setHoveredPoint(index)}
         onMouseLeave={() => setHoveredPoint(null)}
       >
+        {/* Main dot with gradient */}
         <circle
           cx={cx}
           cy={cy}
-          r={isHovered ? size * 1.5 : size}
-          fill={dotColor}
-          stroke="#ffffff"
-          strokeWidth={2}
+          r={size}
+          fill={isProfit ? 'url(#profitDotGradient)' : 'url(#lossDotGradient)'}
+          stroke="rgba(255,255,255,0.6)"
+          strokeWidth={1.5}
           className="cursor-pointer"
           style={{
-            filter: isHovered ? `drop-shadow(0 0 12px ${dotColor})` : 'none',
-            opacity: 0.8
+            filter: isHovered ? 'url(#dotGlow)' : 'none'
           }}
         />
+
+        {/* Inner highlight */}
+        <circle
+          cx={cx - size * 0.2}
+          cy={cy - size * 0.2}
+          r={size * 0.3}
+          fill="rgba(255,255,255,0.4)"
+          className="cursor-pointer"
+        />
+
+        {/* Animated rings on hover */}
         {isHovered && (
           <>
             <motion.circle
               cx={cx}
               cy={cy}
-              r={size * 2}
+              r={size}
               fill="none"
-              stroke={dotColor}
-              strokeWidth={2}
-              initial={{ scale: 0.5, opacity: 1 }}
-              animate={{ scale: 2, opacity: 0 }}
-              transition={{ duration: 1, repeat: Infinity }}
+              stroke={isProfit ? '#10b981' : '#f43f5e'}
+              strokeWidth={1.5}
+              opacity={0.6}
+              initial={{ scale: 1, opacity: 0.6 }}
+              animate={{ scale: 2.5, opacity: 0 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
             />
             <motion.circle
               cx={cx}
               cy={cy}
-              r={2}
-              fill="white"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.2 }}
+              r={size}
+              fill="none"
+              stroke={isProfit ? '#10b981' : '#f43f5e'}
+              strokeWidth={1}
+              opacity={0.4}
+              initial={{ scale: 1, opacity: 0.4 }}
+              animate={{ scale: 2, opacity: 0 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "easeOut", delay: 0.2 }}
             />
           </>
         )}
@@ -230,7 +260,10 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
             </motion.div>
             <p className="text-sm font-medium">No efficiency data available</p>
             <p className="text-xs mt-1 text-muted-foreground/70">
-              Complete trades with max favorable data
+              {trades.length === 0
+                ? "Add some trades to see efficiency analysis"
+                : "Complete trades with exit prices to see efficiency data"
+              }
             </p>
           </motion.div>
         </CardContent>
@@ -274,7 +307,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
-              Efficiency = (Realized P&L / Max Favorable) × 100
+              Trade efficiency analysis based on price movement
             </motion.p>
           </div>
           <motion.div
@@ -304,33 +337,61 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
               <ResponsiveContainer width="100%" height={height}>
                 <ScatterChart
                   data={animatedData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                 >
+                  {/* Gradient and glow definitions */}
+                  <defs>
+                    <radialGradient id="profitDotGradient" cx="50%" cy="30%">
+                      <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.9}/>
+                      <stop offset="50%" stopColor="#10b981" stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor="#059669" stopOpacity={0.7}/>
+                    </radialGradient>
+                    <radialGradient id="lossDotGradient" cx="50%" cy="30%">
+                      <stop offset="0%" stopColor="#fb7185" stopOpacity={0.9}/>
+                      <stop offset="50%" stopColor="#f43f5e" stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor="#dc2626" stopOpacity={0.7}/>
+                    </radialGradient>
+                    <filter id="dotGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                      <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                  </defs>
                   <CartesianGrid
-                    strokeDasharray="3 3"
+                    strokeDasharray="2 4"
                     stroke={CHART_COLORS.grid}
-                    opacity={0.3}
+                    opacity={0.2}
+                    strokeWidth={1}
                   />
 
                   <XAxis
                     type="number"
                     dataKey="pnl"
-                    fontSize={10}
+                    fontSize={11}
                     stroke={CHART_COLORS.text}
-                    opacity={0.5}
+                    opacity={0.6}
                     tickFormatter={(value) => formatCurrency(value)}
                     name="P&L"
+                    tick={{ fontSize: 11 }}
+                    axisLine={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }}
+                    tickLine={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }}
                   />
 
                   <YAxis
                     type="number"
                     dataKey="efficiency"
-                    fontSize={10}
+                    fontSize={11}
                     stroke={CHART_COLORS.text}
-                    opacity={0.5}
+                    opacity={0.6}
                     domain={[0, 100]}
                     tickFormatter={(value) => `${value}%`}
                     name="Efficiency"
+                    tick={{ fontSize: 11 }}
+                    axisLine={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }}
+                    tickLine={{ stroke: CHART_COLORS.grid, strokeWidth: 1 }}
+                    width={60}
                   />
 
                   <Tooltip content={<CustomTooltip />} />
@@ -357,7 +418,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
                     {animatedData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={entry.isProfit ? '#10b981' : '#f43f5e'}
+                        fill={entry.isProfit ? 'url(#profitDotGradient)' : 'url(#lossDotGradient)'}
                       />
                     ))}
                   </Scatter>
