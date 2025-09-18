@@ -138,7 +138,14 @@ function ModernFilterSystem({ className }: ModernFilterSystemProps) {
 
   const handleQuickFilter = (quickFilter: QuickFilterConfig) => {
     const quickFilters = quickFilter.getFilters();
+    console.log('ModernFilterSystem: Quick filter clicked:', {
+      filterId: quickFilter.id,
+      filterLabel: quickFilter.label,
+      generatedFilters: quickFilters,
+      currentFilters: filters
+    });
     setFilters(quickFilters);
+    console.log('ModernFilterSystem: Filters after setFilters:', filters);
   };
 
   const clearFilter = (key: keyof TradeFilters) => {
@@ -225,16 +232,16 @@ function ModernFilterSystem({ className }: ModernFilterSystemProps) {
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Direction</label>
             <Select
-              value={filters.direction || ''}
+              value={filters.direction || 'all'}
               onValueChange={(value) =>
-                handleFilterChange('direction', value || undefined)
+                handleFilterChange('direction', value === 'all' ? undefined : value)
               }
             >
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="All directions" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All directions</SelectItem>
+                <SelectItem value="all">All directions</SelectItem>
                 <SelectItem value={TradeDirection.LONG}>Long</SelectItem>
                 <SelectItem value={TradeDirection.SHORT}>Short</SelectItem>
               </SelectContent>
@@ -245,16 +252,16 @@ function ModernFilterSystem({ className }: ModernFilterSystemProps) {
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Result</label>
             <Select
-              value={filters.result || ''}
+              value={filters.result || 'all'}
               onValueChange={(value) =>
-                handleFilterChange('result', value || undefined)
+                handleFilterChange('result', value === 'all' ? undefined : value)
               }
             >
               <SelectTrigger className="h-9">
                 <SelectValue placeholder="All results" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All results</SelectItem>
+                <SelectItem value="all">All results</SelectItem>
                 <SelectItem value={TradeResult.WIN}>Win</SelectItem>
                 <SelectItem value={TradeResult.LOSS}>Loss</SelectItem>
                 <SelectItem value={TradeResult.BREAKEVEN}>Breakeven</SelectItem>
@@ -293,16 +300,16 @@ function ModernFilterSystem({ className }: ModernFilterSystemProps) {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Strategy</label>
                 <Select
-                  value={filters.strategy || ''}
+                  value={filters.strategy || 'all'}
                   onValueChange={(value) =>
-                    handleFilterChange('strategy', value || undefined)
+                    handleFilterChange('strategy', value === 'all' ? undefined : value)
                   }
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="All strategies" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All strategies</SelectItem>
+                    <SelectItem value="all">All strategies</SelectItem>
                     <SelectItem value={Strategy.SCALPING}>Scalping</SelectItem>
                     <SelectItem value={Strategy.DAY_TRADING}>Day Trading</SelectItem>
                     <SelectItem value={Strategy.SWING}>Swing</SelectItem>
@@ -326,16 +333,16 @@ function ModernFilterSystem({ className }: ModernFilterSystemProps) {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Timeframe</label>
                 <Select
-                  value={filters.timeframe || ''}
+                  value={filters.timeframe || 'all'}
                   onValueChange={(value) =>
-                    handleFilterChange('timeframe', value || undefined)
+                    handleFilterChange('timeframe', value === 'all' ? undefined : value)
                   }
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="All timeframes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All timeframes</SelectItem>
+                    <SelectItem value="all">All timeframes</SelectItem>
                     <SelectItem value="1m">1 Minute</SelectItem>
                     <SelectItem value="5m">5 Minutes</SelectItem>
                     <SelectItem value="15m">15 Minutes</SelectItem>

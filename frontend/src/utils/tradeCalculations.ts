@@ -1,4 +1,4 @@
-import { MarketInfo, Direction, NewTrade, TradeDirection, TradeFormData, Trade } from '../types/trade';
+import { MarketInfo, Direction, NewTrade, TradeDirection, TradeFormData, Trade, TradeResult } from '../types/trade';
 
 /**
  * Simplified trade calculation utilities for the new single-form interface
@@ -593,4 +593,57 @@ export function formatRMultiple(value: number | undefined | null): string {
   }
   const sign = value >= 0 ? '+' : '';
   return `${sign}${value.toFixed(2)}R`;
+}
+
+/**
+ * Calculate trade result based on P&L
+ */
+export function calculateTradeResult(pnl: number): TradeResult {
+  if (pnl > 0) return TradeResult.WIN;
+  if (pnl < 0) return TradeResult.LOSS;
+  return TradeResult.BREAKEVEN;
+}
+
+/**
+ * Calculate comprehensive trade metrics for a Trade object including result field
+ */
+export function calculateTradeMetricsForTrade(trade: Partial<Trade>): Partial<Trade> {
+  if (!trade.exitPrice || !trade.entryPrice) {
+    // Trade is not closed, return the trade as-is
+    return trade;
+  }
+
+  // Calculate P&L
+  const pnlPoints = calculatePnLPoints(
+    trade.entryPrice,
+    trade.exitPrice,
+    trade.direction === TradeDirection.LONG ? 'long' : 'short'
+  );
+  const pnl = pnlPoints * (trade.quantity || 1);
+
+  // Calculate result
+  const result = calculateTradeResult(pnl);
+
+  // Calculate other metrics
+  const pnlPercentage = trade.entryPrice ? (pnl / (trade.entryPrice * (trade.quantity || 1))) * 100 : 0;
+
+  // Calculate R-Multiple if stop loss is available
+  let rMultiple = 0;
+  if (trade.stopLoss && trade.entryPrice) {
+    const riskPoints = calculateRiskPoints(
+      trade.entryPrice,
+      trade.stopLoss,
+      trade.direction === TradeDirection.LONG ? 'long' : 'short'
+    );
+    rMultiple = riskPoints > 0 ? pnlPoints / riskPoints : 0;
+  }
+
+  return {
+    ...trade,
+    pnl,
+    pnlPercentage,
+    rMultiple,
+    result,
+    commission: trade.commission || 0
+  };
 }

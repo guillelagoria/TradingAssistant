@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,8 +70,17 @@ function TradeHistory() {
 
   // Fetch trades on component mount or when active account changes
   useEffect(() => {
+    console.log('TradeHistory: activeAccount changed:', {
+      activeAccount,
+      hasActiveAccount: !!activeAccount,
+      accountId: activeAccount?.id
+    });
+
     if (activeAccount) {
+      console.log('TradeHistory: Calling refreshTradesForAccount with accountId:', activeAccount.id);
       refreshTradesForAccount(activeAccount.id);
+    } else {
+      console.log('TradeHistory: No active account found');
     }
   }, [activeAccount, refreshTradesForAccount]);
 
@@ -182,12 +191,127 @@ function TradeHistory() {
     setCalendarMonth(newMonth);
   };
 
-  const filteredTrades = trades.filter(trade =>
-    searchQuery === '' || 
-    trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    trade.strategy.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (trade.notes && trade.notes.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredTrades = useMemo(() => {
+    console.log('Filtering trades with:', { filters, searchQuery, totalTrades: trades.length });
+
+    // Debug: Show sample trade data
+    if (trades.length > 0) {
+      console.log('Sample trade data:', {
+        firstTrade: {
+          id: trades[0].id,
+          result: trades[0].result,
+          pnl: trades[0].pnl,
+          rMultiple: trades[0].rMultiple,
+          positionSize: trades[0].positionSize
+        }
+      });
+    }
+
+    const result = trades.filter(trade => {
+    // Apply search query first
+    if (searchQuery !== '') {
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch =
+        trade.symbol?.toLowerCase().includes(searchLower) ||
+        trade.strategy?.toLowerCase().includes(searchLower) ||
+        trade.notes?.toLowerCase().includes(searchLower) ||
+        (trade.strategy === 'CUSTOM' && trade.customStrategy?.toLowerCase().includes(searchLower));
+
+      if (!matchesSearch) return false;
+    }
+
+    // Apply filters from store
+    if (filters) {
+      // Direction filter
+      if (filters.direction && trade.direction !== filters.direction) {
+        return false;
+      }
+
+      // Result filter
+      if (filters.result && trade.result !== filters.result) {
+        console.log('Trade filtered out by result:', {
+          tradeId: trade.id,
+          tradeResult: trade.result,
+          filterResult: filters.result,
+          match: trade.result === filters.result
+        });
+        return false;
+      }
+
+      // Strategy filter
+      if (filters.strategy && trade.strategy !== filters.strategy) {
+        return false;
+      }
+
+      // Timeframe filter
+      if (filters.timeframe && trade.timeframe !== filters.timeframe) {
+        return false;
+      }
+
+      // Symbol filter
+      if (filters.symbol && !trade.symbol?.toLowerCase().includes(filters.symbol.toLowerCase())) {
+        return false;
+      }
+
+      // Date range filters
+      if (filters.dateFrom || filters.dateTo) {
+        const tradeDate = new Date(trade.entryDate);
+        if (filters.dateFrom && tradeDate < filters.dateFrom) {
+          return false;
+        }
+        if (filters.dateTo && tradeDate > filters.dateTo) {
+          return false;
+        }
+      }
+
+      // P&L range filters
+      if (filters.pnlMin !== undefined && trade.pnl < filters.pnlMin) {
+        return false;
+      }
+      if (filters.pnlMax !== undefined && trade.pnl > filters.pnlMax) {
+        return false;
+      }
+
+      // R-Multiple range filters
+      if (filters.rMultipleMin !== undefined && trade.rMultiple < filters.rMultipleMin) {
+        return false;
+      }
+      if (filters.rMultipleMax !== undefined && trade.rMultiple > filters.rMultipleMax) {
+        return false;
+      }
+
+      // Position size filters
+      if (filters.positionSizeMin !== undefined && (trade.positionSize || 0) < filters.positionSizeMin) {
+        return false;
+      }
+      if (filters.positionSizeMax !== undefined && (trade.positionSize || 0) > filters.positionSizeMax) {
+        return false;
+      }
+
+      // Holding period filters (calculate from entry/exit dates)
+      if (filters.holdingPeriodMin !== undefined || filters.holdingPeriodMax !== undefined) {
+        let holdingPeriodMinutes = 0;
+        if (trade.exitDate) {
+          const entryTime = new Date(trade.entryDate).getTime();
+          const exitTime = new Date(trade.exitDate).getTime();
+          holdingPeriodMinutes = (exitTime - entryTime) / (1000 * 60); // Convert to minutes
+        }
+
+        if (filters.holdingPeriodMin !== undefined && holdingPeriodMinutes < filters.holdingPeriodMin) {
+          return false;
+        }
+        if (filters.holdingPeriodMax !== undefined && holdingPeriodMinutes > filters.holdingPeriodMax) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+
+    console.log('Filtered trades result:', { filteredCount: result.length, originalCount: trades.length });
+    return result;
+  }, [trades, searchQuery, filters]);
 
   return (
     <div className="space-y-6">

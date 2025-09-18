@@ -300,32 +300,47 @@ const useAccountStore = create<AccountState>()(
 // Initialize store on app load
 export const initializeAccountStore = async () => {
   const store = useAccountStore.getState();
+  console.log('AccountStore: Starting initialization...');
 
   try {
     // Fetch accounts first
+    console.log('AccountStore: Fetching accounts...');
     await store.fetchAccounts();
+
+    const accounts = store.accounts;
+    console.log('AccountStore: Fetched accounts:', { count: accounts.length, accounts });
 
     // Try to restore active account from localStorage
     const savedActiveAccountId = localStorage.getItem('activeAccountId');
+    console.log('AccountStore: Saved active account ID from localStorage:', savedActiveAccountId);
+
     if (savedActiveAccountId) {
       const account = store.getAccountById(savedActiveAccountId);
+      console.log('AccountStore: Found account by saved ID:', account);
       if (account) {
         store.setActiveAccount(account);
         // Fetch stats for active account
         store.refreshAccountStats(savedActiveAccountId);
+        console.log('AccountStore: Set active account from localStorage:', account);
       }
     } else {
       // Try to get current active account from server
       try {
+        console.log('AccountStore: Trying to get active account from server...');
         const activeAccount = await accountService.getActiveAccount();
+        console.log('AccountStore: Active account from server:', activeAccount);
         if (activeAccount) {
           store.setActiveAccount(activeAccount);
           store.refreshAccountStats(activeAccount.id);
+          console.log('AccountStore: Set active account from server:', activeAccount);
         }
       } catch (error) {
-        // No active account set on server
+        console.log('AccountStore: No active account set on server:', error);
       }
     }
+
+    const finalActiveAccount = store.activeAccount;
+    console.log('AccountStore: Final active account after initialization:', finalActiveAccount);
   } catch (error) {
     console.error('Failed to initialize account store:', error);
     store.setError('Failed to load accounts. Please refresh the page.');

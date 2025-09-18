@@ -42,6 +42,7 @@ function CompactSearchBar({
 
   // Count active filters
   const activeFiltersCount = useMemo(() => {
+    if (!filters) return 0;
     return Object.entries(filters).filter(([key, value]) => {
       if (value === undefined || value === null || value === '') return false;
       if (Array.isArray(value) && value.length === 0) return false;
@@ -53,11 +54,11 @@ function CompactSearchBar({
   const filterSummary = useMemo(() => {
     const summaryItems: string[] = [];
 
-    if (filters.direction) summaryItems.push(filters.direction);
-    if (filters.result) summaryItems.push(filters.result.toLowerCase());
-    if (filters.strategy) summaryItems.push(filters.strategy.toLowerCase().replace('_', ' '));
-    if (filters.dateFrom || filters.dateTo) summaryItems.push('date range');
-    if (filters.pnlMin !== undefined || filters.pnlMax !== undefined) summaryItems.push('P&L range');
+    if (filters?.direction) summaryItems.push(filters.direction);
+    if (filters?.result) summaryItems.push(filters.result.toLowerCase());
+    if (filters?.strategy) summaryItems.push(filters.strategy.toLowerCase().replace('_', ' '));
+    if (filters?.dateFrom || filters?.dateTo) summaryItems.push('date range');
+    if (filters?.pnlMin !== undefined || filters?.pnlMax !== undefined) summaryItems.push('P&L range');
 
     return summaryItems;
   }, [filters]);
@@ -117,9 +118,10 @@ function CompactSearchBar({
         >
           <Filter className="h-4 w-4" />
           <span className="hidden sm:inline">Filters</span>
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {activeFiltersCount > 0 && (
               <motion.div
+                key="filter-badge"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
@@ -144,6 +146,7 @@ function CompactSearchBar({
         <AnimatePresence>
           {selectedTrades.length > 0 && (
             <motion.div
+              key="selected-actions"
               initial={{ opacity: 0, scale: 0.8, x: 20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.8, x: 20 }}
@@ -182,6 +185,7 @@ function CompactSearchBar({
       <AnimatePresence>
         {activeFiltersCount > 0 && (
           <motion.div
+            key="filters-summary"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
