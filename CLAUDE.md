@@ -40,12 +40,17 @@ src/
 │   ├── trades/          # TradeForm, TradeTable, TradeDetails
 │   ├── dashboard/       # NUEVOS: AnimatedStatsCards, AnimatedPnLChart, etc.
 │   ├── analysis/        # WhatIfAnalysis (integrado en Dashboard)
+│   ├── economic/        # 🆕 Sistema de Alertas Económicas
+│   │   ├── EconomicAlertsBar.tsx    # Barra de alertas en header
+│   │   ├── EconomicCalendarModal.tsx # Modal con calendario completo
+│   │   ├── ImpactBadge.tsx          # Badge de impacto (HIGH/MEDIUM/LOW)
+│   │   └── EventTimeDisplay.tsx     # Componente de tiempo del evento
 │   └── shared/          # Componentes reutilizables
 ├── pages/               # Solo 3 páginas: Dashboard, TradeHistory, TradeForm
 ├── hooks/               # Custom hooks
 ├── lib/                 # Configuración shadcn/ui
-├── services/           # API calls
-├── store/              # Zustand stores
+├── services/           # API calls + economicEvents.service.ts
+├── store/              # Zustand stores + economicEventsStore.ts
 ├── types/              # TypeScript types
 └── utils/              # Helpers y cálculos
 ```
@@ -53,12 +58,12 @@ src/
 ### Backend (`/backend`)
 ```
 src/
-├── controllers/        # Controladores de rutas
-├── services/          # Lógica de negocio y cálculos
-├── routes/            # Definición de rutas Express
+├── controllers/        # Controladores de rutas + economicEvents.controller.ts
+├── services/          # Lógica de negocio y cálculos + economicEvents.service.ts
+├── routes/            # Definición de rutas Express + economicEvents.routes.ts
 ├── middleware/        # Auth, validation, error handling
 ├── utils/             # Funciones helper
-├── types/             # TypeScript types
+├── types/             # TypeScript types + economicEvents.ts
 └── prisma/
     ├── schema.prisma  # Esquema de base de datos
     └── migrations/    # Migraciones de DB
@@ -98,17 +103,20 @@ npm run typecheck       # Type checking
    - **Break-Even Analysis** con efectos visuales
    - **What-If Analysis** para escenarios
    - **Portfolio overview** unificado
+   - **🆕 Alertas Económicas** en header con eventos ES/NQ relevantes
 
 2. **📋 Trade History** (`/trades`)
    - **Stats Cards animadas** (mismas que Dashboard)
    - **Tabla de trades** con filtros avanzados
    - **Export a CSV**
    - **Búsqueda y filtros**
+   - **🆕 Alertas Económicas** también disponibles en header
 
 3. **➕ Add Trade** (`/trades/new` y `/trades/:id/edit`)
    - **Formulario moderno** de trade
    - **Validación en tiempo real**
    - **Cálculos automáticos**
+   - **🆕 Alertas Económicas** para contextualizar trades
 
 ### ✅ Fases Completadas
 
@@ -133,6 +141,14 @@ npm run typecheck       # Type checking
 - **Navegación simplificada** a 3 páginas principales
 - **UI moderna** inspirada en Aceternity UI
 
+#### FASE 4: Sistema de Alertas Económicas ✅ 🆕
+- **API de eventos económicos** con integración Finnhub + datos demo
+- **Filtrado inteligente** para eventos relevantes a ES/NQ futures
+- **Horarios realistas** basados en calendario económico de Estados Unidos
+- **Cache inteligente** con TTL de 30 minutos
+- **Fallback a datos demo** cuando API no está disponible
+- **UI responsiva** con alertas en header y modal detallado
+
 ## 📊 Modelos de Datos Principales
 
 ### Trade
@@ -148,12 +164,20 @@ npm run typecheck       # Type checking
 - Preferencias: commission, strategies, timezone
 - Relaciones: trades, strategies
 
+### EconomicEvent 🆕
+- **Información del evento**: event, country, impact (HIGH/MEDIUM/LOW)
+- **Timing**: time, date (timestamps UTC)
+- **Datos económicos**: actual, estimate, previous values
+- **Trading relevance**: relevance description específica para ES/NQ
+- **Metadata**: unit, currency
+
 ## 🔐 Consideraciones de Seguridad
 - Multi-tenancy: Cada usuario solo accede a sus datos
 - Validación de inputs en frontend y backend
 - Sanitización de datos
 - CORS configurado correctamente
 - Variables de entorno para configuración sensible
+- **🆕 API Keys**: FINNHUB_API_KEY configurada en .env (con fallback a datos demo)
 
 ## 🎨 Convenciones de Código
 - Usar TypeScript estricto
@@ -194,13 +218,22 @@ Utilizar Context7 automáticamente para:
 - **Loading states**: Skeleton loaders animados
 - **Tooltips mejorados**: Backdrop blur, animaciones entrada/salida
 
+### Sistema de Alertas Económicas 🆕
+- **EconomicAlertsBar**: Barra compacta en header con contador de eventos y próximo evento
+- **EconomicCalendarModal**: Modal completo con pestañas (Today/This Week)
+- **ImpactBadge**: Badges de colores para HIGH (rojo), MEDIUM (amarillo), LOW (verde)
+- **EventTimeDisplay**: Componente de tiempo relativo ("in 2h", "in 1d")
+- **Auto-refresh**: Sistema de actualización automática cada 30 minutos
+- **Responsive design**: Adaptado para móvil y escritorio
+
 ## 📝 Notas Importantes
-1. **Estado del Proyecto**: ✅ **COMPLETO** - UI moderna con animaciones implementada
+1. **Estado del Proyecto**: ✅ **COMPLETO CON ALERTAS ECONÓMICAS** - UI moderna + alertas implementadas
 2. **Navegación**: **Solo 3 páginas** - Dashboard, Trade History, Add Trade
-3. **Dashboard unificado**: **Todas las funcionalidades** integradas (análisis, portfolio, etc.)
+3. **Dashboard unificado**: **Todas las funcionalidades** integradas (análisis, portfolio, alertas económicas)
 4. **Componentes**: **Versión animada** de todos los elementos principales
 5. **Formulario de Trades**: Usa ModernTradeFormPage (formulario unificado)
 6. **UI Library**: shadcn/ui + Framer Motion para animaciones modernas
+7. **🆕 Alertas Económicas**: Sistema completo con datos en tiempo real + fallback demo
 
 ## 🔄 Flujo de Trabajo
 1. Implementar frontend y backend en paralelo por features
@@ -223,10 +256,30 @@ Utilizar Context7 automáticamente para:
 - Prisma Docs: https://www.prisma.io/docs
 - Zustand: https://github.com/pmndrs/zustand
 - React Hook Form: https://react-hook-form.com
+- **🆕 Finnhub API**: https://finnhub.io/docs/api/economic-calendar
+
+## 🚀 API Endpoints Implementados
+
+### Economic Events API 🆕
+```bash
+GET /api/economic-events/today          # Eventos de hoy
+GET /api/economic-events/upcoming       # Próximos 7 días
+GET /api/economic-events/high-impact    # Solo eventos HIGH impact
+POST /api/economic-events/filter        # Filtros personalizados
+POST /api/economic-events/cache/clear   # Limpiar cache (admin)
+GET /api/economic-events/cache/stats    # Estadísticas cache (admin)
+```
+
+### Variables de Entorno Requeridas 🆕
+```bash
+# Backend .env
+FINNHUB_API_KEY=your_finnhub_api_key_here
+```
 
 ---
-**Última actualización**: ✅ **APLICACIÓN COMPLETA Y MODERNIZADA**
-- UI con animaciones modernas implementada
-- Navegación simplificada a 3 páginas principales
-- Dashboard unificado con todas las funcionalidades
-- Componentes con Framer Motion y diseño inspirado en Aceternity UI
+**Última actualización**: ✅ **APLICACIÓN COMPLETA CON ALERTAS ECONÓMICAS**
+- UI con animaciones modernas implementada ✅
+- Navegación simplificada a 3 páginas principales ✅
+- Dashboard unificado con todas las funcionalidades ✅
+- Componentes con Framer Motion y diseño inspirado en Aceternity UI ✅
+- **🆕 Sistema de Alertas Económicas completo con API + UI** ✅

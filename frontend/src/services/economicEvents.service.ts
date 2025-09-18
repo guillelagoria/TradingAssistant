@@ -118,8 +118,18 @@ class EconomicEventsService {
     const eventDate = new Date(eventTime);
     const diffMs = eventDate.getTime() - now.getTime();
 
+    // Event has passed
     if (diffMs <= 0) {
-      return 'Live';
+      const pastMs = Math.abs(diffMs);
+      const pastMinutes = Math.floor(pastMs / (1000 * 60));
+
+      // Show "Live" for events within the last 15 minutes
+      if (pastMinutes <= 15) {
+        return 'Live';
+      }
+
+      // Show "Past" for events that happened more than 15 minutes ago
+      return 'Past';
     }
 
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));

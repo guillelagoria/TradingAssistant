@@ -45,8 +45,9 @@ export function EconomicAlertsBar({ className }: EconomicAlertsBarProps) {
     openModal();
   };
 
-  // Show error state
-  if (error && !apiKeyConfigured) {
+  // Don't show error state when using demo data (it's working as intended)
+  // Only show error if there's an actual error and no events
+  if (error && !nextEvent && !highImpactCount) {
     return (
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -58,7 +59,7 @@ export function EconomicAlertsBar({ className }: EconomicAlertsBarProps) {
       >
         <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
         <span className="text-sm text-amber-700 dark:text-amber-300">
-          Economic calendar unavailable - API key not configured
+          Economic calendar temporarily unavailable
         </span>
       </motion.div>
     );

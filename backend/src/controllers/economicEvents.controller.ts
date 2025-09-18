@@ -90,10 +90,12 @@ export class EconomicEventsController {
         events: req.body.events
       };
 
-      const events = await economicEventsService.getFilteredEvents(filter);
+      const result = await economicEventsService.getFilteredEvents(filter);
 
       res.json({
         success: true,
+        apiKeyConfigured: result.apiKeyConfigured,
+        usingDemoData: result.usingDemoData,
         data: {
           filter: {
             startDate: filter.startDate?.toISOString().split('T')[0],
@@ -101,8 +103,8 @@ export class EconomicEventsController {
             impact: filter.impact,
             events: filter.events
           },
-          count: events.length,
-          events
+          count: result.events.length,
+          events: result.events
         }
       });
     } catch (error: any) {

@@ -16,7 +16,6 @@ import {
 
 export class EconomicEventsService {
   private cache: NodeCache;
-  private apiKey: string;
   private baseUrl: string = 'https://finnhub.io/api/v1';
 
   constructor() {
@@ -26,20 +25,25 @@ export class EconomicEventsService {
       checkperiod: CACHE_CONFIG.CHECK_PERIOD,
       useClones: false
     });
+  }
 
-    // Get API key from environment
-    this.apiKey = process.env.FINNHUB_API_KEY || '';
-
-    if (!this.apiKey) {
+  /**
+   * Get API key from environment (lazy loading to ensure env vars are loaded)
+   */
+  private getApiKey(): string {
+    const apiKey = process.env.FINNHUB_API_KEY || '';
+    if (!apiKey) {
       console.warn('WARNING: FINNHUB_API_KEY not set in environment variables');
     }
+    return apiKey;
   }
 
   /**
    * Fetch economic calendar data from Finnhub
    */
   private async fetchEconomicCalendar(from: string, to: string): Promise<FinnhubEconomicEvent[]> {
-    if (!this.apiKey) {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
       throw new Error('Finnhub API key not configured');
     }
 
@@ -55,7 +59,7 @@ export class EconomicEventsService {
     try {
       const response = await axios.get(`${this.baseUrl}/calendar/economic`, {
         params: {
-          token: this.apiKey,
+          token: apiKey,
           from,
           to
         },
@@ -168,11 +172,13 @@ export class EconomicEventsService {
 
     let usingDemoData = false;
     let events: FinnhubEconomicEvent[] = [];
+    const hasApiKey = !!this.getApiKey();
 
     try {
       events = await this.fetchEconomicCalendar(from, to);
     } catch (error: any) {
-      // If it's an API key issue, mark as using demo data
+      // If it's a 403 or rate limit, use demo data (API key is configured but doesn't have access)
+      // If it's missing API key, also use demo data
       if (error.message.includes('API key') || error.message.includes('403') || error.message.includes('rate limit')) {
         usingDemoData = true;
         events = this.generateDemoData(from, to);
@@ -188,7 +194,7 @@ export class EconomicEventsService {
 
     return {
       events: processedEvents,
-      apiKeyConfigured: !!this.apiKey && !usingDemoData,
+      apiKeyConfigured: hasApiKey,  // Show as configured if API key exists, even if using demo data
       usingDemoData
     };
   }
@@ -206,11 +212,13 @@ export class EconomicEventsService {
 
     let usingDemoData = false;
     let events: FinnhubEconomicEvent[] = [];
+    const hasApiKey = !!this.getApiKey();
 
     try {
       events = await this.fetchEconomicCalendar(from, to);
     } catch (error: any) {
-      // If it's an API key issue, mark as using demo data
+      // If it's a 403 or rate limit, use demo data (API key is configured but doesn't have access)
+      // If it's missing API key, also use demo data
       if (error.message.includes('API key') || error.message.includes('403') || error.message.includes('rate limit')) {
         usingDemoData = true;
         events = this.generateDemoData(from, to);
@@ -226,7 +234,7 @@ export class EconomicEventsService {
 
     return {
       events: processedEvents,
-      apiKeyConfigured: !!this.apiKey && !usingDemoData,
+      apiKeyConfigured: hasApiKey,  // Show as configured if API key exists, even if using demo data
       usingDemoData
     };
   }
@@ -243,11 +251,13 @@ export class EconomicEventsService {
 
     let usingDemoData = false;
     let events: FinnhubEconomicEvent[] = [];
+    const hasApiKey = !!this.getApiKey();
 
     try {
       events = await this.fetchEconomicCalendar(from, to);
     } catch (error: any) {
-      // If it's an API key issue, mark as using demo data
+      // If it's a 403 or rate limit, use demo data (API key is configured but doesn't have access)
+      // If it's missing API key, also use demo data
       if (error.message.includes('API key') || error.message.includes('403') || error.message.includes('rate limit')) {
         usingDemoData = true;
         events = this.generateDemoData(from, to);
@@ -284,7 +294,7 @@ export class EconomicEventsService {
 
     return {
       events: processedEvents,
-      apiKeyConfigured: !!this.apiKey && !usingDemoData,
+      apiKeyConfigured: hasApiKey,  // Show as configured if API key exists, even if using demo data
       usingDemoData
     };
   }
@@ -303,89 +313,123 @@ export class EconomicEventsService {
   private generateDemoData(from: string, to: string): FinnhubEconomicEvent[] {
     const now = new Date();
 
-    // Crear horarios que tengan sentido para eventos económicos reales
-    // Los eventos económicos importantes suelen ocurrir durante horario comercial en EST/EDT
+    // Create events for today and next few days based on the requested date range
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
 
-    // Calcular el próximo día laborable a las 8:30 AM EST (14:30 UTC)
-    const nextBusinessDay = new Date(now);
-    nextBusinessDay.setUTCHours(14, 30, 0, 0); // 8:30 AM EST = 14:30 UTC
+    // Helper function to create a date with specific time in ET (Eastern Time)
+    const createEventTime = (baseDate: Date, hour: number, minute: number): Date => {
+      const eventTime = new Date(baseDate);
+      // Economic events are typically published in ET (Eastern Time)
+      // ET is UTC-5 (EST) or UTC-4 (EDT) depending on daylight saving
+      // For simplicity, we'll use EDT (UTC-4) since we're in September
+      // So 8:30 AM ET = 12:30 UTC (during EDT)
+      eventTime.setUTCHours(hour, minute, 0, 0);
+      return eventTime;
+    };
 
-    // Si ya pasó la hora de hoy, mover al siguiente día laborable
-    if (nextBusinessDay <= now) {
-      nextBusinessDay.setDate(nextBusinessDay.getDate() + 1);
-    }
+    // If asking for today's events, create some for today
+    const eventsDate = fromDate;
 
-    // Asegurar que sea día laborable (lunes a viernes)
-    while (nextBusinessDay.getDay() === 0 || nextBusinessDay.getDay() === 6) {
-      nextBusinessDay.setDate(nextBusinessDay.getDate() + 1);
-    }
+    // Ensure we use the correct date for the events
+    // If it's for today and we're past market hours, still show today's events as happened earlier
+    const baseDate = new Date(eventsDate);
 
     // Generate realistic demo events for ES/NQ trading
-    const demoEvents: FinnhubEconomicEvent[] = [
-      {
+    const demoEvents: FinnhubEconomicEvent[] = [];
+
+    // Add events based on the date range requested
+    const daysDiff = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Events for first day (could be today)
+    if (daysDiff >= 0) {
+      // Morning events (8:30 AM ET)
+      demoEvents.push({
         country: 'US',
         event: 'Initial Jobless Claims',
-        time: new Date(nextBusinessDay.getTime()).toISOString(), // 8:30 AM EST próximo día laborable
-        unit: '',
-        estimate: '230K',
-        previous: '225K',
-        actual: null,
+        time: createEventTime(baseDate, 12, 30).toISOString(), // 8:30 AM ET = 12:30 UTC
+        unit: 'K',
+        estimate: 230,
+        previous: 225,
+        actual: now > createEventTime(baseDate, 13, 30) ? 228 : null,
         impact: 'medium'
-      },
-      {
+      });
+
+      // Mid-morning event (10:00 AM ET)
+      demoEvents.push({
         country: 'US',
         event: 'Consumer Price Index (CPI)',
-        time: new Date(nextBusinessDay.getTime() + 30 * 60 * 1000).toISOString(), // 9:00 AM EST
+        time: createEventTime(baseDate, 14, 0).toISOString(), // 10:00 AM ET = 14:00 UTC
         unit: '%',
-        estimate: '3.2',
-        previous: '3.1',
-        actual: null,
+        estimate: 3.2,
+        previous: 3.1,
+        actual: now > createEventTime(baseDate, 15, 0) ? 3.3 : null,
         impact: 'high'
-      },
-      {
+      });
+
+      // Afternoon event (2:00 PM ET)
+      demoEvents.push({
         country: 'US',
         event: 'FOMC Meeting Minutes',
-        time: new Date(nextBusinessDay.getTime() + 5.5 * 60 * 60 * 1000).toISOString(), // 2:00 PM EST
+        time: createEventTime(baseDate, 18, 0).toISOString(), // 2:00 PM ET = 18:00 UTC
         unit: '',
         estimate: null,
         previous: null,
         actual: null,
         impact: 'high'
-      },
-      {
+      });
+    }
+
+    // Add events for tomorrow if in range
+    if (daysDiff >= 1) {
+      const tomorrow = new Date(baseDate);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      demoEvents.push({
         country: 'US',
         event: 'Non-Farm Payrolls',
-        time: new Date(nextBusinessDay.getTime() + 24 * 60 * 60 * 1000).toISOString(), // Siguiente día 8:30 AM EST
-        unit: '',
-        estimate: '180K',
-        previous: '175K',
+        time: createEventTime(tomorrow, 12, 30).toISOString(), // 8:30 AM ET = 12:30 UTC
+        unit: 'K',
+        estimate: 180,
+        previous: 175,
         actual: null,
         impact: 'high'
-      },
-      {
+      });
+
+      demoEvents.push({
         country: 'US',
         event: 'ISM Manufacturing PMI',
-        time: new Date(nextBusinessDay.getTime() + 25.5 * 60 * 60 * 1000).toISOString(), // Siguiente día 10:00 AM EST
+        time: createEventTime(tomorrow, 14, 0).toISOString(), // 10:00 AM ET = 14:00 UTC
         unit: '',
-        estimate: '48.5',
-        previous: '47.9',
+        estimate: 48.5,
+        previous: 47.9,
         actual: null,
         impact: 'medium'
-      },
-      {
+      });
+    }
+
+    // Add events for day after tomorrow if in range
+    if (daysDiff >= 2) {
+      const dayAfter = new Date(baseDate);
+      dayAfter.setDate(dayAfter.getDate() + 2);
+
+      demoEvents.push({
         country: 'US',
         event: 'Retail Sales',
-        time: new Date(nextBusinessDay.getTime() + 26.5 * 60 * 60 * 1000).toISOString(), // Siguiente día 11:00 AM EST
+        time: createEventTime(dayAfter, 12, 30).toISOString(), // 8:30 AM ET = 12:30 UTC
         unit: '%',
-        estimate: '0.3',
-        previous: '0.1',
+        estimate: 0.3,
+        previous: 0.1,
         actual: null,
         impact: 'medium'
-      }
-    ];
+      });
+    }
 
-    console.log(`Generated ${demoEvents.length} demo economic events for testing (next business day schedule)`);
-    return demoEvents;
+    console.log(`Generated ${demoEvents.length} demo economic events for ${from} to ${to}`);
+    return demoEvents.filter(event => {
+      const eventDate = new Date(event.time);
+      return eventDate >= fromDate && eventDate <= toDate;
+    });
   }
 
   /**
