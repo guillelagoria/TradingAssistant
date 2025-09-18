@@ -1,17 +1,12 @@
-import { TrendingUp, Bell, Settings } from 'lucide-react';
+import { TrendingUp, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { EconomicAlertsBar, EconomicCalendarModal } from '@/components/economic';
 import AccountSelector from './AccountSelector';
 
 function Header() {
   const navigate = useNavigate();
-
-  const handleNotifications = () => {
-    // Handle notifications - for now just log
-    console.log('Show notifications');
-  };
 
   const handleSettings = () => {
     navigate('/settings');
@@ -49,22 +44,14 @@ function Header() {
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Notifications */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="relative"
-            onClick={handleNotifications}
-          >
-            <Bell className="h-4 w-4" />
-            <Badge variant="destructive" className="absolute -right-1 -top-1 h-2 w-2 rounded-full p-0">
-              <span className="sr-only">New notifications</span>
-            </Badge>
-          </Button>
+          {/* Economic Alerts */}
+          <div className="hidden lg:block">
+            <EconomicAlertsBar />
+          </div>
 
           {/* Settings */}
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={handleSettings}
           >
@@ -86,6 +73,9 @@ function Header() {
           </div>
         </div>
       </div>
+
+      {/* Economic Calendar Modal */}
+      <EconomicCalendarModal />
     </header>
   );
 }
