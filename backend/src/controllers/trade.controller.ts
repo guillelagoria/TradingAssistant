@@ -4,6 +4,7 @@ import { prisma } from '../server';
 import { calculateTradeMetrics } from '../services/trade.service';
 import { BECalculationsService } from '../services/bECalculations.service';
 import { accountService } from '../services/account.service';
+import { convertPointsToDollars } from '../utils/symbolUtils';
 
 export const getTrades = async (
   req: AuthRequest,
@@ -475,5 +476,178 @@ export const bulkDelete = async (
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const createQuickTrade = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const startTime = Date.now();
+
+    // Temporarily use a default test user ID for development
+    const userId = req.userId || 'test-user-id';
+
+    // Ensure test user exists (minimal check for performance)
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: {
+        id: userId,
+        email: 'test@example.com',
+        password: 'test-password',
+        name: 'Test User'
+      }
+    });
+
+    // Get accountId from request or use default account
+    let accountId = req.body.accountId;
+
+    if (!accountId) {
+      // Quick account lookup/creation
+      const defaultAccount = await accountService.getDefaultAccount(userId);
+      if (!defaultAccount) {
+        const newAccount = await accountService.createAccount(userId, {
+          name: 'Default Account',
+          creationDate: new Date(),
+          initialBalance: 10000,
+          currency: 'USD'
+        });
+        accountId = newAccount.id;
+      } else {
+        accountId = defaultAccount.id;
+      }
+    }
+
+    // Handle both JSON and FormData requests
+    let tradeData: any;
+    let imageFile: any = null;
+
+    if (req.body.tradeData) {
+      // FormData request with image
+      tradeData = JSON.parse(req.body.tradeData);
+      imageFile = req.file;
+    } else {
+      // Regular JSON request
+      tradeData = req.body;
+    }
+
+    // Extract minimal required fields for quick entry
+    const { symbol, direction, entryPrice, quantity, stopLoss, result } = tradeData;
+
+    // Validate required fields
+    if (!symbol || !direction || !entryPrice || !quantity) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Missing required fields: symbol, direction, entryPrice, quantity',
+          statusCode: 400
+        }
+      });
+      return;
+    }
+
+    // Auto-derive market from symbol if not provided
+    const market = req.body.market || symbol;
+
+    // Convert points to dollars based on symbol
+    // The 'result' field contains points, we need to convert to dollars
+    const resultPoints = result ? Number(result) : 0;
+    const pnlValue = resultPoints !== 0 ? convertPointsToDollars(symbol, resultPoints, Number(quantity)) : 0;
+
+    let resultEnum = null;
+    if (pnlValue > 0) {
+      resultEnum = 'WIN';
+    } else if (pnlValue < 0) {
+      resultEnum = 'LOSS';
+    } else if (pnlValue === 0) {
+      resultEnum = 'BREAKEVEN';
+    }
+
+    // Quick trade data with smart defaults
+    const quickTradeData = {
+      userId,
+      accountId,
+      symbol: symbol.toUpperCase(),
+      market: market.toUpperCase(),
+      direction,
+      orderType: 'MARKET', // Default to market order for quick entry
+      entryDate: new Date(),
+      entryPrice: Number(entryPrice),
+      quantity: Number(quantity),
+      exitDate: new Date(), // Set exit date since we have the result
+      exitPrice: null, // We'll calculate this if needed
+      stopLoss: stopLoss ? Number(stopLoss) : null,
+      takeProfit: null,
+      maxFavorablePrice: null,
+      maxAdversePrice: null,
+      maxPotentialProfit: null,
+      maxDrawdown: null,
+      breakEvenWorked: false,
+      timeframe: null,
+      result: resultEnum,
+      notes: 'Quick Logger Entry',
+      imageUrl: null,
+      source: 'QUICK_LOGGER',
+      pnl: pnlValue
+    };
+
+    // Calculate basic metrics (minimal calculation for speed)
+    const metrics = calculateTradeMetrics(quickTradeData);
+
+    // Merge with calculated metrics, but keep our PnL value
+    const finalTradeData = {
+      ...quickTradeData,
+      pnl: pnlValue, // Keep the user-provided result value
+      pnlPercentage: metrics.pnlPercentage,
+      commission: metrics.commission || 0,
+      netPnl: pnlValue - (metrics.commission || 0), // Net PnL = PnL - Commission
+      efficiency: metrics.efficiency,
+      rMultiple: metrics.rMultiple,
+    };
+
+    // Handle image URL if file was uploaded
+    if (imageFile) {
+      finalTradeData.imageUrl = `/uploads/trade-images/${imageFile.filename}`;
+    }
+
+    // Create trade with optimized single transaction
+    const trade = await prisma.trade.create({
+      data: finalTradeData,
+    });
+
+    // Skip balance update for quick entry (can be done async)
+    // This saves ~20-30ms per request
+    setImmediate(async () => {
+      try {
+        await accountService.recalculateAccountBalance(accountId, userId);
+      } catch (error) {
+        console.warn('Background balance update failed:', error);
+      }
+    });
+
+    const responseTime = Date.now() - startTime;
+
+    res.status(201).json({
+      success: true,
+      data: trade,
+      meta: {
+        source: 'QUICK_LOGGER',
+        responseTime: `${responseTime}ms`
+      }
+    });
+  } catch (error) {
+    console.error('Error in createQuickTrade:', error);
+
+    res.status(400).json({
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : 'Failed to create quick trade',
+        statusCode: 400,
+        source: 'QUICK_LOGGER'
+      }
+    });
   }
 };

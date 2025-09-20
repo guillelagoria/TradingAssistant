@@ -98,6 +98,7 @@ model Trade {
   netPnl            Float?
   efficiency        Float?
   rMultiple         Float?
+  source            TradeSource    @default(MANUAL)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   strategy          Strategy?      @relation(fields: [strategyId], references: [id])
@@ -157,4 +158,11 @@ enum SubscriptionTier {
 enum AccountType {
   DEMO
   LIVE
+}
+
+enum TradeSource {
+  MANUAL
+  QUICK_LOGGER
+  IMPORT
+  API
 }

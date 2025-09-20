@@ -9,6 +9,7 @@ import {
   TradeDraft,
   TradeStatus,
   TradeResult,
+  TradeDirection,
   FilterPreset,
   SearchField
 } from '@/types';
@@ -17,6 +18,18 @@ import { tradesService } from '@/services/tradesService';
 import { applyFilters } from '@/utils/filterHelpers';
 import { searchTrades, SearchOptions, DEFAULT_SEARCH_OPTIONS } from '@/utils/searchHelpers';
 import useAccountStore from './accountStore';
+
+// Quick trade data interface for rapid entry
+interface QuickTradeData {
+  symbol: string;
+  direction: TradeDirection;
+  entryPrice: number;
+  quantity: number;
+  stopLoss?: number;
+  result?: number;
+  source?: string;
+  image?: File | null;
+}
 
 interface TradeState {
   // Trade data state
@@ -56,6 +69,7 @@ interface TradeState {
   // Trade CRUD operations
   fetchTrades: (filters?: TradeFilters, page?: number, limit?: number) => Promise<void>;
   addTrade: (tradeData: TradeFormData) => Promise<Trade>;
+  addQuickTrade: (quickTradeData: QuickTradeData) => Promise<Trade>;
   updateTrade: (id: string, tradeData: Partial<TradeFormData>) => Promise<Trade>;
   deleteTrade: (id: string) => Promise<void>;
   bulkDeleteTrades: (ids: string[]) => Promise<number>;
@@ -241,7 +255,49 @@ export const useTradeStore = create<TradeState>()(
           throw error;
         }
       },
-      
+
+      // Add quick trade (optimized for speed)
+      addQuickTrade: async (quickTradeData) => {
+        set({ loading: true, error: null });
+
+        try {
+          // Get active account ID
+          const quickActiveAccountId = useAccountStore.getState().getActiveAccountId();
+          if (!quickActiveAccountId) {
+            throw new Error('No active account selected');
+          }
+
+          // Separate image from other data
+          const { image, ...tradeDataWithoutImage } = quickTradeData;
+
+          // Call the quick trade service
+          const newTrade = await tradesService.createQuickTrade({
+            ...tradeDataWithoutImage,
+            accountId: quickActiveAccountId
+          }, image || undefined);
+
+          set(state => ({
+            trades: [newTrade, ...state.trades],
+            loading: false
+          }));
+
+          get().refreshStats();
+
+          // Refresh account balance after adding trade
+          const accountStore = useAccountStore.getState();
+          await accountStore.refreshAccount();
+
+          return newTrade;
+
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Failed to add quick trade',
+            loading: false
+          });
+          throw error;
+        }
+      },
+
       // Update existing trade
       updateTrade: async (id, tradeData) => {
         set({ loading: true, error: null });

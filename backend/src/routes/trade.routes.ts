@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { body, query } from 'express-validator';
+import multer from 'multer';
+import path from 'path';
 // import { authenticate } from '../middleware/auth';
 import { handleValidationErrors, validateTradeData, validatePriceTicks, validateMarketExists } from '../middleware/validation';
 import {
@@ -8,10 +10,36 @@ import {
   getTrade,
   updateTrade,
   deleteTrade,
-  bulkDelete
+  bulkDelete,
+  createQuickTrade
 } from '../controllers/trade.controller';
 
 const router = Router();
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/trade-images');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `trade-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 // Temporarily disable authentication for development
 // TODO: Re-enable authentication when frontend auth is implemented
@@ -36,6 +64,17 @@ router.get(
     handleValidationErrors
   ],
   getTrades
+);
+
+// Quick trade creation (minimal validation for speed)
+router.post(
+  '/quick',
+  upload.single('image'), // Handle optional image upload
+  [
+    // Skip validation for FormData - will be handled in controller
+    handleValidationErrors
+  ],
+  createQuickTrade
 );
 
 // Create new trade

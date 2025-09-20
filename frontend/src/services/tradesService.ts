@@ -370,6 +370,57 @@ export const tradesService = {
   },
 
   /**
+   * Create a quick trade (optimized for speed)
+   */
+  async createQuickTrade(quickTradeData: {
+    symbol: string;
+    direction: string;
+    entryPrice: number;
+    quantity: number;
+    stopLoss?: number;
+    result?: number;
+    accountId?: string;
+    source?: string;
+  }, image?: File): Promise<Trade> {
+    try {
+      let response: any;
+
+      if (image) {
+        // Create FormData for multipart upload
+        const formData = new FormData();
+
+        // Add trade data as JSON
+        formData.append('tradeData', JSON.stringify(quickTradeData));
+
+        // Add image file
+        formData.append('image', image);
+
+        response = await apiClient.post<ApiResponse<Trade>>('/trades/quick', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        // Regular JSON request without image
+        response = await apiClient.post<ApiResponse<Trade>>('/trades/quick', quickTradeData);
+      }
+
+      // Convert date strings back to Date objects
+      const trade = response.data.data;
+      return {
+        ...trade,
+        entryDate: new Date(trade.entryDate),
+        exitDate: trade.exitDate ? new Date(trade.exitDate) : undefined,
+        createdAt: new Date(trade.createdAt),
+        updatedAt: new Date(trade.updatedAt)
+      };
+    } catch (error) {
+      console.error('Failed to create quick trade:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Health check
    */
   async healthCheck(): Promise<boolean> {
@@ -397,5 +448,6 @@ export const {
   getTradeStats,
   uploadTradeImage,
   deleteTradeImage,
+  createQuickTrade,
   healthCheck
 } = tradesService;

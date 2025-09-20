@@ -1,12 +1,18 @@
-import { TrendingUp, Settings } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, Settings, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EconomicAlertsBar, EconomicCalendarModal } from '@/components/economic';
 import AccountSelector from './AccountSelector';
+import QuickTradeDialog from '@/components/trades/QuickTradeDialog';
+import { useQuickTradeShortcuts } from '@/hooks/useQuickTradeShortcuts';
 
 function Header() {
   const navigate = useNavigate();
+  const [quickTradeOpen, setQuickTradeOpen] = useState(false);
+  const [quickTradeDirection, setQuickTradeDirection] = useState<'LONG' | 'SHORT' | undefined>();
 
   const handleSettings = () => {
     navigate('/settings');
@@ -16,6 +22,24 @@ function Header() {
     // Navigate to settings page with accounts tab
     navigate('/settings?tab=accounts');
   };
+
+  const handleOpenQuickTrade = (direction?: 'LONG' | 'SHORT') => {
+    setQuickTradeDirection(direction);
+    setQuickTradeOpen(true);
+  };
+
+  const handleCloseQuickTrade = (open: boolean) => {
+    setQuickTradeOpen(open);
+    if (!open) {
+      setQuickTradeDirection(undefined);
+    }
+  };
+
+  // Setup keyboard shortcuts
+  useQuickTradeShortcuts({
+    onOpenQuickTrade: handleOpenQuickTrade,
+    enabled: true
+  });
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
@@ -49,6 +73,32 @@ function Header() {
             <EconomicAlertsBar />
           </div>
 
+          {/* Quick Trade Button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => handleOpenQuickTrade()}
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium"
+                >
+                  <Zap className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Quick Trade</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-sm">
+                  <p className="font-medium mb-1">Quick Trade Entry</p>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div>Ctrl+Alt+B - Long</div>
+                    <div>Ctrl+Alt+S - Short</div>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* Settings */}
           <Button
             variant="ghost"
@@ -76,6 +126,13 @@ function Header() {
 
       {/* Economic Calendar Modal */}
       <EconomicCalendarModal />
+
+      {/* Quick Trade Dialog */}
+      <QuickTradeDialog
+        open={quickTradeOpen}
+        onOpenChange={handleCloseQuickTrade}
+        prefilledDirection={quickTradeDirection}
+      />
     </header>
   );
 }
