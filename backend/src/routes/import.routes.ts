@@ -8,6 +8,7 @@ import multer from 'multer';
 import { body, param, query } from 'express-validator';
 import * as path from 'path';
 import * as fs from 'fs';
+import { authenticate } from '../middleware/auth';
 import {
   uploadNT8File,
   previewNT8Import,
@@ -133,6 +134,7 @@ const sessionIdValidation = [
  */
 router.post(
   '/nt8/upload',
+  authenticate,
   upload.single('file'),
   uploadNT8File
 );
@@ -144,6 +146,7 @@ router.post(
  */
 router.post(
   '/nt8/preview',
+  authenticate,
   sessionValidation,
   previewNT8Import
 );
@@ -155,6 +158,7 @@ router.post(
  */
 router.post(
   '/nt8/execute',
+  authenticate,
   sessionValidation,
   executeNT8Import
 );
@@ -165,6 +169,7 @@ router.post(
  */
 router.get(
   '/sessions',
+  authenticate,
   paginationValidation,
   getImportSessions
 );
@@ -175,6 +180,7 @@ router.get(
  */
 router.get(
   '/sessions/:id',
+  authenticate,
   sessionIdValidation,
   getImportSession
 );
@@ -185,6 +191,7 @@ router.get(
  */
 router.delete(
   '/sessions/:id',
+  authenticate,
   sessionIdValidation,
   query('deleteTrades')
     .optional()
@@ -199,6 +206,7 @@ router.delete(
  */
 router.get(
   '/stats',
+  authenticate,
   getImportStats
 );
 

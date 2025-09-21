@@ -26,8 +26,12 @@ export class ImportSessionStorageService {
   private sessions: Map<string, ImportSessionData> = new Map();
   private readonly SESSION_TTL = 30 * 60 * 1000; // 30 minutes
   private cleanupInterval: NodeJS.Timeout;
+  private readonly SESSIONS_DIR = path.join(process.cwd(), 'temp', 'sessions');
 
   private constructor() {
+    // Initialize sessions directory and load existing sessions
+    this.initializeSessionStorage();
+
     // Start cleanup interval to remove expired sessions
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredSessions();
@@ -39,6 +43,82 @@ export class ImportSessionStorageService {
       ImportSessionStorageService.instance = new ImportSessionStorageService();
     }
     return ImportSessionStorageService.instance;
+  }
+
+  /**
+   * Initialize session storage directory and load existing sessions
+   */
+  private async initializeSessionStorage(): Promise<void> {
+    try {
+      // Ensure sessions directory exists
+      await fs.mkdir(this.SESSIONS_DIR, { recursive: true });
+
+      // Load existing sessions from disk
+      await this.loadSessionsFromDisk();
+    } catch (error) {
+      console.warn('Failed to initialize session storage:', error);
+    }
+  }
+
+  /**
+   * Load sessions from disk into memory
+   */
+  private async loadSessionsFromDisk(): Promise<void> {
+    try {
+      const files = await fs.readdir(this.SESSIONS_DIR);
+      const sessionFiles = files.filter(file => file.endsWith('.json'));
+
+      for (const file of sessionFiles) {
+        try {
+          const filePath = path.join(this.SESSIONS_DIR, file);
+          const sessionData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+
+          // Convert date strings back to Date objects
+          sessionData.uploadedAt = new Date(sessionData.uploadedAt);
+          sessionData.expiresAt = new Date(sessionData.expiresAt);
+
+          // Check if session has expired
+          if (new Date() > sessionData.expiresAt) {
+            // Delete expired session file
+            await fs.unlink(filePath);
+            continue;
+          }
+
+          this.sessions.set(sessionData.sessionId, sessionData);
+        } catch (error) {
+          console.warn(`Failed to load session file ${file}:`, error);
+        }
+      }
+
+      console.log(`✅ Loaded ${this.sessions.size} active sessions from disk`);
+    } catch (error) {
+      // Directory doesn't exist or is empty, which is fine
+      console.log('No existing sessions found on disk');
+    }
+  }
+
+  /**
+   * Save session to disk
+   */
+  private async saveSessionToDisk(sessionData: ImportSessionData): Promise<void> {
+    try {
+      const filePath = path.join(this.SESSIONS_DIR, `${sessionData.sessionId}.json`);
+      await fs.writeFile(filePath, JSON.stringify(sessionData, null, 2));
+    } catch (error) {
+      console.warn(`Failed to save session ${sessionData.sessionId} to disk:`, error);
+    }
+  }
+
+  /**
+   * Delete session file from disk
+   */
+  private async deleteSessionFromDisk(sessionId: string): Promise<void> {
+    try {
+      const filePath = path.join(this.SESSIONS_DIR, `${sessionId}.json`);
+      await fs.unlink(filePath);
+    } catch (error) {
+      // File might not exist, which is fine
+    }
   }
 
   /**
@@ -66,6 +146,10 @@ export class ImportSessionStorageService {
     };
 
     this.sessions.set(sessionId, sessionData);
+
+    // Persist to disk
+    await this.saveSessionToDisk(sessionData);
+
     return sessionId;
   }
 
@@ -96,11 +180,11 @@ export class ImportSessionStorageService {
   /**
    * Update session data
    */
-  updateSession(
+  async updateSession(
     sessionId: string,
     userId: string,
     updates: Partial<ImportSessionData>
-  ): boolean {
+  ): Promise<boolean> {
     const session = this.getSession(sessionId, userId);
 
     if (!session) {
@@ -110,10 +194,15 @@ export class ImportSessionStorageService {
     // Don't allow updating core properties
     const { sessionId: _, userId: __, filePath: ___, ...safeUpdates } = updates;
 
-    this.sessions.set(sessionId, {
+    const updatedSession = {
       ...session,
       ...safeUpdates
-    });
+    };
+
+    this.sessions.set(sessionId, updatedSession);
+
+    // Persist to disk
+    await this.saveSessionToDisk(updatedSession);
 
     return true;
   }
@@ -135,7 +224,11 @@ export class ImportSessionStorageService {
       console.warn(`Failed to delete file for session ${sessionId}:`, error);
     }
 
+    // Delete from memory
     this.sessions.delete(sessionId);
+
+    // Delete from disk
+    await this.deleteSessionFromDisk(sessionId);
   }
 
   /**

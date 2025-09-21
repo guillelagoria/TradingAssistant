@@ -114,11 +114,9 @@ export const previewNT8Import = async (req: Request, res: Response): Promise<voi
     // Get session ID from request body
     const { sessionId, skipDuplicates = true, defaultCommission = 0, fieldMapping = {} } = req.body;
 
-    console.log('=== PREVIEW REQUEST DEBUG ===');
-    console.log('sessionId received:', sessionId);
-    console.log('sessionId type:', typeof sessionId);
-    console.log('Request body:', req.body);
-    console.log('=============================');
+    console.log('🔍 [previewNT8Import] Preview starting with sessionId:', sessionId);
+    console.log('🔍 [previewNT8Import] Request body:', req.body);
+    console.log('🔍 [previewNT8Import] User ID:', (req as any).user?.id);
 
     if (!sessionId) {
       res.status(400).json({
@@ -139,7 +137,18 @@ export const previewNT8Import = async (req: Request, res: Response): Promise<voi
     }
 
     // Get session data
+    console.log('🔍 [previewNT8Import] Getting session data for userId:', userId, 'sessionId:', sessionId);
     const sessionData = sessionStorage.getSession(sessionId, userId);
+    console.log('🔍 [previewNT8Import] Session data retrieved:', sessionData ? 'found' : 'not found');
+    if (sessionData) {
+      console.log('🔍 [previewNT8Import] Session data details:', {
+        filePath: sessionData.filePath,
+        fileName: sessionData.fileName,
+        userId: sessionData.userId,
+        expiresAt: sessionData.expiresAt
+      });
+    }
+
     if (!sessionData) {
       res.status(404).json({
         success: false,
@@ -148,6 +157,7 @@ export const previewNT8Import = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    console.log('Creating NT8ImportOptions...');
     const options: NT8ImportOptions = {
       userId,
       skipDuplicates: skipDuplicates === 'true' || skipDuplicates === true,
@@ -156,14 +166,27 @@ export const previewNT8Import = async (req: Request, res: Response): Promise<voi
       dryRun: true // This is a preview, don't actually import
     };
 
+    console.log('🔍 [previewNT8Import] About to call nt8ImportService.importNT8File...');
+    console.log('🔍 [previewNT8Import] FilePath:', sessionData.filePath);
+    console.log('🔍 [previewNT8Import] Options:', JSON.stringify(options, null, 2));
+
     // Process the file in dry run mode
+    console.log('🔍 [previewNT8Import] CALLING importNT8File...');
     const result: BatchImportResult = await nt8ImportService.importNT8File(
       sessionData.filePath,
       options
     );
+    console.log('🔍 [previewNT8Import] importNT8File COMPLETED with result type:', typeof result);
+
+    console.log('🔍 [previewNT8Import] Result received:', JSON.stringify({
+      summary: result.summary,
+      tradesCount: result.trades.length,
+      errorsCount: result.errors.length,
+      warningsCount: result.warnings.length
+    }, null, 2));
 
     // Store the preview result in session for potential reuse
-    sessionStorage.updateSession(sessionId, userId, {
+    await sessionStorage.updateSession(sessionId, userId, {
       metadata: {
         ...sessionData.metadata,
         lastPreviewOptions: options,

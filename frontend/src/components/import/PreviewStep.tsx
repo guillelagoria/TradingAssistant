@@ -118,28 +118,28 @@ export function PreviewStep({ onNext, onPrevious }: PreviewStepProps) {
   const statsCards = [
     {
       title: 'Total Records',
-      value: previewData.totalRecords,
+      value: previewData?.totalRecords || 0,
       icon: FileText,
       color: 'text-blue-500',
       bgColor: 'bg-blue-50',
     },
     {
       title: 'Valid Records',
-      value: previewData.validRecords,
+      value: previewData?.validRecords || 0,
       icon: CheckCircle,
       color: 'text-green-500',
       bgColor: 'bg-green-50',
     },
     {
       title: 'Invalid Records',
-      value: previewData.invalidRecords,
+      value: previewData?.invalidRecords || 0,
       icon: AlertTriangle,
       color: 'text-red-500',
       bgColor: 'bg-red-50',
     },
     {
       title: 'Duplicates',
-      value: previewData.duplicateRecords || 0,
+      value: previewData?.duplicateRecords || 0,
       icon: AlertCircle,
       color: 'text-yellow-500',
       bgColor: 'bg-yellow-50',
@@ -229,17 +229,17 @@ export function PreviewStep({ onNext, onPrevious }: PreviewStepProps) {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="trades">Sample Trades</TabsTrigger>
               <TabsTrigger value="errors">
-                Errors ({previewData.errors.length})
+                Errors ({previewData?.errors?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="warnings">
-                Warnings ({previewData.warnings.length})
+                Warnings ({previewData?.warnings?.length || 0})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="trades" className="space-y-4">
               <ScrollArea className="h-96 w-full">
                 <div className="space-y-2">
-                  {previewData.trades.slice(0, 10).map((trade, index) => (
+                  {(previewData?.trades || []).slice(0, 10).map((trade, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0, x: -20 }}
@@ -264,10 +264,16 @@ export function PreviewStep({ onNext, onPrevious }: PreviewStepProps) {
                           </div>
                           <div>
                             <p className="font-medium">
-                              {format(new Date(trade.time), 'MM/dd/yyyy')}
+                              {trade.time ? (() => {
+                                const date = new Date(trade.time);
+                                return isNaN(date.getTime()) ? 'Invalid Date' : format(date, 'MM/dd/yyyy');
+                              })() : 'No Date'}
                             </p>
                             <p className="text-muted-foreground">
-                              {format(new Date(trade.time), 'HH:mm:ss')}
+                              {trade.time ? (() => {
+                                const date = new Date(trade.time);
+                                return isNaN(date.getTime()) ? 'Invalid Time' : format(date, 'HH:mm:ss');
+                              })() : 'No Time'}
                             </p>
                           </div>
                           <div>
@@ -275,7 +281,9 @@ export function PreviewStep({ onNext, onPrevious }: PreviewStepProps) {
                             <p className="text-muted-foreground">Commission</p>
                           </div>
                           <div className="flex items-center">
-                            {trade.error ? (
+                            {trade.error === 'Duplicate trade' ? (
+                              <Badge variant="outline">Duplicate</Badge>
+                            ) : trade.error ? (
                               <Badge variant="destructive">Error</Badge>
                             ) : (
                               <Badge variant="default">Valid</Badge>
@@ -369,7 +377,10 @@ export function PreviewStep({ onNext, onPrevious }: PreviewStepProps) {
           disabled={previewData.validRecords === 0}
           className="min-w-[120px]"
         >
-          Import {previewData.validRecords} Trades
+          {previewData.validRecords === 0
+            ? 'No New Trades to Import'
+            : `Import ${previewData.validRecords} Trades`
+          }
         </Button>
       </div>
     </div>

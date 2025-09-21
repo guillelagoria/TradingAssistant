@@ -198,7 +198,7 @@ function TradeTable({
                 )}
                 {getDirectionIcon(trade.direction)}
                 <span className="font-semibold">{trade.symbol}</span>
-                {getResultBadge(trade.result, trade.pnl)}
+                {getResultBadge(trade.result, trade.netPnl)}
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -238,12 +238,12 @@ function TradeTable({
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">P&L:</span>
+                <span className="text-muted-foreground">Net P&L:</span>
                 <div className={cn(
                   "font-medium",
-                  trade.pnl > 0 ? "text-green-600" : trade.pnl < 0 ? "text-red-600" : "text-gray-600"
+                  trade.netPnl > 0 ? "text-green-600" : trade.netPnl < 0 ? "text-red-600" : "text-gray-600"
                 )}>
-                  {formatCurrency(trade.pnl)}
+                  {formatCurrency(trade.netPnl)}
                 </div>
               </div>
               <div>
@@ -314,16 +314,16 @@ function TradeTable({
               </TableHead>
               <TableHead className="text-right">Exit Price</TableHead>
               <TableHead className="text-right">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => handleSort('pnl')}
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort('netPnl')}
                   className="h-8 p-0 font-semibold"
                 >
-                  P&L
-                  {getSortIcon('pnl')}
+                  Net P&L
+                  {getSortIcon('netPnl')}
                 </Button>
               </TableHead>
-              <TableHead className="text-right">P&L %</TableHead>
+              <TableHead className="text-right">Net P&L %</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[70px]">Actions</TableHead>
             </TableRow>
@@ -363,18 +363,22 @@ function TradeTable({
                 </TableCell>
                 <TableCell className={cn(
                   "text-right font-medium",
-                  trade.pnl > 0 ? "text-green-600" : trade.pnl < 0 ? "text-red-600" : "text-gray-600"
+                  trade.netPnl > 0 ? "text-green-600" : trade.netPnl < 0 ? "text-red-600" : "text-gray-600"
                 )}>
-                  {formatCurrency(trade.pnl)}
+                  {formatCurrency(trade.netPnl)}
                 </TableCell>
                 <TableCell className={cn(
                   "text-right font-medium",
-                  trade.pnlPercentage > 0 ? "text-green-600" : trade.pnlPercentage < 0 ? "text-red-600" : "text-gray-600"
+                  trade.netPnl > 0 ? "text-green-600" : trade.netPnl < 0 ? "text-red-600" : "text-gray-600"
                 )}>
-                  {formatPercentage(trade.pnlPercentage)}
+                  {formatPercentage(
+                    trade.entryPrice && trade.entryPrice > 0
+                      ? (trade.netPnl / (trade.entryPrice * trade.quantity)) * 100
+                      : 0
+                  )}
                 </TableCell>
                 <TableCell>
-                  {getResultBadge(trade.result, trade.pnl)}
+                  {getResultBadge(trade.result, trade.netPnl)}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

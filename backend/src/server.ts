@@ -102,8 +102,8 @@ app.use('/api/stats', authenticate, statsRoutes);
 app.use('/api/analysis', authenticate, analysisRoutes);
 app.use('/api/markets', authenticate, marketRoutes);
 app.use('/api/uploads', uploadRoutes);
-// Import routes (require authentication)
-app.use('/api/import', authenticate, importRoutes);
+// Import routes (authentication handled per route)
+app.use('/api/import', importRoutes);
 // Economic Events routes (public - no auth required for market data)
 app.use('/api/economic-events', economicEventsRoutes);
 

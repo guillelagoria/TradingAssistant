@@ -66,50 +66,53 @@ class ImportService {
     sessionId: string,
     options: Partial<ImportOptions> = {}
   ): Promise<PreviewResponse> {
-    console.log('=== FRONTEND PREVIEW DEBUG ===');
-    console.log('sessionId passed to previewImport:', sessionId);
-    console.log('sessionId type:', typeof sessionId);
-    console.log('options:', options);
-    console.log('===============================');
-
     try {
-      const requestBody = {
+      const response = await api.post('/api/import/nt8/preview', {
         sessionId,
         skipDuplicates: options.skipDuplicates ?? true,
         defaultCommission: 0,
         fieldMapping: {},
+      });
+
+      // Map backend response format to frontend expected format
+      console.log('🔍 Full response:', response);
+      console.log('🔍 Response data:', response.data);
+
+      // The actual data is nested inside response.data.data
+      const backendData = response.data.data;
+      console.log('🔍 Backend data structure:', backendData);
+      console.log('🔍 Summary data:', backendData.summary);
+
+      // Extract trade data from results for preview
+      const extractedTrades = (backendData.trades || [])
+        .filter((result: any) => result.trade) // Only get results that have trade data
+        .map((result: any) => ({
+          ...result.trade,
+          error: result.duplicate ? 'Duplicate trade' : result.trade.error
+        })); // Extract the trade object and include duplicate status
+
+      // Calculate proper statistics
+      const totalRecords = backendData.summary?.total || 0;
+      const duplicateRecords = backendData.summary?.duplicates || 0;
+      const errorRecords = backendData.summary?.errors || 0;
+      const validRecords = totalRecords - duplicateRecords - errorRecords;
+
+      const mappedPreview = {
+        totalRecords,
+        validRecords,
+        invalidRecords: errorRecords,
+        duplicateRecords,
+        trades: extractedTrades,
+        errors: backendData.errors || [],
+        warnings: backendData.warnings || []
       };
 
-      console.log('Request body being sent:', requestBody);
+      console.log('🔍 Mapped preview data:', mappedPreview);
 
-      const response = await api.post('/api/import/nt8/preview', requestBody);
-
-      // Map backend response to frontend expected format
-      const backendData = response.data.data;
       return {
         sessionId: backendData.sessionId,
-        message: response.data.message,
-        preview: {
-          totalRecords: backendData.summary.total,
-          validRecords: backendData.summary.total - backendData.summary.errors,
-          invalidRecords: backendData.summary.errors,
-          duplicateRecords: backendData.summary.duplicates,
-          trades: backendData.trades.map((trade: any) => ({
-            instrument: 'ES', // We'll need to extract this from the data
-            account: 'Default',
-            time: new Date().toISOString(), // Placeholder
-            quantity: 1,
-            price: 0,
-            commission: 0,
-            error: trade.success ? undefined : 'Processing error'
-          })),
-          errors: backendData.errors || [],
-          warnings: backendData.warnings.map((warning: string) => ({
-            row: 1,
-            message: warning,
-            type: 'warning' as const
-          }))
-        }
+        preview: mappedPreview,
+        message: response.message || 'Preview completed'
       };
     } catch (error: any) {
       console.error('Preview failed:', error);

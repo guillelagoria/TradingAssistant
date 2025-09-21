@@ -40,16 +40,23 @@ export class NT8ImportService {
     filePath: string,
     options: NT8ImportOptions
   ): Promise<BatchImportResult> {
+    console.log('🚀 [NT8ImportService] Starting importNT8File - dryRun:', options.dryRun, 'userId:', options.userId);
     const startTime = Date.now();
     let session: ImportSession | null = null;
 
     try {
+      console.log('📁 [NT8ImportService] Detecting file format...');
       // Detect file format
       const format = this.detectFileFormat(filePath);
+      console.log('📁 [NT8ImportService] File format detected:', format);
+
+      console.log('📊 [NT8ImportService] Getting file stats...');
       const fileStats = await fs.stat(filePath);
       const fileName = path.basename(filePath);
+      console.log('📊 [NT8ImportService] File stats obtained:', { fileName, size: fileStats.size });
 
       // Create import session
+      console.log('💾 [NT8ImportService] Creating import session...');
       session = await this.createImportSession({
         userId: options.userId,
         source: format === NT8FileFormat.CSV ? ImportSource.NT8_CSV : ImportSource.NT8_EXCEL,
@@ -57,22 +64,29 @@ export class NT8ImportService {
         filePath,
         fileSize: fileStats.size
       });
+      console.log('💾 [NT8ImportService] Import session created:', session.id);
 
       // Parse the file
+      console.log('📋 [NT8ImportService] Parsing file...');
       const rawTrades = await this.parseFile(filePath, format);
+      console.log('📋 [NT8ImportService] File parsed successfully. Raw trades count:', rawTrades.length);
 
       // Update session with total rows
+      console.log('🔄 [NT8ImportService] Updating session with total rows...');
       await this.updateImportSession(session.id, {
         totalRows: rawTrades.length,
         status: ImportStatus.PROCESSING
       });
+      console.log('🔄 [NT8ImportService] Session updated with total rows');
 
       // Process trades
+      console.log('⚙️ [NT8ImportService] Processing trades...');
       const result = await this.processTrades(
         rawTrades,
         session.id,
         options
       );
+      console.log('⚙️ [NT8ImportService] Trades processed successfully:', result.summary);
 
       // Update session with final status
       await this.updateImportSession(session.id, {
@@ -234,6 +248,10 @@ export class NT8ImportService {
     const accountId = user.accounts[0].id;
     const fieldMapping = { ...DEFAULT_NT8_FIELD_MAPPINGS, ...(options.fieldMapping || {}) };
 
+    console.log('🔍 [processTrades] DEFAULT_NT8_FIELD_MAPPINGS:', JSON.stringify(DEFAULT_NT8_FIELD_MAPPINGS, null, 2));
+    console.log('🔍 [processTrades] options.fieldMapping:', JSON.stringify(options.fieldMapping, null, 2));
+    console.log('🔍 [processTrades] Final fieldMapping:', JSON.stringify(fieldMapping, null, 2));
+
     // Pre-create strategies to avoid race conditions
     const strategyNames = new Set<string>();
     rawTrades.forEach(trade => {
@@ -303,13 +321,19 @@ export class NT8ImportService {
           }
 
           // Check for duplicates
+          let isDuplicate = false;
           if (options.skipDuplicates) {
-            const isDuplicate = await this.checkDuplicate(
+            console.log('🔍 [importNT8File] Checking for duplicates for trade:', parsedTrade.symbol, parsedTrade.entryPrice, parsedTrade.entryDate);
+            isDuplicate = await this.checkDuplicate(
               parsedTrade,
               options.userId,
               accountId
             );
+            console.log('🔍 [importNT8File] Duplicate check result:', isDuplicate);
+          }
 
+          // Import trade (unless dry run)
+          if (!options.dryRun) {
             if (isDuplicate) {
               results.push({
                 rowNumber,
@@ -322,10 +346,7 @@ export class NT8ImportService {
               summary.skipped++;
               return;
             }
-          }
 
-          // Import trade (unless dry run)
-          if (!options.dryRun) {
             const trade = await this.createTrade(
               parsedTrade,
               options.userId,
@@ -342,10 +363,37 @@ export class NT8ImportService {
             });
             summary.imported++;
           } else {
+            // For dry runs, include the parsed trade data for preview
+            // Mark duplicates appropriately but still show them in preview
+            const warningList = ['Dry run - trade not imported'];
+            if (isDuplicate) {
+              warningList.push('Trade already exists - will be skipped');
+              summary.duplicates++;
+            }
+
             results.push({
               rowNumber,
               success: true,
-              warnings: ['Dry run - trade not imported']
+              duplicate: isDuplicate,
+              warnings: warningList,
+              trade: {
+                instrument: parsedTrade.symbol,
+                quantity: parsedTrade.quantity,
+                price: parsedTrade.entryPrice,
+                time: parsedTrade.entryDate.toISOString(),
+                direction: parsedTrade.direction,
+                commission: parsedTrade.commission,
+                pnl: parsedTrade.pnl,
+                exitPrice: parsedTrade.exitPrice,
+                exitTime: parsedTrade.exitDate?.toISOString() || null,
+                mae: parsedTrade.mae,
+                mfe: parsedTrade.mfe,
+                strategy: parsedTrade.strategy,
+                account: parsedTrade.account,
+                tradeId: parsedTrade.tradeId,
+                notes: parsedTrade.notes,
+                error: isDuplicate ? 'Duplicate trade' : undefined
+              }
             });
             summary.skipped++;
           }
@@ -373,7 +421,10 @@ export class NT8ImportService {
 
     // Determine final status
     let status: ImportStatus;
-    if (summary.imported === summary.total) {
+    if (options.dryRun) {
+      // For dry runs (preview), consider it successful if we processed trades without errors
+      status = summary.errors === 0 ? ImportStatus.COMPLETED : ImportStatus.FAILED;
+    } else if (summary.imported === summary.total) {
       status = ImportStatus.COMPLETED;
     } else if (summary.imported === 0) {
       status = ImportStatus.FAILED;
@@ -410,6 +461,9 @@ export class NT8ImportService {
     raw: NT8RawTrade,
     fieldMapping: NT8FieldMapping
   ): NT8ParsedTrade {
+    // Debug: Log basic trade info
+    console.log('🔍 [parseNT8Trade] Processing trade:', raw['Trade number'] || 'unknown', raw['Instrument'] || 'unknown');
+
     // Helper function to get field value
     const getFieldValue = (fieldNames: string[]): any => {
       for (const fieldName of fieldNames) {
@@ -556,20 +610,80 @@ export class NT8ImportService {
     userId: string,
     accountId: string
   ): Promise<boolean> {
-    const existingTrade = await this.prisma.trade.findFirst({
+    // First, let's see what existing trades we have for this user/account
+    const allExistingTrades = await this.prisma.trade.findMany({
       where: {
         userId,
-        accountId,
-        symbol: trade.symbol,
-        direction: trade.direction as TradeDirection,
-        entryPrice: trade.entryPrice,
-        quantity: trade.quantity,
-        entryDate: {
-          gte: new Date(trade.entryDate.getTime() - 60000), // Within 1 minute
-          lte: new Date(trade.entryDate.getTime() + 60000)
-        }
-      }
+        accountId
+      },
+      select: {
+        id: true,
+        symbol: true,
+        direction: true,
+        entryPrice: true,
+        quantity: true,
+        entryDate: true,
+        userId: true,
+        accountId: true
+      },
+      take: 5 // Just get first 5 for debugging
     });
+
+    console.log('🔍 [checkDuplicate] === DUPLICATE DETECTION DEBUG ===');
+    console.log('🔍 [checkDuplicate] Searching for trade:', {
+      userId,
+      accountId,
+      symbol: trade.symbol,
+      direction: trade.direction,
+      entryPrice: trade.entryPrice,
+      quantity: trade.quantity,
+      entryDate: trade.entryDate,
+      entryDateISO: trade.entryDate.toISOString()
+    });
+    console.log('🔍 [checkDuplicate] Found', allExistingTrades.length, 'existing trades for this user/account:');
+    allExistingTrades.forEach((existing, index) => {
+      console.log(`🔍 [checkDuplicate] Existing trade ${index + 1}:`, {
+        id: existing.id,
+        userId: existing.userId,
+        accountId: existing.accountId,
+        symbol: existing.symbol,
+        direction: existing.direction,
+        entryPrice: existing.entryPrice,
+        quantity: existing.quantity,
+        entryDate: existing.entryDate,
+        entryDateISO: existing.entryDate.toISOString()
+      });
+    });
+
+    const whereClause = {
+      userId,
+      accountId,
+      symbol: trade.symbol,
+      direction: trade.direction as TradeDirection,
+      entryPrice: trade.entryPrice,
+      quantity: trade.quantity,
+      entryDate: {
+        gte: new Date(trade.entryDate.getTime() - 60000), // Within 1 minute
+        lte: new Date(trade.entryDate.getTime() + 60000)
+      }
+    };
+
+    console.log('🔍 [checkDuplicate] Query criteria:', JSON.stringify(whereClause, null, 2));
+
+    const existingTrade = await this.prisma.trade.findFirst({
+      where: whereClause
+    });
+
+    console.log('🔍 [checkDuplicate] Found existing trade:', existingTrade ? 'YES' : 'NO');
+    if (existingTrade) {
+      console.log('🔍 [checkDuplicate] Duplicate details:', {
+        id: existingTrade.id,
+        symbol: existingTrade.symbol,
+        entryPrice: existingTrade.entryPrice,
+        entryDate: existingTrade.entryDate
+      });
+    }
+    console.log('🔍 [checkDuplicate] === END DEBUG ===');
 
     return !!existingTrade;
   }
