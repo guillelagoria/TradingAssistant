@@ -59,10 +59,10 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
     trades.forEach(trade => {
       const dateToUse = trade.exitDate || trade.entryDate;
 
-      if (dateToUse && (trade.pnl !== undefined && trade.pnl !== null)) {
+      if (dateToUse && (trade.netPnl !== undefined && trade.netPnl !== null)) {
         const date = new Date(dateToUse).toLocaleDateString('en-US');
         if (dailyData[date]) {
-          dailyData[date].pnl += trade.pnl || 0;
+          dailyData[date].pnl += trade.netPnl || 0;
           dailyData[date].trades += 1;
         }
       }
