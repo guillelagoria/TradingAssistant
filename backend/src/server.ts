@@ -24,6 +24,7 @@ import accountRoutes from './routes/account.routes';
 import uploadRoutes from './routes/upload.routes';
 import economicEventsRoutes from './routes/economicEvents.routes';
 import importRoutes from './routes/import.routes';
+import dataCapabilitiesRoutes from './routes/dataCapabilities.routes';
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient();
@@ -31,6 +32,10 @@ export const prisma = new PrismaClient();
 // Initialize Express app
 const app: Application = express();
 const PORT = process.env.PORT || 3001;
+
+// Initialize capabilities cache cleanup
+import { dataCapabilitiesService } from './services/dataCapabilities.service';
+dataCapabilitiesService.startCacheCleanup();
 
 // Middleware - CORS configuration (simplified for development)
 app.use(cors({
@@ -106,6 +111,9 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/import', importRoutes);
 // Economic Events routes (public - no auth required for market data)
 app.use('/api/economic-events', economicEventsRoutes);
+
+// Data Capabilities routes (require authentication)
+app.use('/api/data-capabilities', authenticate, dataCapabilitiesRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

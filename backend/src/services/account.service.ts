@@ -389,9 +389,13 @@ class AccountService {
   }
 
   /**
-   * Get account statistics
+   * Get account statistics with optional adaptive mode
    */
-  async getAccountStats(accountId: string, userId: string): Promise<AccountStats> {
+  async getAccountStats(
+    accountId: string,
+    userId: string,
+    options?: { adaptive?: boolean; includeRecommendations?: boolean }
+  ): Promise<AccountStats & { recommendations?: any[] }> {
     // Verify ownership
     const account = await prisma.account.findFirst({
       where: {
@@ -499,7 +503,7 @@ class AccountService {
 
     const hasAdvancedDataTrades = trades.some(t => t.hasAdvancedData);
 
-    return {
+    const baseStats = {
       totalTrades: trades.length,
       closedTrades: closedTrades.length,
       openTrades: openTrades.length,
@@ -526,6 +530,19 @@ class AccountService {
       hasAdvancedDataTrades,
       dataQualityBreakdown
     };
+
+    // Add recommendations if adaptive mode is enabled
+    if (options?.adaptive && options?.includeRecommendations) {
+      const { dataCapabilitiesService } = await import('./dataCapabilities.service');
+      const capabilities = await dataCapabilitiesService.analyzeAccountCapabilities(accountId, userId);
+
+      return {
+        ...baseStats,
+        recommendations: capabilities.recommendations
+      };
+    }
+
+    return baseStats;
   }
 
   /**

@@ -254,6 +254,59 @@ export interface AccountStatsResponse {
   currentLossStreak: number;
   maxWinStreak: number;
   maxLossStreak: number;
+  // Advanced metrics (conditional)
+  advancedMetrics?: {
+    avgMFEEfficiency: number;
+    avgMAEEfficiency: number;
+    avgRiskRealization: number;
+    dataQualityDistribution: Record<string, number>;
+  };
+  // Data capability flags
+  hasAdvancedDataTrades: boolean;
+  dataQualityBreakdown: {
+    basic: number;
+    enhanced: number;
+    complete: number;
+  };
+  // Optional recommendations (in adaptive mode)
+  recommendations?: Array<{
+    type: 'upgrade' | 'import' | 'complete';
+    message: string;
+    action: string;
+  }>;
+}
+
+// Data Capabilities types
+export interface DataCapabilitiesResponse {
+  accountId: string;
+  totalTrades: number;
+  dataQualityBreakdown: {
+    basic: number;
+    enhanced: number;
+    complete: number;
+  };
+  availableMetrics: {
+    basic: string[];
+    advanced: string[];
+    missing: string[];
+  };
+  recommendations: Array<{
+    type: 'upgrade' | 'import' | 'complete';
+    message: string;
+    action: string;
+  }>;
+  capabilityScore: number;
+}
+
+export interface AdaptiveStatsResponse {
+  stats: AccountStatsResponse;
+  capabilities: DataCapabilitiesResponse;
+  adaptiveFeatures: {
+    showAdvancedMetrics: boolean;
+    showEfficiencyAnalysis: boolean;
+    showTimingAnalysis: boolean;
+    showStrategyBreakdown: boolean;
+  };
 }
 
 // Export market types
