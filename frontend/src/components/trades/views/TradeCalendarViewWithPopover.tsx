@@ -154,22 +154,18 @@ function TradingCalendar() {
 
   const handleViewTrade = (trade: Trade) => {
     // Open trade details modal
-    console.log('View trade:', trade);
   };
 
   const handleEditTrade = (trade: Trade) => {
     // Open edit trade form
-    console.log('Edit trade:', trade);
   };
 
   const handleDeleteTrade = (trade: Trade) => {
     // Show confirmation and delete
-    console.log('Delete trade:', trade);
   };
 
   const handleAddTrade = (date: Date) => {
     // Open new trade form with pre-filled date
-    console.log('Add trade for date:', date);
   };
 
   return (

@@ -284,7 +284,6 @@ export default function NewTradeForm({
           reader.readAsDataURL(file);
         }
       } catch (error) {
-        console.error('Error processing image:', error);
         // Fallback to original file
         setSelectedImage(file);
         const reader = new FileReader();
@@ -338,7 +337,6 @@ export default function NewTradeForm({
         finalImageUrl = uploadedUrl;
         setUploadedImageUrl(uploadedUrl);
       } catch (error) {
-        console.error('Image upload failed:', error);
         form.setError('root', {
           message: 'Failed to upload image. Trade will be saved without image.'
         });

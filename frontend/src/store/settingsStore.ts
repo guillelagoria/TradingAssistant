@@ -568,7 +568,6 @@ const useSettingsStore = create<SettingsStore>()(
             });
           }
         } catch (error) {
-          console.error('Failed to load settings from localStorage:', error);
         }
       },
 
@@ -602,7 +601,6 @@ const useSettingsStore = create<SettingsStore>()(
             isDirty: true,
           });
         } catch (error) {
-          console.error('Failed to import settings:', error);
           throw new Error('Invalid settings format');
         }
       },

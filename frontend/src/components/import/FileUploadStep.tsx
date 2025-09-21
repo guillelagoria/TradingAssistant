@@ -98,7 +98,6 @@ export function FileUploadStep({ onNext }: FileUploadStepProps) {
       };
       // Store this session for the next step
       setCurrentSession(tempSession);
-      console.log('Upload successful:', response);
 
       // Auto advance to next step after a short delay
       setTimeout(() => {

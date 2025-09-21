@@ -64,7 +64,7 @@ export function ImportHistory() {
       const stats = await importService.getImportStats();
       setStats(stats);
     } catch (error: any) {
-      console.error('Failed to load stats:', error);
+      // Handle error silently
     }
   };
 

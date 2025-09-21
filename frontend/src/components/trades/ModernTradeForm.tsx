@@ -277,7 +277,6 @@ export function ModernTradeForm({ tradeId, onSuccess, onCancel }: ModernTradeFor
         navigate('/trades')
       }
     } catch (error) {
-      console.error('Failed to save trade:', error)
       toast.error('Failed to save trade. Please try again.')
     }
   }

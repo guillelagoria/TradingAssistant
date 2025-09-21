@@ -31,7 +31,6 @@ function TradeForm({ tradeId, onSuccess, onCancel }: TradeFormProps) {
       }
       onSuccess?.(tradeData);
     } catch (error) {
-      console.error('Error saving trade:', error);
       toast.error('Failed to save trade');
     }
   };

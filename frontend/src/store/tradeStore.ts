@@ -131,7 +131,6 @@ export const useTradeStore = create<TradeState>()(
           const saved = localStorage.getItem('tradeFilterPresets');
           return saved ? JSON.parse(saved) : [];
         } catch (error) {
-          console.error('Failed to load initial presets:', error);
           return [];
         }
       };
@@ -156,30 +155,17 @@ export const useTradeStore = create<TradeState>()(
       
       // Fetch trades with filters and pagination
       fetchTrades: async (filters = {}, page = 1, limit = 20) => {
-        console.log('TradeStore: fetchTrades called with:', { filters, page, limit });
         set({ loading: true, error: null });
 
         try {
           // Get active account ID
           const fetchActiveAccountId = useAccountStore.getState().getActiveAccountId();
-          console.log('TradeStore: Fetching trades for active account ID:', fetchActiveAccountId);
 
           const response = await tradesService.getTrades(filters, page, limit, fetchActiveAccountId);
-          console.log('TradeStore: Received response from tradesService:', {
-            dataCount: response.data.length,
-            pagination: response.pagination
-          });
 
           const tradesWithCalculations = response.data.map(trade => {
             // Always recalculate to ensure result field is present
             const calculations = calculateTradeMetricsForTrade(trade);
-            console.log('TradeStore: Calculated metrics for trade:', {
-              tradeId: trade.id,
-              originalResult: trade.result,
-              calculatedResult: calculations.result,
-              pnl: calculations.pnl,
-              hasExitPrice: !!trade.exitPrice
-            });
             return calculations as Trade;
           });
 
@@ -480,7 +466,6 @@ export const useTradeStore = create<TradeState>()(
             return draft;
           }
         } catch (error) {
-          console.error('Failed to load draft from localStorage:', error);
         }
         return null;
       },
@@ -492,9 +477,7 @@ export const useTradeStore = create<TradeState>()(
       
       // Filter management
       setFilters: (newFilters) => {
-        console.log('TradeStore: setFilters called with:', newFilters);
         const currentFilters = get().filters;
-        console.log('TradeStore: Current filters before update:', currentFilters);
 
         set(state => ({
           filters: { ...state.filters, ...newFilters },
@@ -502,7 +485,6 @@ export const useTradeStore = create<TradeState>()(
         }));
 
         const updatedFilters = get().filters;
-        console.log('TradeStore: Updated filters after set:', updatedFilters);
 
         // Check if this is a client-side only filter (quick filters)
         const isClientSideFilter = Object.keys(newFilters).some(key =>
@@ -510,10 +492,8 @@ export const useTradeStore = create<TradeState>()(
         );
 
         if (isClientSideFilter) {
-          console.log('TradeStore: Client-side filter detected, not fetching from backend');
           // Don't fetch from backend for quick filters - they are applied in the component
         } else {
-          console.log('TradeStore: Server-side filter detected, fetching from backend');
           // Fetch trades with new filters for server-side filters
           get().fetchTrades(updatedFilters);
         }
@@ -616,7 +596,6 @@ export const useTradeStore = create<TradeState>()(
             set({ customPresets: presets });
           }
         } catch (error) {
-          console.error('Failed to load custom presets:', error);
         }
       },
       
@@ -629,25 +608,19 @@ export const useTradeStore = create<TradeState>()(
 
       // Account management
       refreshTradesForAccount: async (accountId) => {
-        console.log('TradeStore: refreshTradesForAccount called with accountId:', accountId);
 
         const targetAccountId = accountId || useAccountStore.getState().getActiveAccountId();
-        console.log('TradeStore: Target account ID resolved to:', targetAccountId);
 
         if (!targetAccountId) {
-          console.log('TradeStore: No target account ID, clearing trades');
           // Clear trades if no account is active
           set({ trades: [], stats: null });
           return;
         }
 
         try {
-          console.log('TradeStore: Fetching trades for account:', targetAccountId);
           // Fetch trades for the specified account
           await get().fetchTrades();
-          console.log('TradeStore: Successfully fetched trades, current trade count:', get().trades.length);
         } catch (error) {
-          console.error('Failed to refresh trades for account:', error);
         }
       }
       };

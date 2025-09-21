@@ -198,7 +198,6 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
       resetForm();
 
     } catch (error) {
-      console.error('Failed to create quick trade:', error);
       // Keep dialog open on error
     } finally {
       setIsSubmitting(false);

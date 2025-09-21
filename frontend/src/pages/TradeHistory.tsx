@@ -71,17 +71,10 @@ function TradeHistory() {
 
   // Fetch trades on component mount or when active account changes
   useEffect(() => {
-    console.log('TradeHistory: activeAccount changed:', {
-      activeAccount,
-      hasActiveAccount: !!activeAccount,
-      accountId: activeAccount?.id
-    });
 
     if (activeAccount) {
-      console.log('TradeHistory: Calling refreshTradesForAccount with accountId:', activeAccount.id);
       refreshTradesForAccount(activeAccount.id);
     } else {
-      console.log('TradeHistory: No active account found');
     }
   }, [activeAccount, refreshTradesForAccount]);
 
@@ -114,7 +107,6 @@ function TradeHistory() {
         setShowDeleteConfirm(false);
         setTradeToDelete(null);
       } catch (error) {
-        console.error('Failed to delete trade:', error);
       }
     }
   };
@@ -131,7 +123,6 @@ function TradeHistory() {
       setSelectedTrades([]);
       setShowBulkDeleteConfirm(false);
     } catch (error) {
-      console.error('Failed to delete trades:', error);
     }
   };
 
@@ -197,20 +188,7 @@ function TradeHistory() {
   };
 
   const filteredTrades = useMemo(() => {
-    console.log('Filtering trades with:', { filters, searchQuery, totalTrades: trades.length });
 
-    // Debug: Show sample trade data
-    if (trades.length > 0) {
-      console.log('Sample trade data:', {
-        firstTrade: {
-          id: trades[0].id,
-          result: trades[0].result,
-          pnl: trades[0].pnl,
-          rMultiple: trades[0].rMultiple,
-          positionSize: trades[0].positionSize
-        }
-      });
-    }
 
     const result = trades.filter(trade => {
     // Apply search query first
@@ -234,12 +212,6 @@ function TradeHistory() {
 
       // Result filter
       if (filters.result && trade.result !== filters.result) {
-        console.log('Trade filtered out by result:', {
-          tradeId: trade.id,
-          tradeResult: trade.result,
-          filterResult: filters.result,
-          match: trade.result === filters.result
-        });
         return false;
       }
 
@@ -314,7 +286,6 @@ function TradeHistory() {
     return true;
   });
 
-    console.log('Filtered trades result:', { filteredCount: result.length, originalCount: trades.length });
     return result;
   }, [trades, searchQuery, filters]);
 

@@ -101,7 +101,6 @@ export function BEStatsCard({ onViewDetails, refreshTrigger = 0 }: BEStatsCardPr
       const beData = await BEAnalysisService.getBEMetrics(activeAccount.id);
       setData(beData);
     } catch (err) {
-      console.error('Failed to fetch BE data:', err);
       setError('Failed to load break-even data');
     } finally {
       setIsLoading(false);

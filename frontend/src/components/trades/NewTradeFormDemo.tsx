@@ -22,8 +22,6 @@ export default function NewTradeFormDemo() {
 
     setSubmittedTrade(tradeData);
     setShowForm(false);
-
-    console.log('Trade submitted:', tradeData);
   };
 
   const handleCancel = () => {

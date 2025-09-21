@@ -133,19 +133,11 @@ function ModernFilterSystem({ className }: ModernFilterSystemProps) {
   const handleMarketCategoriesChange = (categories: MarketCategory[]) => {
     // Implement market category filtering logic
     // This would update filters based on selected categories
-    console.log('Market categories changed:', categories);
   };
 
   const handleQuickFilter = (quickFilter: QuickFilterConfig) => {
     const quickFilters = quickFilter.getFilters();
-    console.log('ModernFilterSystem: Quick filter clicked:', {
-      filterId: quickFilter.id,
-      filterLabel: quickFilter.label,
-      generatedFilters: quickFilters,
-      currentFilters: filters
-    });
     setFilters(quickFilters);
-    console.log('ModernFilterSystem: Filters after setFilters:', filters);
   };
 
   const clearFilter = (key: keyof TradeFilters) => {

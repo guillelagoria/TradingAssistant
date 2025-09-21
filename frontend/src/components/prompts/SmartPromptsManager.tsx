@@ -155,7 +155,6 @@ const SmartPromptsManager: React.FC<SmartPromptsManagerProps> = ({
         break;
       case 'tip':
         // Could open tips modal or navigate to tips page
-        console.log('Show optimization tips');
         break;
     }
   };
@@ -267,7 +266,6 @@ const SmartPromptsManager: React.FC<SmartPromptsManagerProps> = ({
           <AdaptiveOnboarding
             onClose={() => setActiveModal(null)}
             onStepComplete={(stepId) => {
-              console.log('Onboarding step completed:', stepId);
               // Could track completion in analytics
             }}
           />
@@ -277,7 +275,6 @@ const SmartPromptsManager: React.FC<SmartPromptsManagerProps> = ({
           <GuidedNT8Import
             onClose={() => setActiveModal(null)}
             onComplete={(file) => {
-              console.log('Import completed:', file.name);
               setActiveModal(null);
               // Handle file import
             }}
@@ -289,7 +286,6 @@ const SmartPromptsManager: React.FC<SmartPromptsManagerProps> = ({
             upgradeType="enable_tracking"
             onClose={() => setActiveModal(null)}
             onStartUpgrade={() => {
-              console.log('Starting upgrade');
               setActiveModal(null);
               // Navigate to upgrade flow
             }}
