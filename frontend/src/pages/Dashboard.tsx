@@ -124,15 +124,10 @@ function Dashboard() {
       </div>
 
       {/* Secondary Charts Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1">
         {/* Win Rate Donut Chart */}
         <div ref={winRateChartRef}>
           <AnimatedWinRateChart height={300} />
-        </div>
-
-        {/* Profit Factor Chart */}
-        <div ref={efficiencyChartRef}>
-          <AnimatedProfitFactorChart height={300} />
         </div>
       </div>
 
@@ -146,21 +141,6 @@ function Dashboard() {
         <AnimatedBEStatsCard
           refreshTrigger={trades.length}
           onViewDetails={() => navigate('/analysis/break-even')}
-        />
-      </div>
-
-      {/* What-If Analysis Section */}
-      <div className="space-y-6">
-        <WhatIfAnalysis />
-      </div>
-      
-      {/* Additional Analysis Section */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Extended Daily P&L for longer period */}
-        <AnimatedDailyPnLChart
-          height={280}
-          days={90}
-          className="lg:col-span-2"
         />
       </div>
 

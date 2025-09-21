@@ -53,7 +53,7 @@ export function calculateStreaks(trades: any[]) {
   // Iterate through trades to calculate streaks
   for (let i = 0; i < sortedTrades.length; i++) {
     const trade = sortedTrades[i];
-    const pnl = trade.pnl || 0;
+    const pnl = trade.netPnl || trade.pnl || 0;
 
     if (pnl > 0) {
       // Winning trade
@@ -120,8 +120,12 @@ export function calculateTradeStats(trades: any[]): TradeStats {
     };
   }
 
-  const completedTrades = trades.filter(trade => trade.exitPrice !== null && trade.exitPrice !== undefined);
-  
+  // Filter trades that have netPnl calculated (meaning they are completed)
+  const completedTrades = trades.filter(trade =>
+    (trade.netPnl !== null && trade.netPnl !== undefined) ||
+    (trade.pnl !== null && trade.pnl !== undefined)
+  );
+
   if (completedTrades.length === 0) {
     return {
       totalTrades: trades.length,
@@ -147,18 +151,27 @@ export function calculateTradeStats(trades: any[]): TradeStats {
   }
 
   // Separate winning, losing, and breakeven trades
-  const winningTrades = completedTrades.filter(trade => (trade.pnl || 0) > 0);
-  const losingTrades = completedTrades.filter(trade => (trade.pnl || 0) < 0);
-  const breakevenTrades = completedTrades.filter(trade => (trade.pnl || 0) === 0);
+  const winningTrades = completedTrades.filter(trade => {
+    const pnl = trade.netPnl || trade.pnl || 0;
+    return pnl > 0;
+  });
+  const losingTrades = completedTrades.filter(trade => {
+    const pnl = trade.netPnl || trade.pnl || 0;
+    return pnl < 0;
+  });
+  const breakevenTrades = completedTrades.filter(trade => {
+    const pnl = trade.netPnl || trade.pnl || 0;
+    return pnl === 0;
+  });
 
   // Calculate basic metrics
-  const totalPnl = completedTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+  const totalPnl = completedTrades.reduce((sum, trade) => sum + (trade.netPnl || trade.pnl || 0), 0);
   const totalCommission = completedTrades.reduce((sum, trade) => sum + (trade.commission || 0), 0);
   const netPnl = totalPnl - totalCommission;
 
   // Win/Loss statistics
-  const totalWins = winningTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
-  const totalLosses = Math.abs(losingTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0));
+  const totalWins = winningTrades.reduce((sum, trade) => sum + (trade.netPnl || trade.pnl || 0), 0);
+  const totalLosses = Math.abs(losingTrades.reduce((sum, trade) => sum + (trade.netPnl || trade.pnl || 0), 0));
   
   const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
   const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
@@ -167,8 +180,8 @@ export function calculateTradeStats(trades: any[]): TradeStats {
   const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
   // Max win/loss
-  const maxWin = winningTrades.length > 0 ? Math.max(...winningTrades.map(t => t.pnl || 0)) : 0;
-  const maxLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map(t => t.pnl || 0)) : 0;
+  const maxWin = winningTrades.length > 0 ? Math.max(...winningTrades.map(t => t.netPnl || t.pnl || 0)) : 0;
+  const maxLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map(t => t.netPnl || t.pnl || 0)) : 0;
 
   // R-Multiple and Efficiency averages
   const rMultiples = completedTrades

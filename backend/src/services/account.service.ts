@@ -491,7 +491,14 @@ class AccountService {
       : 0;
 
     // Use adaptive trade statistics calculation
+    console.log('🏦 [getAccountStats] Calling calculateAdaptiveTradeStats with', trades.length, 'trades');
     const adaptiveStats = calculateAdaptiveTradeStats(trades);
+    console.log('🏦 [getAccountStats] adaptiveStats received:', {
+      currentWinStreak: adaptiveStats.currentWinStreak,
+      currentLossStreak: adaptiveStats.currentLossStreak,
+      maxWinStreak: adaptiveStats.maxWinStreak,
+      maxLossStreak: adaptiveStats.maxLossStreak
+    });
 
     // Analyze data quality distribution
     const dataQualityBreakdown = trades.reduce((acc, trade) => {
