@@ -74,19 +74,41 @@ export interface AccountFormData {
 }
 
 export interface AccountStats {
-  totalBalance: number;
-  totalPnL: number;
-  totalPnLPercentage: number;
+  // Basic stats
   totalTrades: number;
+  closedTrades: number;
+  openTrades: number;
+  totalPnL: number;
+  totalNetPnL: number;
   winRate: number;
-  avgTradeReturn: number;
-  bestTrade: number;
-  worstTrade: number;
+  avgWin: number;
+  avgLoss: number;
+  profitFactor: number;
+
+  // Account info
+  currentBalance: number;
+  totalDeposited: number;
+  totalWithdrawn: number;
+  roi: number;
+
+  // Drawdown
   maxDrawdown: number;
   currentDrawdown: number;
-  profitFactor: number;
+
+  // Streak data from backend
+  currentWinStreak: number;
+  currentLossStreak: number;
+  maxWinStreak: number;
+  maxLossStreak: number;
+
+  // Legacy fields (for compatibility)
+  totalBalance?: number;
+  totalPnLPercentage?: number;
+  avgTradeReturn?: number;
+  bestTrade?: number;
+  worstTrade?: number;
   sharpeRatio?: number;
-  monthlyReturns: Array<{
+  monthlyReturns?: Array<{
     month: string;
     pnl: number;
     percentage: number;

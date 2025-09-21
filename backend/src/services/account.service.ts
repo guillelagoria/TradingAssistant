@@ -1,4 +1,5 @@
 import { PrismaClient, Account, SubscriptionTier, AccountType } from '@prisma/client';
+import { calculateStreaks } from '../utils/calculations';
 
 const prisma = new PrismaClient();
 
@@ -56,6 +57,11 @@ export interface AccountStats {
   roi: number;
   maxDrawdown: number;
   currentDrawdown: number;
+  // Streak data
+  currentWinStreak: number;
+  currentLossStreak: number;
+  maxWinStreak: number;
+  maxLossStreak: number;
 }
 
 class AccountService {
@@ -454,6 +460,9 @@ class AccountService {
       ? ((maxBalance - currentBalance) / maxBalance) * 100
       : 0;
 
+    // Calculate streaks
+    const streakData = calculateStreaks(trades);
+
     return {
       totalTrades: trades.length,
       closedTrades: closedTrades.length,
@@ -469,7 +478,12 @@ class AccountService {
       totalWithdrawn: 0, // Can be extended in future
       roi,
       maxDrawdown: account.maxDrawdown || maxDrawdown,
-      currentDrawdown
+      currentDrawdown,
+      // Include streak data
+      currentWinStreak: streakData.currentWinStreak,
+      currentLossStreak: streakData.currentLossStreak,
+      maxWinStreak: streakData.maxWinStreak,
+      maxLossStreak: streakData.maxLossStreak
     };
   }
 

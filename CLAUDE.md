@@ -149,6 +149,17 @@ npm run typecheck       # Type checking
 - **Fallback a datos demo** cuando API no está disponible
 - **UI responsiva** con alertas en header y modal detallado
 
+#### FASE 5: Corrección Dashboard Stats ✅ 🔧
+- **Problema identificado**: Dashboard mostraba P&L incorrecto (-$16.50 vs -$825.00)
+- **Causa raíz**: AnimatedStatsCards usaba `useTradeStore` local en lugar de backend API
+- **Solución implementada**:
+  - Cambio de fuente de datos: `useTradeStore().stats` → `useAccountStats()`
+  - Mapeo de campos: `stats.netPnl` → `stats.totalNetPnL`
+  - Corrección valores NaN: `stats.maxWin` → `stats.avgWin`, `stats.maxLoss` → `stats.avgLoss`
+  - Manejo de streak data faltante con valores por defecto
+  - Agregados null guards y descripciones apropiadas
+- **Resultado**: Dashboard funcional con valores correctos en todas las stats cards
+
 ## 📊 Modelos de Datos Principales
 
 ### Trade
@@ -227,13 +238,14 @@ Utilizar Context7 automáticamente para:
 - **Responsive design**: Adaptado para móvil y escritorio
 
 ## 📝 Notas Importantes
-1. **Estado del Proyecto**: ✅ **COMPLETO CON ALERTAS ECONÓMICAS** - UI moderna + alertas implementadas
+1. **Estado del Proyecto**: ✅ **COMPLETO CON DASHBOARD FUNCIONAL** - UI moderna + alertas + stats corregidas
 2. **Navegación**: **Solo 3 páginas** - Dashboard, Trade History, Add Trade
 3. **Dashboard unificado**: **Todas las funcionalidades** integradas (análisis, portfolio, alertas económicas)
 4. **Componentes**: **Versión animada** de todos los elementos principales
 5. **Formulario de Trades**: Usa ModernTradeFormPage (formulario unificado)
 6. **UI Library**: shadcn/ui + Framer Motion para animaciones modernas
 7. **🆕 Alertas Económicas**: Sistema completo con datos en tiempo real + fallback demo
+8. **🔧 Dashboard Stats**: Corregido para usar backend API con valores reales en lugar de local store
 
 ## 🔄 Flujo de Trabajo
 1. Implementar frontend y backend en paralelo por features
@@ -276,10 +288,27 @@ GET /api/economic-events/cache/stats    # Estadísticas cache (admin)
 FINNHUB_API_KEY=your_finnhub_api_key_here
 ```
 
+## 🐛 Issues Resueltos
+### Sesión 2025-09-21
+- **Dashboard P&L Incorrecto**: Solucionado cambio de fuente de datos local a backend API
+- **Valores NaN en Stats Cards**: Corregido mapeo de campos faltantes del backend
+- **Consistencia de datos**: Asegurada sincronización entre frontend y backend
+
+## 🔄 Próximos Pasos Sugeridos
+1. **Testing**: Implementar tests unitarios para componentes críticos
+2. **Performance**: Optimizar renders con React.memo en stats cards
+3. **Features**:
+   - Filtros avanzados en tabla de trades
+   - Análisis de patrones de trading
+   - Reportes mensuales automatizados
+4. **UX**: Mejorar loading states y error handling
+5. **Mobile**: Optimizar responsive design para dispositivos móviles
+
 ---
-**Última actualización**: ✅ **APLICACIÓN COMPLETA CON ALERTAS ECONÓMICAS**
+**Última actualización**: ✅ **DASHBOARD COMPLETAMENTE FUNCIONAL**
 - UI con animaciones modernas implementada ✅
 - Navegación simplificada a 3 páginas principales ✅
 - Dashboard unificado con todas las funcionalidades ✅
 - Componentes con Framer Motion y diseño inspirado en Aceternity UI ✅
 - **🆕 Sistema de Alertas Económicas completo con API + UI** ✅
+- **🔧 Dashboard Stats corregido con valores reales del backend** ✅

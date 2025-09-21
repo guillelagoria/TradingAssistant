@@ -310,10 +310,21 @@ function AnimatedStatCard({ card, index }: { card: StatCardData; index: number }
 function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
   const stats = useAccountStats();
 
-  // Return null if no stats available
-  if (!stats) {
-    return null;
-  }
+  // Use default values if stats are not available
+  const defaultStats = {
+    totalTrades: 0,
+    winRate: 0,
+    totalNetPnL: 0,
+    profitFactor: 0,
+    avgWin: 0,
+    avgLoss: 0,
+    maxWinStreak: 0,
+    maxLossStreak: 0,
+    currentWinStreak: 0,
+    currentLossStreak: 0
+  };
+
+  const displayStats = stats || defaultStats;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -328,31 +339,12 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
     return `${value.toFixed(1)}%`;
   };
 
-  if (!stats) {
-    return (
-      <div className={cn("grid gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4", className)}>
-        {[...Array(8)].map((_, i) => (
-          <Card key={i} className="backdrop-blur-sm bg-background/95">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 bg-muted rounded animate-pulse w-24" />
-              <div className="h-4 w-4 bg-muted rounded animate-pulse" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-8 bg-muted rounded animate-pulse w-20 mb-1" />
-              <div className="h-3 bg-muted rounded animate-pulse w-16" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
   const cards: StatCardData[] = [
     {
       title: "Total Trades",
-      value: stats.totalTrades,
-      formattedValue: stats.totalTrades.toString(),
-      description: `${Math.round(stats.totalTrades * stats.winRate / 100)} wins, ${Math.round(stats.totalTrades * (100 - stats.winRate) / 100)} losses`,
+      value: displayStats.totalTrades || 0,
+      formattedValue: (displayStats.totalTrades || 0).toString(),
+      description: `${Math.round((displayStats.totalTrades || 0) * (displayStats.winRate || 0) / 100)} wins, ${Math.round((displayStats.totalTrades || 0) * (100 - (displayStats.winRate || 0)) / 100)} losses`,
       icon: Activity,
       trend: null,
       color: "blue",
@@ -362,56 +354,56 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
     },
     {
       title: "Win Rate",
-      value: stats.winRate,
-      formattedValue: formatPercentage(stats.winRate),
-      description: `${Math.round(stats.totalTrades * stats.winRate / 100)} of ${stats.totalTrades} trades`,
+      value: displayStats.winRate || 0,
+      formattedValue: formatPercentage(displayStats.winRate || 0),
+      description: `${Math.round((displayStats.totalTrades || 0) * (displayStats.winRate || 0) / 100)} of ${displayStats.totalTrades || 0} trades`,
       icon: Target,
-      trend: stats.winRate >= 50 ? "up" : "down",
-      color: stats.winRate >= 50 ? "green" : "red",
-      gradient: stats.winRate >= 50
+      trend: (displayStats.winRate || 0) >= 50 ? "up" : "down",
+      color: (displayStats.winRate || 0) >= 50 ? "green" : "red",
+      gradient: (displayStats.winRate || 0) >= 50
         ? "bg-gradient-to-br from-emerald-500 to-green-600"
         : "bg-gradient-to-br from-rose-500 to-red-600",
-      glowColor: stats.winRate >= 50
+      glowColor: (displayStats.winRate || 0) >= 50
         ? "rgba(16, 185, 129, 0.3)"
         : "rgba(244, 63, 94, 0.3)",
       delay: 0.1
     },
     {
       title: "Total Net P&L",
-      value: stats.totalNetPnL,
-      formattedValue: formatCurrency(stats.totalNetPnL),
+      value: displayStats.totalNetPnL || 0,
+      formattedValue: formatCurrency(displayStats.totalNetPnL || 0),
       description: `Net profit/loss total`,
       icon: DollarSign,
-      trend: stats.totalNetPnL >= 0 ? "up" : "down",
-      color: stats.totalNetPnL >= 0 ? "green" : "red",
-      gradient: stats.totalNetPnL >= 0
+      trend: (displayStats.totalNetPnL || 0) >= 0 ? "up" : "down",
+      color: (displayStats.totalNetPnL || 0) >= 0 ? "green" : "red",
+      gradient: (displayStats.totalNetPnL || 0) >= 0
         ? "bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500"
         : "bg-gradient-to-br from-rose-500 via-red-500 to-pink-500",
-      glowColor: stats.totalNetPnL >= 0
+      glowColor: (displayStats.totalNetPnL || 0) >= 0
         ? "rgba(16, 185, 129, 0.3)"
         : "rgba(244, 63, 94, 0.3)",
       delay: 0.2
     },
     {
       title: "Profit Factor",
-      value: stats.profitFactor,
-      formattedValue: stats.profitFactor.toFixed(2),
+      value: displayStats.profitFactor || 0,
+      formattedValue: (displayStats.profitFactor || 0).toFixed(2),
       description: `Win/Loss ratio factor`,
       icon: BarChart3,
-      trend: stats.profitFactor >= 1 ? "up" : "down",
-      color: stats.profitFactor >= 1 ? "purple" : "amber",
-      gradient: stats.profitFactor >= 1
+      trend: (displayStats.profitFactor || 0) >= 1 ? "up" : "down",
+      color: (displayStats.profitFactor || 0) >= 1 ? "purple" : "amber",
+      gradient: (displayStats.profitFactor || 0) >= 1
         ? "bg-gradient-to-br from-purple-500 to-indigo-600"
         : "bg-gradient-to-br from-amber-500 to-orange-600",
-      glowColor: stats.profitFactor >= 1
+      glowColor: (displayStats.profitFactor || 0) >= 1
         ? "rgba(147, 51, 234, 0.3)"
         : "rgba(245, 158, 11, 0.3)",
       delay: 0.3
     },
     {
       title: "Best Trade",
-      value: stats.avgWin || 0,
-      formattedValue: formatCurrency(stats.avgWin || 0),
+      value: displayStats.avgWin || 0,
+      formattedValue: formatCurrency(displayStats.avgWin || 0),
       description: "Average winning trade",
       icon: TrendingUp,
       trend: "up",
@@ -422,8 +414,8 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
     },
     {
       title: "Worst Trade",
-      value: Math.abs(stats.avgLoss || 0),
-      formattedValue: formatCurrency(Math.abs(stats.avgLoss || 0)),
+      value: Math.abs(displayStats.avgLoss || 0),
+      formattedValue: formatCurrency(Math.abs(displayStats.avgLoss || 0)),
       description: "Average losing trade",
       icon: TrendingDown,
       trend: "down",
@@ -434,35 +426,39 @@ function AnimatedStatsCards({ className }: AnimatedStatsCardsProps) {
     },
     {
       title: "Win Streak",
-      value: 0, // Backend doesn't provide streak data
-      formattedValue: "0",
-      description: "Win streak data not available",
+      value: displayStats.maxWinStreak || 0,
+      formattedValue: (displayStats.maxWinStreak || 0).toString(),
+      description: "Historical max",
       icon: Flame,
       trend: null,
-      color: "default",
-      gradient: "bg-gradient-to-br from-gray-400 to-gray-600",
-      glowColor: "rgba(107, 114, 128, 0.3)",
+      color: (displayStats.maxWinStreak || 0) > 0 ? "green" : "default",
+      gradient: (displayStats.maxWinStreak || 0) > 0
+        ? "bg-gradient-to-br from-emerald-400 via-green-500 to-teal-500"
+        : "bg-gradient-to-br from-gray-400 to-gray-600",
+      glowColor: (displayStats.maxWinStreak || 0) > 0
+        ? "rgba(52, 211, 153, 0.4)"
+        : "rgba(107, 114, 128, 0.3)",
       delay: 0.6,
-      currentValue: 0,
-      maxValue: 0
+      currentValue: displayStats.currentWinStreak || 0,
+      maxValue: displayStats.maxWinStreak || 0
     },
     {
       title: "Loss Streak",
-      value: 0, // Backend doesn't provide streak data
-      formattedValue: "0",
-      description: "Loss streak data not available",
+      value: displayStats.maxLossStreak || 0,
+      formattedValue: (displayStats.maxLossStreak || 0).toString(),
+      description: "Historical max",
       icon: Zap,
       trend: null,
-      color: (stats.maxLossStreak || 0) > 0 ? "red" : "default",
-      gradient: (stats.maxLossStreak || 0) > 0
+      color: (displayStats.maxLossStreak || 0) > 0 ? "red" : "default",
+      gradient: (displayStats.maxLossStreak || 0) > 0
         ? "bg-gradient-to-br from-red-400 via-rose-500 to-pink-500"
         : "bg-gradient-to-br from-gray-400 to-gray-600",
-      glowColor: (stats.maxLossStreak || 0) > 0
+      glowColor: (displayStats.maxLossStreak || 0) > 0
         ? "rgba(248, 113, 113, 0.4)"
         : "rgba(107, 114, 128, 0.3)",
       delay: 0.7,
-      currentValue: 0,
-      maxValue: 0
+      currentValue: displayStats.currentLossStreak || 0,
+      maxValue: displayStats.maxLossStreak || 0
     }
   ];
 

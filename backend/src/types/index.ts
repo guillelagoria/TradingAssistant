@@ -229,6 +229,11 @@ export interface AccountStatsResponse {
   roi: number;
   maxDrawdown: number;
   currentDrawdown: number;
+  // Streak data
+  currentWinStreak: number;
+  currentLossStreak: number;
+  maxWinStreak: number;
+  maxLossStreak: number;
 }
 
 // Export market types

@@ -26,7 +26,7 @@ export interface TradeStats {
 /**
  * Calculate winning and losing streaks from trades
  */
-function calculateStreaks(trades: any[]) {
+export function calculateStreaks(trades: any[]) {
   if (trades.length === 0) {
     return {
       currentWinStreak: 0,
