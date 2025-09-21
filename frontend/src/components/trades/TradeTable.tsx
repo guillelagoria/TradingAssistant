@@ -247,6 +247,18 @@ function TradeTable({
                 </div>
               </div>
               <div>
+                <span className="text-muted-foreground">MAE/MFE:</span>
+                <div className="font-medium">
+                  <span className="text-red-600">
+                    {trade.maxAdversePrice ? formatCurrency(trade.maxAdversePrice) : '-'}
+                  </span>
+                  {' / '}
+                  <span className="text-green-600">
+                    {trade.maxFavorablePrice ? formatCurrency(trade.maxFavorablePrice) : '-'}
+                  </span>
+                </div>
+              </div>
+              <div>
                 <span className="text-muted-foreground">Date:</span>
                 <div className="font-medium">
                   {format(new Date(trade.entryDate), 'MMM dd, yyyy')}
@@ -324,6 +336,27 @@ function TradeTable({
                 </Button>
               </TableHead>
               <TableHead className="text-right">Net P&L %</TableHead>
+              <TableHead className="text-right">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort('maxAdversePrice')}
+                  className="h-8 p-0 font-semibold"
+                >
+                  MAE
+                  {getSortIcon('maxAdversePrice')}
+                </Button>
+              </TableHead>
+              <TableHead className="text-right">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort('maxFavorablePrice')}
+                  className="h-8 p-0 font-semibold"
+                >
+                  MFE
+                  {getSortIcon('maxFavorablePrice')}
+                </Button>
+              </TableHead>
+              <TableHead className="text-right">ETD</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[70px]">Actions</TableHead>
             </TableRow>
@@ -376,6 +409,15 @@ function TradeTable({
                       ? (trade.netPnl / (trade.entryPrice * trade.quantity)) * 100
                       : 0
                   )}
+                </TableCell>
+                <TableCell className="text-right text-red-600">
+                  {trade.maxAdversePrice ? formatCurrency(trade.maxAdversePrice) : '-'}
+                </TableCell>
+                <TableCell className="text-right text-green-600">
+                  {trade.maxFavorablePrice ? formatCurrency(trade.maxFavorablePrice) : '-'}
+                </TableCell>
+                <TableCell className="text-right">
+                  {trade.maxDrawdown !== null && trade.maxDrawdown !== undefined ? trade.maxDrawdown.toFixed(1) : '-'}
                 </TableCell>
                 <TableCell>
                   {getResultBadge(trade.result, trade.netPnl)}

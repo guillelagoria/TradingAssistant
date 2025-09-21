@@ -24,3 +24,6 @@ export { default as ChartDemo } from './ChartDemo';
 // Break-Even Analysis component
 export { BEStatsCard } from './BEStatsCard';
 export { AnimatedBEStatsCard } from './AnimatedBEStatsCard';
+
+// MAE/MFE/ETD Analysis component
+export { MAEMFEStatsCard } from './MAEMFEStatsCard';

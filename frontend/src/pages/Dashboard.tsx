@@ -11,6 +11,7 @@ import {
   AnimatedDailyPnLChart,
   AnimatedProfitFactorChart,
   AnimatedBEStatsCard,
+  MAEMFEStatsCard,
 } from '@/components/dashboard';
 import { WhatIfAnalysis } from '@/components/analysis';
 import { ExportDialog } from '@/components/export';
@@ -133,6 +134,11 @@ function Dashboard() {
         <div ref={efficiencyChartRef}>
           <AnimatedProfitFactorChart height={300} />
         </div>
+      </div>
+
+      {/* MAE/MFE Statistics Section */}
+      <div className="space-y-6">
+        <MAEMFEStatsCard />
       </div>
 
       {/* Break-Even Analysis Section */}
