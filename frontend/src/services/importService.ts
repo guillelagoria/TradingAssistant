@@ -75,13 +75,7 @@ class ImportService {
       });
 
       // Map backend response format to frontend expected format
-      console.log('🔍 Full response:', response);
-      console.log('🔍 Response data:', response.data);
-
-      // The actual data is nested inside response.data.data
       const backendData = response.data.data;
-      console.log('🔍 Backend data structure:', backendData);
-      console.log('🔍 Summary data:', backendData.summary);
 
       // Extract trade data from results for preview
       const extractedTrades = (backendData.trades || [])
@@ -106,8 +100,6 @@ class ImportService {
         errors: backendData.errors || [],
         warnings: backendData.warnings || []
       };
-
-      console.log('🔍 Mapped preview data:', mappedPreview);
 
       return {
         sessionId: backendData.sessionId,

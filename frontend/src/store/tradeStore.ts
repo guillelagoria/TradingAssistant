@@ -162,18 +162,14 @@ export const useTradeStore = create<TradeState>()(
         try {
           // Get active account ID
           const fetchActiveAccountId = useAccountStore.getState().getActiveAccountId();
-          console.log('🔄 [fetchTrades] Fetching trades for account:', fetchActiveAccountId);
 
           const response = await tradesService.getTrades(filters, page, limit, fetchActiveAccountId);
-          console.log('🔄 [fetchTrades] Backend returned', response.data.length, 'trades');
 
           const tradesWithCalculations = response.data.map(trade => {
             // Always recalculate to ensure result field is present
             const calculations = calculateTradeMetricsForTrade(trade);
             return calculations as Trade;
           });
-
-          console.log('🔄 [fetchTrades] Setting', tradesWithCalculations.length, 'trades in store');
 
           set({
             trades: tradesWithCalculations,
@@ -614,24 +610,17 @@ export const useTradeStore = create<TradeState>()(
 
       // Account management
       refreshTradesForAccount: async (accountId) => {
-
         const targetAccountId = accountId || useAccountStore.getState().getActiveAccountId();
-        console.log('🔄 [refreshTradesForAccount] Called with accountId:', accountId, 'resolved to:', targetAccountId);
 
         if (!targetAccountId) {
-          // Clear trades if no account is active
-          console.log('🔄 [refreshTradesForAccount] No account active, clearing trades');
           set({ trades: [], stats: null });
           return;
         }
 
         try {
-          // Fetch trades for the specified account
-          console.log('🔄 [refreshTradesForAccount] Calling fetchTrades...');
           await get().fetchTrades();
-          console.log('🔄 [refreshTradesForAccount] fetchTrades completed');
         } catch (error) {
-          console.error('🔄 [refreshTradesForAccount] Error:', error);
+          console.error('Error refreshing trades for account:', error);
         }
       },
 

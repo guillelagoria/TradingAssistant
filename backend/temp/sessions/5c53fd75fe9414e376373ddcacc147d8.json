@@ -1,0 +1,42 @@
+{
+  "sessionId": "5c53fd75fe9414e376373ddcacc147d8",
+  "userId": "test-user-id",
+  "filePath": "/Users/guille/Disco/Proyectos AI/TradingAssistant/backend/uploads/imports/NinjaTrader Grid 2025-09-20 06-56 p.Â m.-1758481144385.csv",
+  "fileName": "NinjaTrader Grid 2025-09-20 06-56 p.Â m..csv",
+  "fileFormat": "csv",
+  "fileSize": 2555,
+  "uploadedAt": "2025-09-21T18:59:04.388Z",
+  "expiresAt": "2025-09-21T19:29:04.388Z",
+  "metadata": {
+    "lastPreviewOptions": {
+      "userId": "test-user-id",
+      "skipDuplicates": true,
+      "defaultCommission": 0,
+      "fieldMapping": {},
+      "dryRun": true
+    },
+    "lastPreviewResult": {
+      "summary": {
+        "total": 12,
+        "imported": 0,
+        "skipped": 12,
+        "errors": 0,
+        "duplicates": 12
+      },
+      "tradesCount": 12,
+      "errors": [],
+      "warnings": [
+        "Row 1: No commission specified",
+        "Row 2: No commission specified",
+        "Row 3: No commission specified",
+        "Row 5: No commission specified",
+        "Row 6: No commission specified",
+        "Row 7: No commission specified",
+        "Row 8: No commission specified",
+        "Row 9: No commission specified",
+        "Row 10: No commission specified",
+        "Row 11: No commission specified"
+      ]
+    }
+  }
+}

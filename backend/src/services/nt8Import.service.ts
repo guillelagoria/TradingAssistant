@@ -40,78 +40,50 @@ export class NT8ImportService {
     filePath: string,
     options: NT8ImportOptions
   ): Promise<BatchImportResult> {
-    console.log('🚀 [NT8ImportService] Starting importNT8File - dryRun:', options.dryRun, 'userId:', options.userId);
     const startTime = Date.now();
     let session: ImportSession | null = null;
 
     try {
-      // PREVENT CONCURRENT IMPORTS: Use database transaction with advisory lock
-      console.log('🔒 [NT8ImportService] Acquiring import lock for user:', options.userId);
-
-      // Use PostgreSQL advisory lock to prevent concurrent imports
-      // SQLite doesn't support advisory locks, so we'll use a different approach
-      const lockResult = await this.prisma.$transaction(async (tx) => {
-        // Try to create a temporary "lock" record
-        const lockKey = `import_lock_${options.userId}`;
-
-        try {
-          // Check if there's already an active import (any status except FAILED/COMPLETED older than 2 minutes)
-          const activeImport = await tx.importSession.findFirst({
-            where: {
-              userId: options.userId,
-              OR: [
-                {
-                  status: {
-                    in: [ImportStatus.PENDING, ImportStatus.PROCESSING]
-                  }
-                },
-                {
-                  AND: [
-                    {
-                      status: {
-                        notIn: ['FAILED', 'COMPLETED']
-                      }
-                    },
-                    {
-                      startedAt: {
-                        gte: new Date(Date.now() - 120000) // Last 2 minutes
-                      }
-                    }
-                  ]
+      // Prevent concurrent imports using database transaction
+      await this.prisma.$transaction(async (tx) => {
+        const activeImport = await tx.importSession.findFirst({
+          where: {
+            userId: options.userId,
+            OR: [
+              {
+                status: {
+                  in: [ImportStatus.PENDING, ImportStatus.PROCESSING]
                 }
-              ]
-            },
-            orderBy: { startedAt: 'desc' }
-          });
+              },
+              {
+                AND: [
+                  {
+                    status: {
+                      notIn: ['FAILED', 'COMPLETED']
+                    }
+                  },
+                  {
+                    startedAt: {
+                      gte: new Date(Date.now() - 120000) // Last 2 minutes
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          orderBy: { startedAt: 'desc' }
+        });
 
-          if (activeImport) {
-            console.log('⚠️ [NT8ImportService] Active import found:', activeImport.id, 'status:', activeImport.status);
-            throw new Error(`Import already in progress (session: ${activeImport.id}). Please wait for the current import to complete.`);
-          }
-
-          console.log('✅ [NT8ImportService] No active imports found, proceeding...');
-          return true;
-        } catch (error) {
-          throw error;
+        if (activeImport) {
+          throw new Error(`Import already in progress (session: ${activeImport.id}). Please wait for the current import to complete.`);
         }
       });
-
-      if (!lockResult) {
-        throw new Error('Failed to acquire import lock');
-      }
-
-      console.log('📁 [NT8ImportService] Detecting file format...');
       // Detect file format
       const format = this.detectFileFormat(filePath);
-      console.log('📁 [NT8ImportService] File format detected:', format);
-
-      console.log('📊 [NT8ImportService] Getting file stats...');
       const fileStats = await fs.stat(filePath);
       const fileName = path.basename(filePath);
-      console.log('📊 [NT8ImportService] File stats obtained:', { fileName, size: fileStats.size });
 
       // Create import session
-      console.log('💾 [NT8ImportService] Creating import session...');
       session = await this.createImportSession({
         userId: options.userId,
         source: format === NT8FileFormat.CSV ? ImportSource.NT8_CSV : ImportSource.NT8_EXCEL,
@@ -119,29 +91,22 @@ export class NT8ImportService {
         filePath,
         fileSize: fileStats.size
       });
-      console.log('💾 [NT8ImportService] Import session created:', session.id);
 
       // Parse the file
-      console.log('📋 [NT8ImportService] Parsing file...');
       const rawTrades = await this.parseFile(filePath, format);
-      console.log('📋 [NT8ImportService] File parsed successfully. Raw trades count:', rawTrades.length);
 
       // Update session with total rows
-      console.log('🔄 [NT8ImportService] Updating session with total rows...');
       await this.updateImportSession(session.id, {
         totalRows: rawTrades.length,
         status: ImportStatus.PROCESSING
       });
-      console.log('🔄 [NT8ImportService] Session updated with total rows');
 
       // Process trades
-      console.log('⚙️ [NT8ImportService] Processing trades...');
       const result = await this.processTrades(
         rawTrades,
         session.id,
         options
       );
-      console.log('⚙️ [NT8ImportService] Trades processed successfully:', result.summary);
 
       // Update session with final status
       await this.updateImportSession(session.id, {
@@ -303,9 +268,6 @@ export class NT8ImportService {
     const accountId = user.accounts[0].id;
     const fieldMapping = { ...DEFAULT_NT8_FIELD_MAPPINGS, ...(options.fieldMapping || {}) };
 
-    console.log('🔍 [processTrades] DEFAULT_NT8_FIELD_MAPPINGS:', JSON.stringify(DEFAULT_NT8_FIELD_MAPPINGS, null, 2));
-    console.log('🔍 [processTrades] options.fieldMapping:', JSON.stringify(options.fieldMapping, null, 2));
-    console.log('🔍 [processTrades] Final fieldMapping:', JSON.stringify(fieldMapping, null, 2));
 
     // Pre-create strategies to avoid race conditions
     const strategyNames = new Set<string>();
@@ -378,13 +340,11 @@ export class NT8ImportService {
           // Check for duplicates
           let isDuplicate = false;
           if (options.skipDuplicates) {
-            console.log('🔍 [importNT8File] Checking for duplicates for trade:', parsedTrade.symbol, parsedTrade.entryPrice, parsedTrade.entryDate);
             isDuplicate = await this.checkDuplicate(
               parsedTrade,
               options.userId,
               accountId
             );
-            console.log('🔍 [importNT8File] Duplicate check result:', isDuplicate);
           }
 
           // Import trade (unless dry run)
@@ -689,41 +649,12 @@ export class NT8ImportService {
     userId: string,
     accountId: string
   ): Promise<boolean> {
-    console.log('🔍 [checkDuplicate] === ENHANCED DUPLICATE DETECTION WITH RACE CONDITION PROTECTION ===');
-    console.log('🔍 [checkDuplicate] Checking for trade:', {
-      symbol: trade.symbol,
-      direction: trade.direction,
-      entryPrice: trade.entryPrice,
-      quantity: trade.quantity,
-      entryDate: trade.entryDate.toISOString()
-    });
-
-    // Create robust criteria for duplicate detection
-    // A trade is considered duplicate if it has:
-    // 1. Same symbol, direction, entry price, quantity
-    // 2. Entry date within 5 minutes (more generous for NT8 timing variations)
-    // 3. Same user and account
-    // 4. NOW WITH PROTECTION AGAINST RACE CONDITIONS
-    const whereClause = {
-      userId,
-      accountId,
-      symbol: trade.symbol,
-      direction: trade.direction as TradeDirection,
-      entryPrice: trade.entryPrice,
-      quantity: trade.quantity,
-      entryDate: {
-        gte: new Date(trade.entryDate.getTime() - 300000), // Within 5 minutes (more generous)
-        lte: new Date(trade.entryDate.getTime() + 300000)
-      }
-    };
-
-    console.log('🔍 [checkDuplicate] Search criteria:', JSON.stringify(whereClause, null, 2));
-
-    // Use FOR UPDATE to lock the rows during read to prevent race conditions
-    // This ensures that if two concurrent imports are checking the same trade,
-    // one will wait for the other to complete before proceeding
+    // Check for duplicate trades with enhanced criteria:
+    // - Same symbol, direction, entry price, quantity
+    // - Entry date within 5 minutes (for NT8 timing variations)
+    // - Same user and account
     const existingTrade = await this.prisma.$queryRaw`
-      SELECT id, symbol, direction, "entryPrice", quantity, "entryDate", "importSessionId", source
+      SELECT id
       FROM trades
       WHERE "userId" = ${userId}
         AND "accountId" = ${accountId}
@@ -735,28 +666,7 @@ export class NT8ImportService {
       LIMIT 1
     `;
 
-    const existingTradeArray = existingTrade as any[];
-
-    if (existingTradeArray.length > 0) {
-      const tradeRecord = existingTradeArray[0];
-      console.log('🔍 [checkDuplicate] ❌ DUPLICATE FOUND!');
-      console.log('🔍 [checkDuplicate] Existing trade details:', {
-        id: tradeRecord.id,
-        symbol: tradeRecord.symbol,
-        direction: tradeRecord.direction,
-        entryPrice: tradeRecord.entryPrice,
-        quantity: tradeRecord.quantity,
-        entryDate: tradeRecord.entryDate,
-        importSessionId: tradeRecord.importSessionId,
-        source: tradeRecord.source
-      });
-      console.log('🔍 [checkDuplicate] === DUPLICATE DETECTED ===');
-      return true;
-    } else {
-      console.log('🔍 [checkDuplicate] ✅ No duplicate found, trade is unique');
-      console.log('🔍 [checkDuplicate] === TRADE IS UNIQUE ===');
-      return false;
-    }
+    return (existingTrade as any[]).length > 0;
   }
 
   /**

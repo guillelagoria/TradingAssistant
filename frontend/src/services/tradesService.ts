@@ -116,12 +116,7 @@ export const tradesService = {
     try {
       const queryParams = buildQueryParams(filters, page, limit, accountId);
       const fullUrl = `/trades${queryParams}`;
-      console.log('🌐 [tradesService.getTrades] Making request to:', fullUrl);
-      console.log('🌐 [tradesService.getTrades] With accountId:', accountId);
-      console.log('🌐 [tradesService.getTrades] API Base URL:', apiClient.defaults.baseURL);
-
       const response = await apiClient.get<PaginatedResponse<Trade>>(fullUrl);
-      console.log('🌐 [tradesService.getTrades] Response received:', response.data.data?.trades?.length || 0, 'trades');
 
       // Handle both possible response formats
       const responseData = response.data.data || response.data;
