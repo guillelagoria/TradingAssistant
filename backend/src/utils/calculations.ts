@@ -219,6 +219,8 @@ export function calculateTradeMetrics(tradeData: any) {
     stopLoss,
     maxFavorablePrice,
     maxAdversePrice,
+    mae,
+    mfe,
     market = 'ES' // Default to ES if not specified
   } = tradeData;
 
@@ -288,13 +290,37 @@ export function calculateTradeMetrics(tradeData: any) {
     efficiency = totalMove > 0 ? (capturedMove / totalMove) * 100 : 0;
   }
 
+  // Calculate advanced efficiency metrics if MAE/MFE data is available
+  let advancedMetrics = {};
+  if (mae && mfe) {
+    const advanced = calculateAdvancedEfficiency(
+      entryPrice,
+      exitPrice,
+      mae,
+      mfe,
+      stopLoss,
+      direction === TradeDirection.LONG ? 'LONG' : 'SHORT'
+    );
+    advancedMetrics = {
+      maeEfficiency: Number(advanced.maeEfficiency.toFixed(2)),
+      mfeEfficiency: Number(advanced.mfeEfficiency.toFixed(2)),
+      riskRealization: Number(advanced.riskRealization.toFixed(2))
+    };
+  }
+
+  // Analyze data quality
+  const dataQualityAnalysis = analyzeTradeDataQuality(tradeData);
+
   return {
     pnl: Number(pnl.toFixed(2)),
     pnlPercentage: Number(pnlPercentage.toFixed(2)),
     efficiency: Number(Math.max(0, Math.min(100, efficiency)).toFixed(2)),
     rMultiple: Number(rMultiple.toFixed(2)),
     commission: Number(commission.toFixed(2)),
-    netPnl: Number(netPnl.toFixed(2))
+    netPnl: Number(netPnl.toFixed(2)),
+    ...advancedMetrics,
+    hasAdvancedData: dataQualityAnalysis.hasAdvancedData,
+    dataQuality: dataQualityAnalysis.dataQuality
   };
 }
 
@@ -353,4 +379,132 @@ export function calculateRiskReward(
   const risk = Math.abs(entryPrice - stopLoss);
   const reward = Math.abs(takeProfit - entryPrice);
   return risk > 0 ? reward / risk : 0;
+}
+
+/**
+ * Calculate advanced efficiency metrics from MAE/MFE data
+ */
+export function calculateAdvancedEfficiency(
+  entryPrice: number,
+  exitPrice: number,
+  mae: number,
+  mfe: number,
+  stopLoss?: number,
+  direction: 'LONG' | 'SHORT' = 'LONG'
+) {
+  const pnl = direction === 'LONG' ? exitPrice - entryPrice : entryPrice - exitPrice;
+
+  // MFE Efficiency: How much of the maximum favorable move was captured
+  let mfeEfficiency = 0;
+  if (mfe && mfe !== 0) {
+    const maxPotentialPnl = direction === 'LONG' ? mfe - entryPrice : entryPrice - mfe;
+    mfeEfficiency = maxPotentialPnl > 0 ? (pnl / maxPotentialPnl) * 100 : 0;
+  }
+
+  // MAE Efficiency: How well the trade avoided the maximum adverse move
+  let maeEfficiency = 0;
+  if (mae && mae !== 0) {
+    const maxAdversePnl = direction === 'LONG' ? mae - entryPrice : entryPrice - mae;
+    // Higher is better - means less of the adverse move was experienced
+    maeEfficiency = maxAdversePnl < 0 ? (1 - Math.abs(pnl / maxAdversePnl)) * 100 : 100;
+  }
+
+  // Risk Realization: How much of the stop loss distance was actually hit
+  let riskRealization = 0;
+  if (stopLoss && mae) {
+    const stopDistance = Math.abs(entryPrice - stopLoss);
+    const maeDistance = Math.abs(entryPrice - mae);
+    riskRealization = stopDistance > 0 ? (maeDistance / stopDistance) * 100 : 0;
+  }
+
+  return {
+    mfeEfficiency: Math.max(0, Math.min(100, mfeEfficiency)),
+    maeEfficiency: Math.max(0, Math.min(100, maeEfficiency)),
+    riskRealization: Math.max(0, Math.min(100, riskRealization))
+  };
+}
+
+/**
+ * Analyze data quality of a trade and set appropriate flags
+ */
+export function analyzeTradeDataQuality(tradeData: any): { hasAdvancedData: boolean; dataQuality: 'BASIC' | 'ENHANCED' | 'COMPLETE' } {
+  const hasMAE = tradeData.mae !== null && tradeData.mae !== undefined;
+  const hasMFE = tradeData.mfe !== null && tradeData.mfe !== undefined;
+  const hasETD = tradeData.etd !== null && tradeData.etd !== undefined;
+  const hasBars = tradeData.bars !== null && tradeData.bars !== undefined;
+  const hasNT8Fields = Boolean(
+    tradeData.tradeNumber ||
+    tradeData.instrumentFull ||
+    tradeData.nt8Strategy ||
+    tradeData.entryName ||
+    tradeData.exitName
+  );
+
+  // Determine data quality level
+  let dataQuality: 'BASIC' | 'ENHANCED' | 'COMPLETE';
+  let hasAdvancedData = false;
+
+  if (hasNT8Fields && hasMAE && hasMFE && hasETD && hasBars) {
+    dataQuality = 'COMPLETE';
+    hasAdvancedData = true;
+  } else if ((hasMAE && hasMFE) || hasNT8Fields) {
+    dataQuality = 'ENHANCED';
+    hasAdvancedData = true;
+  } else {
+    dataQuality = 'BASIC';
+    hasAdvancedData = false;
+  }
+
+  return { hasAdvancedData, dataQuality };
+}
+
+/**
+ * Calculate comprehensive trade statistics based on data quality
+ */
+export function calculateAdaptiveTradeStats(trades: any[]): TradeStats & {
+  advancedMetrics?: {
+    avgMFEEfficiency: number;
+    avgMAEEfficiency: number;
+    avgRiskRealization: number;
+    dataQualityDistribution: Record<string, number>;
+  };
+} {
+  const basicStats = calculateTradeStats(trades);
+
+  // Separate trades by data quality
+  const enhancedTrades = trades.filter(t => t.hasAdvancedData && (t.mae || t.mfe));
+
+  if (enhancedTrades.length === 0) {
+    return basicStats;
+  }
+
+  // Calculate advanced metrics
+  const mfeEfficiencies = enhancedTrades
+    .map(t => t.mfeEfficiency)
+    .filter(e => e !== null && e !== undefined && !isNaN(e));
+
+  const maeEfficiencies = enhancedTrades
+    .map(t => t.maeEfficiency)
+    .filter(e => e !== null && e !== undefined && !isNaN(e));
+
+  const riskRealizations = enhancedTrades
+    .map(t => t.riskRealization)
+    .filter(r => r !== null && r !== undefined && !isNaN(r));
+
+  // Data quality distribution
+  const dataQualityDistribution = trades.reduce((acc, trade) => {
+    const quality = trade.dataQuality || 'BASIC';
+    acc[quality] = (acc[quality] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return {
+    ...basicStats,
+    advancedMetrics: {
+      avgMFEEfficiency: mfeEfficiencies.length > 0 ? mfeEfficiencies.reduce((a, b) => a + b, 0) / mfeEfficiencies.length : 0,
+      avgMAEEfficiency: maeEfficiencies.length > 0 ? maeEfficiencies.reduce((a, b) => a + b, 0) / maeEfficiencies.length : 0,
+      avgRiskRealization: riskRealizations.length > 0 ? riskRealizations.reduce((a, b) => a + b, 0) / riskRealizations.length : 0,
+      dataQualityDistribution
+    }
+  };
 }

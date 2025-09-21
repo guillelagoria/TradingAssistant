@@ -59,6 +59,26 @@ export interface CreateTradeRequest {
   timeframe?: string;
   notes?: string;
   imageUrl?: string;
+
+  // Advanced NT8 fields (optional)
+  tradeNumber?: number;
+  instrumentFull?: string;
+  nt8Account?: string;
+  nt8Strategy?: string;
+  marketPosition?: string;
+  entryName?: string;
+  exitName?: string;
+  cumulativeProfit?: number;
+  mae?: number;
+  mfe?: number;
+  etd?: number;
+  bars?: number;
+  durationMinutes?: number;
+  maeEfficiency?: number;
+  mfeEfficiency?: number;
+  riskRealization?: number;
+  hasAdvancedData?: boolean;
+  dataQuality?: 'BASIC' | 'ENHANCED' | 'COMPLETE';
 }
 
 export interface UpdateTradeRequest extends Partial<CreateTradeRequest> {}

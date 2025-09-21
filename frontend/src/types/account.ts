@@ -101,6 +101,22 @@ export interface AccountStats {
   maxWinStreak: number;
   maxLossStreak: number;
 
+  // Advanced metrics (only present when advanced data exists)
+  advancedMetrics?: {
+    avgMFEEfficiency: number;
+    avgMAEEfficiency: number;
+    avgRiskRealization: number;
+    dataQualityDistribution: Record<string, number>;
+  };
+
+  // Data capability flags
+  hasAdvancedDataTrades: boolean;
+  dataQualityBreakdown: {
+    basic: number;
+    enhanced: number;
+    complete: number;
+  };
+
   // Legacy fields (for compatibility)
   totalBalance?: number;
   totalPnLPercentage?: number;

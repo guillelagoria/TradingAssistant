@@ -101,6 +101,35 @@ model Trade {
   efficiency        Float?
   rMultiple         Float?
   source            TradeSource    @default(MANUAL)
+
+  // Advanced NT8 fields for detailed analysis (optional)
+  tradeNumber       Int?           // NT8 trade sequence number
+  instrumentFull    String?        // Full instrument name from NT8
+  nt8Account        String?        // NT8 account name
+  nt8Strategy       String?        // NT8 strategy name (different from our Strategy model)
+  marketPosition    String?        // NT8 market position description
+  entryName         String?        // NT8 entry signal/condition name
+  exitName          String?        // NT8 exit signal/condition name
+  cumulativeProfit  Float?         // Running total P&L at time of trade
+
+  // MAE/MFE - Maximum Adverse/Favorable Excursion
+  mae               Float?         // Maximum Adverse Excursion (max loss during trade)
+  mfe               Float?         // Maximum Favorable Excursion (max gain during trade)
+
+  // Time and duration analysis
+  etd               Int?           // Entry to Drawdown time (in minutes/bars)
+  bars              Int?           // Number of bars/candles trade lasted
+  durationMinutes   Int?           // Trade duration in minutes
+
+  // Enhanced efficiency metrics (calculated from MAE/MFE)
+  maeEfficiency     Float?         // How much of potential loss was avoided
+  mfeEfficiency     Float?         // How much of potential gain was captured
+  riskRealization   Float?         // Percentage of stop loss actually hit (MAE/Stop Distance)
+
+  // Data quality indicators
+  hasAdvancedData   Boolean        @default(false)  // Flag indicating if advanced fields are populated
+  dataQuality       DataQuality    @default(BASIC)  // Level of data completeness
+
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   strategy          Strategy?      @relation(fields: [strategyId], references: [id])
@@ -215,4 +244,10 @@ enum ImportSource {
   NT8_EXCEL
   MANUAL
   API
+}
+
+enum DataQuality {
+  BASIC      // Quick trade data only
+  ENHANCED   // Basic + some advanced fields (MAE/MFE)
+  COMPLETE   // Full NT8 import with all fields
 }

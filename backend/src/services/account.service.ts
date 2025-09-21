@@ -1,5 +1,5 @@
 import { PrismaClient, Account, SubscriptionTier, AccountType } from '@prisma/client';
-import { calculateStreaks } from '../utils/calculations';
+import { calculateAdaptiveTradeStats } from '../utils/calculations';
 
 const prisma = new PrismaClient();
 
@@ -62,6 +62,20 @@ export interface AccountStats {
   currentLossStreak: number;
   maxWinStreak: number;
   maxLossStreak: number;
+  // Advanced metrics (only present when advanced data exists)
+  advancedMetrics?: {
+    avgMFEEfficiency: number;
+    avgMAEEfficiency: number;
+    avgRiskRealization: number;
+    dataQualityDistribution: Record<string, number>;
+  };
+  // Data capability flags
+  hasAdvancedDataTrades: boolean;
+  dataQualityBreakdown: {
+    basic: number;
+    enhanced: number;
+    complete: number;
+  };
 }
 
 class AccountService {
@@ -390,7 +404,19 @@ class AccountService {
             pnl: true,
             netPnl: true,
             result: true,
-            exitDate: true
+            exitDate: true,
+            entryDate: true,
+            // Advanced fields for enhanced analysis
+            mae: true,
+            mfe: true,
+            maeEfficiency: true,
+            mfeEfficiency: true,
+            riskRealization: true,
+            hasAdvancedData: true,
+            dataQuality: true,
+            etd: true,
+            bars: true,
+            durationMinutes: true
           }
         }
       }
@@ -460,8 +486,18 @@ class AccountService {
       ? ((maxBalance - currentBalance) / maxBalance) * 100
       : 0;
 
-    // Calculate streaks
-    const streakData = calculateStreaks(trades);
+    // Use adaptive trade statistics calculation
+    const adaptiveStats = calculateAdaptiveTradeStats(trades);
+
+    // Analyze data quality distribution
+    const dataQualityBreakdown = trades.reduce((acc, trade) => {
+      const quality = trade.dataQuality || 'BASIC';
+      acc[quality.toLowerCase() as 'basic' | 'enhanced' | 'complete'] =
+        (acc[quality.toLowerCase() as 'basic' | 'enhanced' | 'complete'] || 0) + 1;
+      return acc;
+    }, { basic: 0, enhanced: 0, complete: 0 });
+
+    const hasAdvancedDataTrades = trades.some(t => t.hasAdvancedData);
 
     return {
       totalTrades: trades.length,
@@ -479,11 +515,16 @@ class AccountService {
       roi,
       maxDrawdown: account.maxDrawdown || maxDrawdown,
       currentDrawdown,
-      // Include streak data
-      currentWinStreak: streakData.currentWinStreak,
-      currentLossStreak: streakData.currentLossStreak,
-      maxWinStreak: streakData.maxWinStreak,
-      maxLossStreak: streakData.maxLossStreak
+      // Include streak data from adaptive stats
+      currentWinStreak: adaptiveStats.currentWinStreak,
+      currentLossStreak: adaptiveStats.currentLossStreak,
+      maxWinStreak: adaptiveStats.maxWinStreak,
+      maxLossStreak: adaptiveStats.maxLossStreak,
+      // Advanced metrics (conditional)
+      ...(adaptiveStats.advancedMetrics && { advancedMetrics: adaptiveStats.advancedMetrics }),
+      // Data capability information
+      hasAdvancedDataTrades,
+      dataQualityBreakdown
     };
   }
 
