@@ -117,6 +117,13 @@ export interface AccountStats {
     complete: number;
   };
 
+  // Optional recommendations (in adaptive mode)
+  recommendations?: Array<{
+    type: 'upgrade' | 'import' | 'complete';
+    message: string;
+    action: string;
+  }>;
+
   // Legacy fields (for compatibility)
   totalBalance?: number;
   totalPnLPercentage?: number;
@@ -128,6 +135,59 @@ export interface AccountStats {
     month: string;
     pnl: number;
     percentage: number;
+  }>;
+}
+
+// Data Capabilities types
+export interface DataCapabilities {
+  accountId: string;
+  totalTrades: number;
+  dataQualityBreakdown: {
+    basic: number;
+    enhanced: number;
+    complete: number;
+  };
+  availableMetrics: {
+    basic: string[];
+    advanced: string[];
+    missing: string[];
+  };
+  recommendations: Array<{
+    type: 'upgrade' | 'import' | 'complete';
+    message: string;
+    action: string;
+  }>;
+  capabilityScore: number;
+}
+
+export interface AdaptiveStats {
+  stats: AccountStats;
+  capabilities: DataCapabilities;
+  adaptiveFeatures: {
+    showAdvancedMetrics: boolean;
+    showEfficiencyAnalysis: boolean;
+    showTimingAnalysis: boolean;
+    showStrategyBreakdown: boolean;
+  };
+}
+
+export interface DataQualityBadgeProps {
+  score: number;
+  breakdown: {
+    basic: number;
+    enhanced: number;
+    complete: number;
+  };
+  className?: string;
+}
+
+export interface CapabilityTooltipProps {
+  available: string[];
+  missing: string[];
+  recommendations?: Array<{
+    type: 'upgrade' | 'import' | 'complete';
+    message: string;
+    action: string;
   }>;
 }
 
