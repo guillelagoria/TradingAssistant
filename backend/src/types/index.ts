@@ -236,3 +236,10 @@ export * from './market';
 
 // Re-export key market interfaces for convenience
 export type { MarketInfo, ContractSpecification, MarketDefaultsResponse } from './market';
+
+// Export NT8 import types
+export * from './nt8.types';
+export * from './import.types';
+
+// Export economic events types
+export * from './economicEvents';

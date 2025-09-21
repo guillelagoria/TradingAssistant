@@ -81,3 +81,16 @@ export type {
   PdfExportResult,
   PdfExportOptions
 } from '../utils/pdfExport';
+
+// Import types
+export type {
+  NT8Trade,
+  ImportPreviewData,
+  ImportError,
+  ImportWarning,
+  ImportSession,
+  ImportProgress,
+  ImportStats,
+  ImportOptions,
+  FileUploadStatus
+} from './import';

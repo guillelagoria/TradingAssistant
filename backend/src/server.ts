@@ -23,6 +23,7 @@ import marketRoutes from './routes/market.routes';
 import accountRoutes from './routes/account.routes';
 import uploadRoutes from './routes/upload.routes';
 import economicEventsRoutes from './routes/economicEvents.routes';
+import importRoutes from './routes/import.routes';
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient();
@@ -101,6 +102,8 @@ app.use('/api/stats', authenticate, statsRoutes);
 app.use('/api/analysis', authenticate, analysisRoutes);
 app.use('/api/markets', authenticate, marketRoutes);
 app.use('/api/uploads', uploadRoutes);
+// Import routes (require authentication)
+app.use('/api/import', authenticate, importRoutes);
 // Economic Events routes (public - no auth required for market data)
 app.use('/api/economic-events', economicEventsRoutes);
 

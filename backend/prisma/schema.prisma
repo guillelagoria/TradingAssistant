@@ -22,6 +22,7 @@ model User {
   trades            Trade[]
   accounts          Account[]
   marketPreferences UserMarketPreferences?
+  importSessions    ImportSession[]
 
   @@index([activeAccountId])
   @@map("users")
@@ -72,6 +73,7 @@ model Trade {
   userId            String
   accountId         String
   strategyId        String?
+  importSessionId   String?
   symbol            String
   market            String         @default("ES")
   direction         TradeDirection
@@ -104,6 +106,7 @@ model Trade {
   strategy          Strategy?      @relation(fields: [strategyId], references: [id])
   user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   account           Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  importSession     ImportSession? @relation(fields: [importSessionId], references: [id], onDelete: SetNull)
 
   @@index([userId, entryDate])
   @@index([userId, symbol])
@@ -111,6 +114,7 @@ model Trade {
   @@index([userId, strategyId])
   @@index([accountId])
   @@index([accountId, entryDate])
+  @@index([importSessionId])
   @@map("trades")
 }
 
@@ -129,6 +133,36 @@ model UserMarketPreferences {
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_market_preferences")
+}
+
+model ImportSession {
+  id              String         @id @default(cuid())
+  userId          String
+  source          ImportSource
+  status          ImportStatus   @default(PENDING)
+  fileName        String?
+  filePath        String?
+  fileSize        Int?
+  totalRows       Int            @default(0)
+  processedRows   Int            @default(0)
+  importedRows    Int            @default(0)
+  skippedRows     Int            @default(0)
+  errorRows       Int            @default(0)
+  duplicateRows   Int            @default(0)
+  errors          Json           @default("[]")
+  warnings        Json           @default("[]")
+  metadata        Json?
+  startedAt       DateTime       @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades          Trade[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, source])
+  @@map("import_sessions")
 }
 
 enum TradeDirection {
@@ -164,5 +198,21 @@ enum TradeSource {
   MANUAL
   QUICK_LOGGER
   IMPORT
+  API
+  NT8_IMPORT
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum ImportSource {
+  NT8_CSV
+  NT8_EXCEL
+  MANUAL
   API
 }

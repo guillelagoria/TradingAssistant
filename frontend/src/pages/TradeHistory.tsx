@@ -36,7 +36,8 @@ import {
   RefreshCw,
   MoreHorizontal,
   Table,
-  Calendar
+  Calendar,
+  Upload
 } from 'lucide-react';
 
 function TradeHistory() {
@@ -86,6 +87,10 @@ function TradeHistory() {
 
   const handleAddTrade = () => {
     navigate('/trades/new');
+  };
+
+  const handleImportTrades = () => {
+    navigate('/import');
   };
 
   const handleViewTrade = (trade: Trade) => {
@@ -354,6 +359,10 @@ function TradeHistory() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </Button>
+          <Button variant="outline" onClick={handleImportTrades} size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            Import NT8
           </Button>
           <Button onClick={handleAddTrade} size="sm">
             <Plus className="h-4 w-4 mr-2" />

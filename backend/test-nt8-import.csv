@@ -1,0 +1,4 @@
+Trade number;Instrument;Account;Strategy;Market pos.;Qty;Entry time;Entry price;Exit time;Exit price;Exit name;Entry name;Profit;Cum. profit;Commission;Description;Connection;Trade duration
+1;ES SEP25;Sim101;MySampleStrategy;Long;1;2/9/2025 12:18:21;5987,25;2/9/2025 12:21:15;5992,50;;Entry 1;$ 262,50;$ 262,50;$ 2,00;;Continuum;00:02:54
+2;ES SEP25;Sim101;MySampleStrategy;Short;1;2/9/2025 14:05:33;5995,75;2/9/2025 14:10:45;5990,25;;Entry 2;$ 225,00;$ 487,50;$ 2,00;;Continuum;00:05:12
+3;NQ DEC25;Sim101;MySampleStrategy;Long;2;3/9/2025 09:30:15;21250,50;3/9/2025 09:45:30;21275,25;;Entry 3;$ 495,00;$ 982,50;$ 4,00;;Continuum;00:15:15

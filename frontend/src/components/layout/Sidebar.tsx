@@ -3,6 +3,7 @@ import {
   BarChart3,
   History,
   Plus,
+  Upload,
   TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,13 @@ const navigation = [
     href: '/trades/new',
     icon: Plus,
     description: 'Record new trade',
+    exact: true
+  },
+  {
+    name: 'Import NT8',
+    href: '/import',
+    icon: Upload,
+    description: 'Import NinjaTrader data',
     exact: true
   }
 ];
