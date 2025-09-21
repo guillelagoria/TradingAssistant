@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
   Table,
@@ -21,20 +21,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/shared';
 import { Trade, TradeSortConfig, TradeDirection, TradeResult } from '@/types';
 import { useTradeStore } from '@/store/tradeStore';
+import { useActiveAccount } from '@/store/accountStore';
 import { cn } from '@/lib/utils';
-import { 
-  MoreHorizontal, 
-  ArrowUpDown, 
-  ArrowUp, 
+import {
+  MoreHorizontal,
+  ArrowUpDown,
+  ArrowUp,
   ArrowDown,
   Edit,
   Eye,
   Trash2,
   TrendingUp,
   TrendingDown,
-  Download
+  Download,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { ExportDialog } from '../export';
+import EnhancedTradeEditModal from './EnhancedTradeEditModal';
 
 interface TradeTableProps {
   trades?: Trade[];
@@ -64,16 +68,24 @@ function TradeTable({
   onSelectAll,
   showSelection = false
 }: TradeTableProps) {
-  const { 
-    trades: storeTrades, 
-    sortConfig, 
+  const {
+    trades: storeTrades,
+    sortConfig,
     setSortConfig,
     getFilteredTrades,
-    getSortedTrades 
+    getSortedTrades,
+    refreshTradesForAccount
   } = useTradeStore();
-  
+
+  const activeAccount = useActiveAccount();
   const trades = propTrades || getSortedTrades(getFilteredTrades());
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Enhanced Edit Modal State
+  const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   // Handle window resize for responsive design
   useState(() => {
@@ -133,6 +145,73 @@ function TradeTable({
   const formatPercentage = (value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
+
+  // Smart modal selection logic
+  const shouldUseEnhancedModal = (trade: Trade) => {
+    return trade.source === 'NT8_IMPORT' && trade.hasAdvancedData === true;
+  };
+
+  // Enhanced edit handler
+  const handleEditTrade = (trade: Trade) => {
+    if (shouldUseEnhancedModal(trade)) {
+      // Use enhanced modal for NT8 trades with advanced data
+      setEditingTrade(trade);
+      setIsEditModalOpen(true);
+    } else {
+      // Fall back to external edit handler (navigation to edit page)
+      onEdit?.(trade);
+    }
+  };
+
+  // Enhanced modal close handler
+  const handleEditModalClose = (open: boolean) => {
+    setIsEditModalOpen(open);
+    if (!open) {
+      setEditingTrade(null);
+      // Clear any error states when modal closes
+      setUpdateError(null);
+    }
+  };
+
+  // Success feedback effect - auto-hide after 3 seconds
+  useEffect(() => {
+    if (updateSuccess) {
+      const timer = setTimeout(() => {
+        setUpdateSuccess(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [updateSuccess]);
+
+  // Error feedback effect - auto-hide after 5 seconds
+  useEffect(() => {
+    if (updateError) {
+      const timer = setTimeout(() => {
+        setUpdateError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [updateError]);
+
+  // Listen for successful trade updates and refresh data
+  useEffect(() => {
+    const handleTradeUpdated = async () => {
+      try {
+        setUpdateSuccess(true);
+        // Refresh trades data to get updated stats
+        if (activeAccount) {
+          await refreshTradesForAccount(activeAccount.id);
+        }
+      } catch (error) {
+        setUpdateError('Failed to refresh trade data after update');
+      }
+    };
+
+    // Check if modal was just closed after successful update
+    if (!isEditModalOpen && editingTrade && updateSuccess) {
+      handleTradeUpdated();
+    }
+  }, [isEditModalOpen, editingTrade, activeAccount, refreshTradesForAccount, updateSuccess]);
 
   if (loading) {
     return (
@@ -211,7 +290,7 @@ function TradeTable({
                     <Eye className="mr-2 h-4 w-4" />
                     View
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onEdit?.(trade)}>
+                  <DropdownMenuItem onClick={() => handleEditTrade(trade)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
@@ -272,7 +351,7 @@ function TradeTable({
   }
 
   // Desktop Table View
-  return (
+  const desktopContent = (
     <Card>
       {/* Table header with export button */}
       {showExport && (
@@ -305,8 +384,8 @@ function TradeTable({
               </TableHead>
               <TableHead>Direction</TableHead>
               <TableHead>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => handleSort('entryDate')}
                   className="h-8 p-0 font-semibold"
                 >
@@ -315,8 +394,8 @@ function TradeTable({
                 </Button>
               </TableHead>
               <TableHead className="text-right">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => handleSort('entryPrice')}
                   className="h-8 p-0 font-semibold"
                 >
@@ -434,11 +513,11 @@ function TradeTable({
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit?.(trade)}>
+                      <DropdownMenuItem onClick={() => handleEditTrade(trade)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => onDelete?.(trade)}
                         className="text-destructive"
                       >
@@ -454,6 +533,135 @@ function TradeTable({
         </Table>
       </CardContent>
     </Card>
+  );
+
+  // Return mobile or desktop content with enhanced modal
+  return (
+    <>
+      {isMobile ? (
+        <div className="space-y-4">
+          {/* Export button for mobile */}
+          {showExport && (
+            <div className="flex justify-end">
+              {renderExportButton()}
+            </div>
+          )}
+          {trades.map((trade) => (
+            <Card key={trade.id} className="p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {showSelection && onSelectTrade && (
+                    <Checkbox
+                      checked={selectedTrades.includes(trade.id)}
+                      onCheckedChange={(checked) => onSelectTrade(trade.id, checked as boolean)}
+                    />
+                  )}
+                  {getDirectionIcon(trade.direction)}
+                  <span className="font-semibold">{trade.symbol}</span>
+                  {getResultBadge(trade.result, trade.netPnl)}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onView?.(trade)}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditTrade(trade)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => onDelete?.(trade)}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Entry:</span>
+                  <div className="font-medium">{formatCurrency(trade.entryPrice)}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Exit:</span>
+                  <div className="font-medium">
+                    {trade.exitPrice ? formatCurrency(trade.exitPrice) : 'Open'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Net P&L:</span>
+                  <div className={cn(
+                    "font-medium",
+                    trade.netPnl > 0 ? "text-green-600" : trade.netPnl < 0 ? "text-red-600" : "text-gray-600"
+                  )}>
+                    {formatCurrency(trade.netPnl)}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">MAE/MFE:</span>
+                  <div className="font-medium">
+                    <span className="text-red-600">
+                      {trade.maxAdversePrice ? formatCurrency(trade.maxAdversePrice) : '-'}
+                    </span>
+                    {' / '}
+                    <span className="text-green-600">
+                      {trade.maxFavorablePrice ? formatCurrency(trade.maxFavorablePrice) : '-'}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Date:</span>
+                  <div className="font-medium">
+                    {format(new Date(trade.entryDate), 'MMM dd, yyyy')}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        desktopContent
+      )}
+
+      {/* Success/Error Feedback */}
+      {updateSuccess && (
+        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg dark:bg-green-950/50 dark:border-green-800">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <span className="text-sm font-medium text-green-800 dark:text-green-200">
+              Trade updated successfully!
+            </span>
+          </div>
+        </div>
+      )}
+
+      {updateError && (
+        <div className="fixed top-4 right-4 z-50 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg dark:bg-red-950/50 dark:border-red-800">
+          <div className="flex items-center gap-2">
+            <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <span className="text-sm font-medium text-red-800 dark:text-red-200">
+              {updateError}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Edit Modal for NT8 trades */}
+      <EnhancedTradeEditModal
+        open={isEditModalOpen}
+        onOpenChange={handleEditModalClose}
+        trade={editingTrade}
+      />
+    </>
   );
 }
 
