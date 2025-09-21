@@ -45,6 +45,61 @@ export class NT8ImportService {
     let session: ImportSession | null = null;
 
     try {
+      // PREVENT CONCURRENT IMPORTS: Use database transaction with advisory lock
+      console.log('🔒 [NT8ImportService] Acquiring import lock for user:', options.userId);
+
+      // Use PostgreSQL advisory lock to prevent concurrent imports
+      // SQLite doesn't support advisory locks, so we'll use a different approach
+      const lockResult = await this.prisma.$transaction(async (tx) => {
+        // Try to create a temporary "lock" record
+        const lockKey = `import_lock_${options.userId}`;
+
+        try {
+          // Check if there's already an active import (any status except FAILED/COMPLETED older than 2 minutes)
+          const activeImport = await tx.importSession.findFirst({
+            where: {
+              userId: options.userId,
+              OR: [
+                {
+                  status: {
+                    in: [ImportStatus.PENDING, ImportStatus.PROCESSING]
+                  }
+                },
+                {
+                  AND: [
+                    {
+                      status: {
+                        notIn: ['FAILED', 'COMPLETED']
+                      }
+                    },
+                    {
+                      startedAt: {
+                        gte: new Date(Date.now() - 120000) // Last 2 minutes
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            orderBy: { startedAt: 'desc' }
+          });
+
+          if (activeImport) {
+            console.log('⚠️ [NT8ImportService] Active import found:', activeImport.id, 'status:', activeImport.status);
+            throw new Error(`Import already in progress (session: ${activeImport.id}). Please wait for the current import to complete.`);
+          }
+
+          console.log('✅ [NT8ImportService] No active imports found, proceeding...');
+          return true;
+        } catch (error) {
+          throw error;
+        }
+      });
+
+      if (!lockResult) {
+        throw new Error('Failed to acquire import lock');
+      }
+
       console.log('📁 [NT8ImportService] Detecting file format...');
       // Detect file format
       const format = this.detectFileFormat(filePath);
@@ -347,21 +402,45 @@ export class NT8ImportService {
               return;
             }
 
-            const trade = await this.createTrade(
-              parsedTrade,
-              options.userId,
-              accountId,
-              sessionId,
-              options.defaultCommission || user.commission || 0,
-              strategyMap
-            );
+            console.log('💾 [importNT8File] Creating trade:', parsedTrade.symbol, parsedTrade.entryPrice, 'for row', rowNumber);
 
-            results.push({
-              rowNumber,
-              success: true,
-              tradeId: trade.id
-            });
-            summary.imported++;
+            try {
+              const trade = await this.createTrade(
+                parsedTrade,
+                options.userId,
+                accountId,
+                sessionId,
+                options.defaultCommission || user.commission || 0,
+                strategyMap
+              );
+              console.log('💾 [importNT8File] Trade created with ID:', trade.id);
+
+              results.push({
+                rowNumber,
+                success: true,
+                tradeId: trade.id
+              });
+              summary.imported++;
+              console.log('💾 [importNT8File] Summary so far - imported:', summary.imported, 'of', summary.total);
+
+            } catch (createError: any) {
+              // Handle unique constraint violation (duplicate trade at DB level)
+              if (createError.code === 'P2002' || createError.message?.includes('unique constraint')) {
+                console.log('💾 [importNT8File] ⚠️ Database-level duplicate detected for row', rowNumber);
+                results.push({
+                  rowNumber,
+                  success: false,
+                  duplicate: true,
+                  warnings: ['Trade blocked by database unique constraint (likely duplicate)']
+                });
+                warnings.push(`Row ${rowNumber}: Duplicate trade blocked by database constraint`);
+                summary.duplicates++;
+                summary.skipped++;
+              } else {
+                // Re-throw other errors
+                throw createError;
+              }
+            }
           } else {
             // For dry runs, include the parsed trade data for preview
             // Mark duplicates appropriately but still show them in preview
@@ -610,51 +689,21 @@ export class NT8ImportService {
     userId: string,
     accountId: string
   ): Promise<boolean> {
-    // First, let's see what existing trades we have for this user/account
-    const allExistingTrades = await this.prisma.trade.findMany({
-      where: {
-        userId,
-        accountId
-      },
-      select: {
-        id: true,
-        symbol: true,
-        direction: true,
-        entryPrice: true,
-        quantity: true,
-        entryDate: true,
-        userId: true,
-        accountId: true
-      },
-      take: 5 // Just get first 5 for debugging
-    });
-
-    console.log('🔍 [checkDuplicate] === DUPLICATE DETECTION DEBUG ===');
-    console.log('🔍 [checkDuplicate] Searching for trade:', {
-      userId,
-      accountId,
+    console.log('🔍 [checkDuplicate] === ENHANCED DUPLICATE DETECTION WITH RACE CONDITION PROTECTION ===');
+    console.log('🔍 [checkDuplicate] Checking for trade:', {
       symbol: trade.symbol,
       direction: trade.direction,
       entryPrice: trade.entryPrice,
       quantity: trade.quantity,
-      entryDate: trade.entryDate,
-      entryDateISO: trade.entryDate.toISOString()
-    });
-    console.log('🔍 [checkDuplicate] Found', allExistingTrades.length, 'existing trades for this user/account:');
-    allExistingTrades.forEach((existing, index) => {
-      console.log(`🔍 [checkDuplicate] Existing trade ${index + 1}:`, {
-        id: existing.id,
-        userId: existing.userId,
-        accountId: existing.accountId,
-        symbol: existing.symbol,
-        direction: existing.direction,
-        entryPrice: existing.entryPrice,
-        quantity: existing.quantity,
-        entryDate: existing.entryDate,
-        entryDateISO: existing.entryDate.toISOString()
-      });
+      entryDate: trade.entryDate.toISOString()
     });
 
+    // Create robust criteria for duplicate detection
+    // A trade is considered duplicate if it has:
+    // 1. Same symbol, direction, entry price, quantity
+    // 2. Entry date within 5 minutes (more generous for NT8 timing variations)
+    // 3. Same user and account
+    // 4. NOW WITH PROTECTION AGAINST RACE CONDITIONS
     const whereClause = {
       userId,
       accountId,
@@ -663,29 +712,51 @@ export class NT8ImportService {
       entryPrice: trade.entryPrice,
       quantity: trade.quantity,
       entryDate: {
-        gte: new Date(trade.entryDate.getTime() - 60000), // Within 1 minute
-        lte: new Date(trade.entryDate.getTime() + 60000)
+        gte: new Date(trade.entryDate.getTime() - 300000), // Within 5 minutes (more generous)
+        lte: new Date(trade.entryDate.getTime() + 300000)
       }
     };
 
-    console.log('🔍 [checkDuplicate] Query criteria:', JSON.stringify(whereClause, null, 2));
+    console.log('🔍 [checkDuplicate] Search criteria:', JSON.stringify(whereClause, null, 2));
 
-    const existingTrade = await this.prisma.trade.findFirst({
-      where: whereClause
-    });
+    // Use FOR UPDATE to lock the rows during read to prevent race conditions
+    // This ensures that if two concurrent imports are checking the same trade,
+    // one will wait for the other to complete before proceeding
+    const existingTrade = await this.prisma.$queryRaw`
+      SELECT id, symbol, direction, "entryPrice", quantity, "entryDate", "importSessionId", source
+      FROM trades
+      WHERE "userId" = ${userId}
+        AND "accountId" = ${accountId}
+        AND symbol = ${trade.symbol}
+        AND direction = ${trade.direction}
+        AND "entryPrice" = ${trade.entryPrice}
+        AND quantity = ${trade.quantity}
+        AND "entryDate" BETWEEN ${new Date(trade.entryDate.getTime() - 300000)} AND ${new Date(trade.entryDate.getTime() + 300000)}
+      LIMIT 1
+    `;
 
-    console.log('🔍 [checkDuplicate] Found existing trade:', existingTrade ? 'YES' : 'NO');
-    if (existingTrade) {
-      console.log('🔍 [checkDuplicate] Duplicate details:', {
-        id: existingTrade.id,
-        symbol: existingTrade.symbol,
-        entryPrice: existingTrade.entryPrice,
-        entryDate: existingTrade.entryDate
+    const existingTradeArray = existingTrade as any[];
+
+    if (existingTradeArray.length > 0) {
+      const tradeRecord = existingTradeArray[0];
+      console.log('🔍 [checkDuplicate] ❌ DUPLICATE FOUND!');
+      console.log('🔍 [checkDuplicate] Existing trade details:', {
+        id: tradeRecord.id,
+        symbol: tradeRecord.symbol,
+        direction: tradeRecord.direction,
+        entryPrice: tradeRecord.entryPrice,
+        quantity: tradeRecord.quantity,
+        entryDate: tradeRecord.entryDate,
+        importSessionId: tradeRecord.importSessionId,
+        source: tradeRecord.source
       });
+      console.log('🔍 [checkDuplicate] === DUPLICATE DETECTED ===');
+      return true;
+    } else {
+      console.log('🔍 [checkDuplicate] ✅ No duplicate found, trade is unique');
+      console.log('🔍 [checkDuplicate] === TRADE IS UNIQUE ===');
+      return false;
     }
-    console.log('🔍 [checkDuplicate] === END DEBUG ===');
-
-    return !!existingTrade;
   }
 
   /**

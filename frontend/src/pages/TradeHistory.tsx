@@ -53,7 +53,8 @@ function TradeHistory() {
     pagination,
     filters,
     stats,
-    refreshTradesForAccount
+    refreshTradesForAccount,
+    getAllTradeIds
   } = useTradeStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,9 +127,11 @@ function TradeHistory() {
     }
   };
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = async (checked: boolean) => {
     if (checked) {
-      setSelectedTrades(trades.map(trade => trade.id));
+      // Get ALL trade IDs, not just visible ones
+      const allTradeIds = await getAllTradeIds();
+      setSelectedTrades(allTradeIds);
     } else {
       setSelectedTrades([]);
     }

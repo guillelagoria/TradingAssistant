@@ -15,13 +15,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImportWizard, ImportHistory } from '@/components/import';
 import { useImportStore } from '@/store/importStore';
+import { useTradeStore } from '@/store/tradeStore';
+import { useActiveAccount } from '@/store/accountStore';
 
 export function ImportPage() {
   const navigate = useNavigate();
   const { resetImport } = useImportStore();
+  const { refreshTradesForAccount } = useTradeStore();
+  const activeAccount = useActiveAccount();
   const [activeTab, setActiveTab] = useState<'import' | 'history'>('import');
 
-  const handleImportComplete = () => {
+  const handleImportComplete = async () => {
+    // Refresh trades for the active account to reflect imported data
+    if (activeAccount) {
+      await refreshTradesForAccount(activeAccount.id);
+    }
+
     // Navigate to dashboard after successful import
     navigate('/');
   };

@@ -186,7 +186,7 @@ export const accountService = {
    */
   async setActiveAccount(accountId: string): Promise<void> {
     try {
-      await apiClient.post(`/accounts/${accountId}/activate`);
+      await apiClient.patch(`/accounts/${accountId}/set-active`);
     } catch (error) {
       console.error(`Failed to set active account ${accountId}:`, error);
       throw error;

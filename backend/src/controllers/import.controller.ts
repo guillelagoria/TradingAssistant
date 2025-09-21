@@ -222,6 +222,10 @@ export const previewNT8Import = async (req: Request, res: Response): Promise<voi
  */
 export const executeNT8Import = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('🚀 [executeNT8Import] === EXECUTE IMPORT STARTED ===');
+    console.log('🚀 [executeNT8Import] Request body:', req.body);
+    console.log('🚀 [executeNT8Import] User ID:', (req as any).user?.id);
+
     // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -235,6 +239,8 @@ export const executeNT8Import = async (req: Request, res: Response): Promise<voi
 
     // Get session ID and options from request body
     const { sessionId, skipDuplicates = true, defaultCommission = 0, fieldMapping = {} } = req.body;
+    console.log('🚀 [executeNT8Import] Session ID:', sessionId);
+    console.log('🚀 [executeNT8Import] Skip duplicates:', skipDuplicates);
 
     if (!sessionId) {
       res.status(400).json({
@@ -273,19 +279,23 @@ export const executeNT8Import = async (req: Request, res: Response): Promise<voi
     };
 
     // Process the file and import trades
+    console.log('🚀 [executeNT8Import] About to call importNT8File...');
     const result: BatchImportResult = await nt8ImportService.importNT8File(
       sessionData.filePath,
       options
     );
+    console.log('🚀 [executeNT8Import] Import completed. Result summary:', result.summary);
 
     // Clean up the session after successful import
     await sessionStorage.deleteSession(sessionId);
 
+    console.log('🚀 [executeNT8Import] Sending response...');
     res.status(200).json({
       success: true,
       message: 'Import completed successfully',
       data: result
     });
+    console.log('🚀 [executeNT8Import] === EXECUTE IMPORT FINISHED ===');
 
   } catch (error) {
     console.error('NT8 Execute Import Error:', error);

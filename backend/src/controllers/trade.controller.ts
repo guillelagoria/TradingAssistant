@@ -27,11 +27,15 @@ export const getTrades = async (
       sortOrder = 'desc'
     } = req.query;
 
+    console.log('📊 [getTrades] === GET TRADES REQUEST ===');
+    console.log('📊 [getTrades] Query params:', req.query);
+
     const skip = (Number(page) - 1) * Number(limit);
-    
+
     // Temporarily use a default test user ID for development
     // TODO: Remove when authentication is properly implemented
     const userId = req.userId || 'test-user-id';
+    console.log('📊 [getTrades] Using userId:', userId);
     
     const where: any = {
       userId
@@ -49,6 +53,8 @@ export const getTrades = async (
       if (endDate) where.entryDate.lte = new Date(String(endDate));
     }
 
+    console.log('📊 [getTrades] Where clause:', JSON.stringify(where, null, 2));
+
     const [trades, total] = await Promise.all([
       prisma.trade.findMany({
         where,
@@ -58,6 +64,8 @@ export const getTrades = async (
       }),
       prisma.trade.count({ where })
     ]);
+
+    console.log('📊 [getTrades] Found', trades.length, 'trades, total:', total);
 
     res.json({
       success: true,

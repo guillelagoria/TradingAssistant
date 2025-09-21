@@ -115,20 +115,30 @@ export const tradesService = {
   ): Promise<PaginatedResponse<Trade>> {
     try {
       const queryParams = buildQueryParams(filters, page, limit, accountId);
-      const response = await apiClient.get<PaginatedResponse<Trade>>(`/trades${queryParams}`);
-      
+      const fullUrl = `/trades${queryParams}`;
+      console.log('🌐 [tradesService.getTrades] Making request to:', fullUrl);
+      console.log('🌐 [tradesService.getTrades] With accountId:', accountId);
+      console.log('🌐 [tradesService.getTrades] API Base URL:', apiClient.defaults.baseURL);
+
+      const response = await apiClient.get<PaginatedResponse<Trade>>(fullUrl);
+      console.log('🌐 [tradesService.getTrades] Response received:', response.data.data?.trades?.length || 0, 'trades');
+
+      // Handle both possible response formats
+      const responseData = response.data.data || response.data;
+      const trades = responseData.trades || [];
+
       // Convert date strings back to Date objects
-      const tradesWithDates = response.data.data.trades.map(trade => ({
+      const tradesWithDates = trades.map(trade => ({
         ...trade,
         entryDate: new Date(trade.entryDate),
         exitDate: trade.exitDate ? new Date(trade.exitDate) : undefined,
         createdAt: new Date(trade.createdAt),
         updatedAt: new Date(trade.updatedAt)
       }));
-      
+
       return {
         data: tradesWithDates,
-        pagination: response.data.data.pagination,
+        pagination: responseData.pagination,
         success: response.data.success
       };
     } catch (error) {

@@ -101,6 +101,8 @@ interface TradeState {
   
   // Account management
   refreshTradesForAccount: (accountId?: string) => Promise<void>;
+  getAllTradeIds: () => Promise<string[]>;
+  clearAllData: () => void;
 
   // Utility functions
   getFilteredTrades: () => Trade[];
@@ -160,14 +162,18 @@ export const useTradeStore = create<TradeState>()(
         try {
           // Get active account ID
           const fetchActiveAccountId = useAccountStore.getState().getActiveAccountId();
+          console.log('🔄 [fetchTrades] Fetching trades for account:', fetchActiveAccountId);
 
           const response = await tradesService.getTrades(filters, page, limit, fetchActiveAccountId);
+          console.log('🔄 [fetchTrades] Backend returned', response.data.length, 'trades');
 
           const tradesWithCalculations = response.data.map(trade => {
             // Always recalculate to ensure result field is present
             const calculations = calculateTradeMetricsForTrade(trade);
             return calculations as Trade;
           });
+
+          console.log('🔄 [fetchTrades] Setting', tradesWithCalculations.length, 'trades in store');
 
           set({
             trades: tradesWithCalculations,
@@ -376,11 +382,11 @@ export const useTradeStore = create<TradeState>()(
           const bulkActiveAccountId = useAccountStore.getState().getActiveAccountId();
           const deletedCount = await tradesService.bulkDeleteTrades(ids, bulkActiveAccountId);
 
-          set(state => ({
-            trades: state.trades.filter(trade => !ids.includes(trade.id)),
-            currentTrade: state.currentTrade && ids.includes(state.currentTrade.id) ? null : state.currentTrade,
-            loading: false
-          }));
+          // Instead of filtering locally, refresh all data from backend
+          // This ensures we get the actual state after deletion
+          if (bulkActiveAccountId) {
+            await get().refreshTradesForAccount(bulkActiveAccountId);
+          }
 
           get().refreshStats();
 
@@ -610,18 +616,69 @@ export const useTradeStore = create<TradeState>()(
       refreshTradesForAccount: async (accountId) => {
 
         const targetAccountId = accountId || useAccountStore.getState().getActiveAccountId();
+        console.log('🔄 [refreshTradesForAccount] Called with accountId:', accountId, 'resolved to:', targetAccountId);
 
         if (!targetAccountId) {
           // Clear trades if no account is active
+          console.log('🔄 [refreshTradesForAccount] No account active, clearing trades');
           set({ trades: [], stats: null });
           return;
         }
 
         try {
           // Fetch trades for the specified account
+          console.log('🔄 [refreshTradesForAccount] Calling fetchTrades...');
           await get().fetchTrades();
+          console.log('🔄 [refreshTradesForAccount] fetchTrades completed');
         } catch (error) {
+          console.error('🔄 [refreshTradesForAccount] Error:', error);
         }
+      },
+
+      // Get all trade IDs for bulk operations (bypasses pagination)
+      getAllTradeIds: async () => {
+        try {
+          const activeAccountId = useAccountStore.getState().getActiveAccountId();
+          const allTradeIds: string[] = [];
+          let page = 1;
+          const maxLimit = 100; // Backend maximum limit
+          let hasMore = true;
+
+          // Fetch all trades in batches
+          while (hasMore) {
+            const response = await tradesService.getTrades({}, page, maxLimit, activeAccountId);
+            const tradeIds = response.data.map(trade => trade.id);
+            allTradeIds.push(...tradeIds);
+
+            // Check if there are more pages
+            hasMore = response.pagination.hasMore && tradeIds.length === maxLimit;
+            page++;
+
+            // Safety break to prevent infinite loops
+            if (page > 100) { // Max 10,000 trades total
+              console.warn('getAllTradeIds: Reached maximum page limit');
+              break;
+            }
+          }
+
+          return allTradeIds;
+        } catch (error) {
+          console.error('Failed to get all trade IDs:', error);
+          return [];
+        }
+      },
+
+      // Clear all data from store (debugging function)
+      clearAllData: () => {
+        console.log('🗑️ [clearAllData] Clearing all trade data from store');
+        set({
+          trades: [],
+          currentTrade: null,
+          tradeDraft: null,
+          stats: null,
+          loading: false,
+          error: null
+        });
       }
       };
     },

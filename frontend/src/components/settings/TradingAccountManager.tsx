@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -115,7 +115,7 @@ const TradingAccountManager: React.FC = () => {
     }
   }, [showCreateDialog, editingAccount, setError]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       name: '',
       accountType: AccountType.DEMO,
@@ -130,7 +130,7 @@ const TradingAccountManager: React.FC = () => {
       dataInfoNotes: ''
     });
     setFormErrors({});
-  };
+  }, []);
 
   const populateForm = (account: Account) => {
     setFormData({
@@ -148,7 +148,7 @@ const TradingAccountManager: React.FC = () => {
     });
   };
 
-  const validateForm = (): boolean => {
+  const validateForm = useCallback((): boolean => {
     const errors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
@@ -187,9 +187,30 @@ const TradingAccountManager: React.FC = () => {
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  };
+  }, [formData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Optimized onChange handlers to prevent unnecessary re-renders
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, name: e.target.value }));
+  }, []);
+
+  const handleAccountTypeChange = useCallback((value: AccountType) => {
+    setFormData(prev => ({ ...prev, accountType: value }));
+  }, []);
+
+  const handleCurrencyChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, currency: value }));
+  }, []);
+
+  const handleInitialBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, initialBalance: e.target.value }));
+  }, []);
+
+  const handleCurrentBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, currentBalance: e.target.value }));
+  }, []);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -222,10 +243,21 @@ const TradingAccountManager: React.FC = () => {
       }
 
       resetForm();
+
+      // Refresh accounts list to ensure UI is updated
+      await fetchAccounts();
     } catch (error) {
       toast.error(editingAccount ? 'Failed to update account' : 'Failed to create account');
     }
-  };
+  }, [
+    formData,
+    editingAccount,
+    updateAccount,
+    createAccount,
+    resetForm,
+    validateForm,
+    fetchAccounts
+  ]);
 
   const handleEdit = (account: Account) => {
     setEditingAccount(account);
@@ -237,6 +269,9 @@ const TradingAccountManager: React.FC = () => {
       await deleteAccount(accountId);
       toast.success('Account deleted successfully');
       setShowDeleteConfirm(null);
+
+      // Refresh accounts list to ensure UI is updated
+      await fetchAccounts();
     } catch (error) {
       toast.error('Failed to delete account');
     }
@@ -248,6 +283,9 @@ const TradingAccountManager: React.FC = () => {
     try {
       await switchAccount(accountId);
       toast.success('Account switched successfully');
+
+      // Refresh accounts list to ensure UI is updated
+      await fetchAccounts();
     } catch (error) {
       toast.error('Failed to switch account');
     }
@@ -401,7 +439,7 @@ const TradingAccountManager: React.FC = () => {
     );
   };
 
-  const AccountForm: React.FC = () => (
+  const AccountForm: React.FC = React.useMemo(() => () => (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <Alert variant="destructive">
@@ -412,11 +450,13 @@ const TradingAccountManager: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Account Name *</Label>
+          <Label htmlFor="account-name">Account Name *</Label>
           <Input
-            id="name"
+            key="account-name-input"
+            id="account-name"
+            name="name"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={handleNameChange}
             placeholder="My Trading Account"
             className={formErrors.name ? 'border-red-500' : ''}
           />
@@ -426,12 +466,13 @@ const TradingAccountManager: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="accountType">Account Type *</Label>
+          <Label htmlFor="account-type">Account Type *</Label>
           <Select
+            key="account-type-select"
             value={formData.accountType}
-            onValueChange={(value: AccountType) => setFormData({ ...formData, accountType: value })}
+            onValueChange={handleAccountTypeChange}
           >
-            <SelectTrigger>
+            <SelectTrigger id="account-type">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -454,10 +495,11 @@ const TradingAccountManager: React.FC = () => {
         <div className="space-y-2">
           <Label htmlFor="currency">Currency *</Label>
           <Select
+            key="currency-select"
             value={formData.currency}
-            onValueChange={(value) => setFormData({ ...formData, currency: value })}
+            onValueChange={handleCurrencyChange}
           >
-            <SelectTrigger>
+            <SelectTrigger id="currency">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -481,13 +523,15 @@ const TradingAccountManager: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="initialBalance">Initial Balance *</Label>
+          <Label htmlFor="initial-balance">Initial Balance *</Label>
           <Input
-            id="initialBalance"
+            key="initial-balance-input"
+            id="initial-balance"
+            name="initialBalance"
             type="number"
             step="0.01"
             value={formData.initialBalance}
-            onChange={(e) => setFormData({ ...formData, initialBalance: e.target.value })}
+            onChange={handleInitialBalanceChange}
             placeholder="10000"
             className={formErrors.initialBalance ? 'border-red-500' : ''}
           />
@@ -497,13 +541,15 @@ const TradingAccountManager: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="currentBalance">Current Balance</Label>
+          <Label htmlFor="current-balance">Current Balance</Label>
           <Input
-            id="currentBalance"
+            key="current-balance-input"
+            id="current-balance"
+            name="currentBalance"
             type="number"
             step="0.01"
             value={formData.currentBalance}
-            onChange={(e) => setFormData({ ...formData, currentBalance: e.target.value })}
+            onChange={handleCurrentBalanceChange}
             placeholder="Optional"
             className={formErrors.currentBalance ? 'border-red-500' : ''}
           />
@@ -627,7 +673,19 @@ const TradingAccountManager: React.FC = () => {
         </Button>
       </div>
     </form>
-  );
+  ), [
+    handleSubmit,
+    error,
+    formData,
+    formErrors,
+    showPassword,
+    setShowPassword,
+    editingAccount,
+    loading,
+    setShowCreateDialog,
+    setEditingAccount,
+    resetForm
+  ]);
 
   return (
     <div className="space-y-6">

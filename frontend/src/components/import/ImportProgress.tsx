@@ -41,12 +41,15 @@ export function ImportProgress({ onComplete, onRetry }: ImportProgressProps) {
 
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [importStarted, setImportStarted] = useState(false);
 
   useEffect(() => {
-    if (currentSession && !importProgress) {
+    if (currentSession && !importProgress && !importStarted && !isImporting) {
+      console.log('🚀 [ImportProgress] Starting import for session:', currentSession.id);
+      setImportStarted(true);
       startImport();
     }
-  }, [currentSession]);
+  }, [currentSession, importProgress, importStarted, isImporting]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -61,14 +64,25 @@ export function ImportProgress({ onComplete, onRetry }: ImportProgressProps) {
   }, [startTime, isImporting]);
 
   const startImport = async () => {
-    if (!currentSession) return;
+    if (!currentSession) {
+      console.log('⚠️ [ImportProgress] No current session, aborting import');
+      return;
+    }
 
+    if (isImporting) {
+      console.log('⚠️ [ImportProgress] Import already in progress, aborting duplicate import');
+      return;
+    }
+
+    console.log('🚀 [ImportProgress] Starting import execution for session:', currentSession.id);
     setStartTime(new Date());
     setIsImporting(true);
 
     try {
       // Execute import
+      console.log('📡 [ImportProgress] Calling executeImport API...');
       const response = await importService.executeImport(currentSession.id, options);
+      console.log('✅ [ImportProgress] Import API response:', response);
 
       // Update progress to show completion
       updateImportProgress({
