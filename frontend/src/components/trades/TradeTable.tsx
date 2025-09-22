@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { EmptyState } from '@/components/shared';
+import { EmptyState, ImagePreviewTooltip, ImageLightboxModal } from '@/components/shared';
 import { Trade, TradeSortConfig, TradeDirection, TradeResult } from '@/types';
 import { useTradeStore } from '@/store/tradeStore';
 import { useActiveAccount } from '@/store/accountStore';
@@ -87,6 +87,10 @@ function TradeTable({
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
+  // Image Lightbox State
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [lightboxTitle, setLightboxTitle] = useState<string>('');
+
   // Handle window resize for responsive design
   useState(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -151,6 +155,16 @@ function TradeTable({
   const handleEditTrade = (trade: Trade) => {
     setEditingTrade(trade);
     setIsEditModalOpen(true);
+  };
+
+  const handleImageClick = (imageUrl: string, tradeSymbol: string) => {
+    setLightboxImageUrl(imageUrl);
+    setLightboxTitle(`${tradeSymbol} Trade Screenshot`);
+  };
+
+  const closeLightbox = () => {
+    setLightboxImageUrl(null);
+    setLightboxTitle('');
   };
 
   // Unified modal close handler
@@ -372,6 +386,7 @@ function TradeTable({
                   {getSortIcon('symbol')}
                 </Button>
               </TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Direction</TableHead>
               <TableHead>
                 <Button
@@ -383,17 +398,6 @@ function TradeTable({
                   {getSortIcon('entryDate')}
                 </Button>
               </TableHead>
-              <TableHead className="text-right">
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort('entryPrice')}
-                  className="h-8 p-0 font-semibold"
-                >
-                  Entry Price
-                  {getSortIcon('entryPrice')}
-                </Button>
-              </TableHead>
-              <TableHead className="text-right">Exit Price</TableHead>
               <TableHead className="text-right">
                 <Button
                   variant="ghost"
@@ -425,8 +429,17 @@ function TradeTable({
                   {getSortIcon('maxFavorablePrice')}
                 </Button>
               </TableHead>
-              <TableHead className="text-right">ETD</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="text-right">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort('entryPrice')}
+                  className="h-8 p-0 font-semibold"
+                >
+                  Entry Price
+                  {getSortIcon('entryPrice')}
+                </Button>
+              </TableHead>
+              <TableHead className="text-right">Exit Price</TableHead>
               <TableHead className="w-[70px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -444,8 +457,18 @@ function TradeTable({
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {getDirectionIcon(trade.direction)}
-                    {trade.symbol}
+                    <span>{trade.symbol}</span>
+                    {trade.imageUrl && (
+                      <ImagePreviewTooltip
+                        imageUrl={trade.imageUrl}
+                        onImageClick={() => handleImageClick(trade.imageUrl!, trade.symbol)}
+                        size="sm"
+                      />
+                    )}
                   </div>
+                </TableCell>
+                <TableCell>
+                  {getResultBadge(trade.result, trade.netPnl)}
                 </TableCell>
                 <TableCell>
                   <Badge variant={trade.direction === TradeDirection.LONG ? "default" : "secondary"}>
@@ -454,14 +477,6 @@ function TradeTable({
                 </TableCell>
                 <TableCell>
                   {format(new Date(trade.entryDate), 'MMM dd, yyyy')}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(trade.entryPrice)}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {trade.exitPrice ? formatCurrency(trade.exitPrice) : (
-                    <Badge variant="outline">Open</Badge>
-                  )}
                 </TableCell>
                 <TableCell className={cn(
                   "text-right font-medium",
@@ -485,11 +500,13 @@ function TradeTable({
                 <TableCell className="text-right text-green-600">
                   {trade.maxFavorablePrice ? formatCurrency(trade.maxFavorablePrice) : '-'}
                 </TableCell>
-                <TableCell className="text-right">
-                  {trade.maxDrawdown !== null && trade.maxDrawdown !== undefined ? trade.maxDrawdown.toFixed(1) : '-'}
+                <TableCell className="text-right font-medium">
+                  {formatCurrency(trade.entryPrice)}
                 </TableCell>
-                <TableCell>
-                  {getResultBadge(trade.result, trade.netPnl)}
+                <TableCell className="text-right font-medium">
+                  {trade.exitPrice ? formatCurrency(trade.exitPrice) : (
+                    <Badge variant="outline">Open</Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -651,6 +668,17 @@ function TradeTable({
         onOpenChange={handleEditModalClose}
         trade={editingTrade}
       />
+
+      {/* Image Lightbox Modal */}
+      {lightboxImageUrl && (
+        <ImageLightboxModal
+          isOpen={!!lightboxImageUrl}
+          onClose={closeLightbox}
+          imageUrl={lightboxImageUrl}
+          title={lightboxTitle}
+          downloadFilename={`${lightboxTitle.replace(/\s+/g, '-').toLowerCase()}.jpg`}
+        />
+      )}
     </>
   );
 }
