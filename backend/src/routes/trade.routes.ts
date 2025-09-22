@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body, query } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 // import { authenticate } from '../middleware/auth';
 import { handleValidationErrors, validateTradeData, validatePriceTicks, validateMarketExists } from '../middleware/validation';
 import {
@@ -11,7 +12,8 @@ import {
   updateTrade,
   deleteTrade,
   bulkDelete,
-  createQuickTrade
+  createQuickTrade,
+  uploadTradeImage
 } from '../controllers/trade.controller';
 
 const router = Router();
@@ -19,7 +21,12 @@ const router = Router();
 // Configure multer for image uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/trade-images');
+    const uploadPath = 'uploads/trade-images';
+    // Ensure directory exists
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -185,6 +192,13 @@ router.post(
     handleValidationErrors
   ],
   bulkDelete
+);
+
+// Upload image for specific trade
+router.post(
+  '/:tradeId/image',
+  upload.single('image'),
+  uploadTradeImage
 );
 
 export default router;

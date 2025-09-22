@@ -659,3 +659,71 @@ export const createQuickTrade = async (
     });
   }
 };
+
+export const uploadTradeImage = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { tradeId } = req.params;
+    const userId = req.userId || 'test-user-id';
+
+    // Check if file was uploaded
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'No image file uploaded',
+          statusCode: 400
+        }
+      });
+      return;
+    }
+
+    // Check if trade exists and belongs to user
+    const existingTrade = await prisma.trade.findFirst({
+      where: {
+        id: tradeId,
+        userId
+      }
+    });
+
+    if (!existingTrade) {
+      res.status(404).json({
+        success: false,
+        error: {
+          message: 'Trade not found',
+          statusCode: 404
+        }
+      });
+      return;
+    }
+
+    // Build the URL for the uploaded file
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const imageUrl = `${protocol}://${host}/uploads/trade-images/${req.file.filename}`;
+
+    // Update trade with image URL
+    const updatedTrade = await prisma.trade.update({
+      where: { id: tradeId },
+      data: { imageUrl }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        imageUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        trade: updatedTrade
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading trade image:', error);
+    next(error);
+  }
+};

@@ -300,7 +300,7 @@ export const useTradeStore = create<TradeState>()(
           }
 
           const updatedData = { ...existingTrade, ...tradeData };
-          const calculatedMetrics = calculateTradeMetrics(updatedData);
+          const calculatedMetrics = calculateTradeMetricsForTrade(updatedData);
 
           const tradeWithMetrics = {
             ...updatedData,
@@ -312,7 +312,40 @@ export const useTradeStore = create<TradeState>()(
               : undefined
           };
 
-          const updatedTrade = await tradesService.updateTrade(id, tradeWithMetrics, updateActiveAccountId);
+          // Extract only TradeFormData fields for the API call
+          const tradeFormData: Partial<TradeFormData> = {
+            symbol: updatedData.symbol,
+            direction: updatedData.direction,
+            entryPrice: updatedData.entryPrice,
+            quantity: updatedData.quantity,
+            entryDate: updatedData.entryDate,
+            orderType: updatedData.orderType,
+            exitPrice: updatedData.exitPrice,
+            exitDate: updatedData.exitDate,
+            result: tradeWithMetrics.result,
+            stopLoss: updatedData.stopLoss,
+            takeProfit: updatedData.takeProfit,
+            positionSize: updatedData.positionSize,
+            riskAmount: updatedData.riskAmount,
+            riskPercentage: updatedData.riskPercentage,
+            maxFavorablePrice: updatedData.maxFavorablePrice,
+            maxAdversePrice: updatedData.maxAdversePrice,
+            maxPotentialProfit: updatedData.maxPotentialProfit,
+            maxDrawdown: updatedData.maxDrawdown,
+            breakEvenWorked: updatedData.breakEvenWorked,
+            notes: updatedData.notes,
+            strategy: updatedData.strategy,
+            timeframe: updatedData.timeframe,
+            imageUrl: updatedData.imageUrl,
+            customStrategy: updatedData.customStrategy
+          };
+
+          // Remove null/undefined values to avoid validation errors
+          const cleanedTradeFormData = Object.fromEntries(
+            Object.entries(tradeFormData).filter(([_, value]) => value !== null && value !== undefined)
+          ) as Partial<TradeFormData>;
+
+          const updatedTrade = await tradesService.updateTrade(id, cleanedTradeFormData, updateActiveAccountId);
           
           set(state => ({
             trades: state.trades.map(trade => 
@@ -416,7 +449,7 @@ export const useTradeStore = create<TradeState>()(
           const trade = await tradesService.getTrade(id, getActiveAccountId);
           const tradeWithCalculations = {
             ...trade,
-            ...calculateTradeMetrics(trade)
+            ...calculateTradeMetricsForTrade(trade)
           };
           
           // Add to trades array if not already there

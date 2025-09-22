@@ -38,7 +38,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { ExportDialog } from '../export';
-import EnhancedTradeEditModal from './EnhancedTradeEditModal';
+import UnifiedTradeEditModal from './UnifiedTradeEditModal';
 
 interface TradeTableProps {
   trades?: Trade[];
@@ -81,7 +81,7 @@ function TradeTable({
   const trades = propTrades || getSortedTrades(getFilteredTrades());
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // Enhanced Edit Modal State
+  // Unified Edit Modal State
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
@@ -147,23 +147,13 @@ function TradeTable({
   };
 
   // Smart modal selection logic
-  const shouldUseEnhancedModal = (trade: Trade) => {
-    return trade.source === 'NT8_IMPORT' && trade.hasAdvancedData === true;
-  };
-
-  // Enhanced edit handler
+  // Unified edit handler - ALL trades now use the unified modal
   const handleEditTrade = (trade: Trade) => {
-    if (shouldUseEnhancedModal(trade)) {
-      // Use enhanced modal for NT8 trades with advanced data
-      setEditingTrade(trade);
-      setIsEditModalOpen(true);
-    } else {
-      // Fall back to external edit handler (navigation to edit page)
-      onEdit?.(trade);
-    }
+    setEditingTrade(trade);
+    setIsEditModalOpen(true);
   };
 
-  // Enhanced modal close handler
+  // Unified modal close handler
   const handleEditModalClose = (open: boolean) => {
     setIsEditModalOpen(open);
     if (!open) {
@@ -655,8 +645,8 @@ function TradeTable({
         </div>
       )}
 
-      {/* Enhanced Edit Modal for NT8 trades */}
-      <EnhancedTradeEditModal
+      {/* Unified Edit Modal for all trades */}
+      <UnifiedTradeEditModal
         open={isEditModalOpen}
         onOpenChange={handleEditModalClose}
         trade={editingTrade}
