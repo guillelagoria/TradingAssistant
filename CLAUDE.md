@@ -94,7 +94,7 @@ npm run typecheck       # Type checking
 
 ## 🚀 Navegación Simplificada
 
-### 📱 Estructura de la App (Solo 3 Páginas)
+### 📱 Estructura de la App (Solo 2 Páginas + Quick Trade)
 
 1. **🏠 Dashboard** (`/`)
    - **Stats Cards animadas** con métricas principales
@@ -112,11 +112,21 @@ npm run typecheck       # Type checking
    - **Búsqueda y filtros**
    - **🆕 Alertas Económicas** también disponibles en header
 
-3. **➕ Add Trade** (`/trades/new` y `/trades/:id/edit`)
-   - **Formulario moderno** de trade
-   - **Validación en tiempo real**
-   - **Cálculos automáticos**
-   - **🆕 Alertas Económicas** para contextualizar trades
+3. **⚡ Quick Trade** (Dialog Modal - Ctrl+Alt+B/S)
+   - **Entrada rápida** optimizada para velocidad
+   - **Atajos de teclado** para acceso instantáneo
+   - **Soporte de imágenes** con paste directo (Ctrl+V)
+   - **Cálculos automáticos** de P&L en tiempo real
+   - **Validación instantánea** con feedback visual
+
+### 🎨 Diseño del Header Compacto (2025-09-22)
+- **Header Optimizado**: Eliminado texto redundante y componentes innecesarios
+- **Brand Simplificado**: Solo icono + "Trading Diary" (sin subtítulo)
+- **CompactAccountSelector**: Nuevo componente de 200px con balance formateado ($1.5K)
+- **Economic Events**: Icono de campana con badge y tooltip informativo
+- **Sin Quick Trade en Header**: Disponible solo via shortcuts (Ctrl+Alt+B/S)
+- **Altura Reducida**: De h-16 a h-14 para mayor espacio útil
+- **Responsive Mejorado**: Breakpoint en lg: para mejor visualización
 
 ### ✅ Fases Completadas
 
@@ -319,6 +329,8 @@ FINNHUB_API_KEY=your_finnhub_api_key_here
 - **Zonas Horarias Incorrectas**: Corregida aplicación de EDT (-4 UTC)
 - **Cálculos de Tiempo Imprecisos**: Mejorados con segundos/minutos/horas exactos
 - **UX de Estados de Eventos**: Añadidos estados visuales claros (Live/Future/Past)
+- **🎨 Header Compacto Implementado**: Diseño optimizado para pantallas medianas
+- **⚡ Quick Trade como Método Principal**: Eliminado Add Trade del sidebar, Quick Trade via modal
 
 ## 🔄 Próximos Pasos Sugeridos
 1. **Testing**: Implementar tests unitarios para componentes críticos
@@ -331,9 +343,10 @@ FINNHUB_API_KEY=your_finnhub_api_key_here
 5. **Mobile**: Optimizar responsive design para dispositivos móviles
 
 ---
-**Última actualización**: ✅ **SISTEMA ECONÓMICO 100% CONFIABLE**
+**Última actualización**: ✅ **SISTEMA ECONÓMICO 100% CONFIABLE + UI OPTIMIZADA**
 - UI con animaciones modernas implementada ✅
-- Navegación simplificada a 3 páginas principales ✅
+- **⚡ Quick Trade como método único de entrada manual** ✅
+- **🎨 Header compacto y funcional (200px account selector)** ✅
 - Dashboard unificado con todas las funcionalidades ✅
 - Componentes con Framer Motion y diseño inspirado en Aceternity UI ✅
 - **🆕 Sistema de Alertas Económicas completo con API + UI** ✅
