@@ -111,7 +111,7 @@ class EconomicEventsService {
   }
 
   /**
-   * Calculate time until event
+   * Calculate time until event - IMPROVED ACCURACY
    */
   getTimeUntilEvent(eventTime: string): string {
     const now = new Date();
@@ -122,26 +122,45 @@ class EconomicEventsService {
     if (diffMs <= 0) {
       const pastMs = Math.abs(diffMs);
       const pastMinutes = Math.floor(pastMs / (1000 * 60));
+      const pastHours = Math.floor(pastMs / (1000 * 60 * 60));
 
       // Show "Live" for events within the last 15 minutes
       if (pastMinutes <= 15) {
         return 'Live';
       }
 
-      // Show "Past" for events that happened more than 15 minutes ago
-      return 'Past';
+      // Show specific time passed for recent events
+      if (pastHours < 1) {
+        return `${pastMinutes}m ago`;
+      } else if (pastHours < 24) {
+        return `${pastHours}h ago`;
+      } else {
+        const pastDays = Math.floor(pastHours / 24);
+        return `${pastDays}d ago`;
+      }
     }
 
+    // Event is in the future
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffHours > 24) {
-      const diffDays = Math.floor(diffHours / 24);
+    if (diffDays > 0) {
       return `in ${diffDays}d`;
     } else if (diffHours > 0) {
-      return `in ${diffHours}h ${diffMinutes}m`;
-    } else {
+      const remainingMinutes = diffMinutes % 60;
+      if (remainingMinutes > 0) {
+        return `in ${diffHours}h ${remainingMinutes}m`;
+      } else {
+        return `in ${diffHours}h`;
+      }
+    } else if (diffMinutes > 0) {
       return `in ${diffMinutes}m`;
+    } else if (diffSeconds > 0) {
+      return `in ${diffSeconds}s`;
+    } else {
+      return 'Now';
     }
   }
 

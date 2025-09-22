@@ -42,7 +42,8 @@ export function EventTimeDisplay({
   const timeUntil = economicEventsService.getTimeUntilEvent(eventTime);
   const formattedTime = economicEventsService.formatEventTime(eventTime);
   const isLive = timeUntil === 'Live';
-  const isPast = timeUntil === 'Past';
+  const isPast = timeUntil.includes('ago');
+  const isNow = timeUntil === 'Now';
 
   return (
     <div className={cn('flex flex-col', config.gap, className)}>
@@ -65,17 +66,17 @@ export function EventTimeDisplay({
           <motion.span
             className={cn(
               'font-semibold px-2 py-0.5 rounded-full text-xs',
-              isLive
+              isLive || isNow
                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                 : isPast
                 ? 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
                 : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
             )}
-            animate={isLive ? {
+            animate={(isLive || isNow) ? {
               scale: [1, 1.05, 1],
               opacity: [1, 0.8, 1]
             } : {}}
-            transition={isLive ? {
+            transition={(isLive || isNow) ? {
               duration: 1.5,
               repeat: Infinity,
               ease: "easeInOut"

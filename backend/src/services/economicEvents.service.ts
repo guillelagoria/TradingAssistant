@@ -308,124 +308,161 @@ export class EconomicEventsService {
   }
 
   /**
-   * Generate demo economic events for testing purposes
+   * Generate demo economic events for testing purposes - REALISTIC TIME AWARE
    */
   private generateDemoData(from: string, to: string): FinnhubEconomicEvent[] {
     const now = new Date();
 
-    // Create events for today and next few days based on the requested date range
+    // Parse the requested date range
     const fromDate = new Date(from);
     const toDate = new Date(to);
+
+    console.log(`Generating demo data for ${from} to ${to}, current time: ${now.toISOString()}`);
 
     // Helper function to create a date with specific time in ET (Eastern Time)
     const createEventTime = (baseDate: Date, hour: number, minute: number): Date => {
       const eventTime = new Date(baseDate);
       // Economic events are typically published in ET (Eastern Time)
       // ET is UTC-5 (EST) or UTC-4 (EDT) depending on daylight saving
-      // For simplicity, we'll use EDT (UTC-4) since we're in September
+      // For September, we're in EDT (UTC-4)
       // So 8:30 AM ET = 12:30 UTC (during EDT)
       eventTime.setUTCHours(hour, minute, 0, 0);
       return eventTime;
     };
 
-    // If asking for today's events, create some for today
-    const eventsDate = fromDate;
+    // Helper to check if event should have actual data (if time has passed)
+    const shouldHaveActual = (eventTime: Date): boolean => {
+      return now > new Date(eventTime.getTime() + 15 * 60 * 1000); // 15 min buffer
+    };
 
-    // Ensure we use the correct date for the events
-    // If it's for today and we're past market hours, still show today's events as happened earlier
-    const baseDate = new Date(eventsDate);
-
-    // Generate realistic demo events for ES/NQ trading
     const demoEvents: FinnhubEconomicEvent[] = [];
 
-    // Add events based on the date range requested
-    const daysDiff = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Generate events for each day in the range
+    let currentDate = new Date(fromDate);
 
-    // Events for first day (could be today)
-    if (daysDiff >= 0) {
-      // Morning events (8:30 AM ET)
-      demoEvents.push({
-        country: 'US',
-        event: 'Initial Jobless Claims',
-        time: createEventTime(baseDate, 12, 30).toISOString(), // 8:30 AM ET = 12:30 UTC
-        unit: 'K',
-        estimate: 230,
-        previous: 225,
-        actual: now > createEventTime(baseDate, 13, 30) ? 228 : null,
-        impact: 'medium'
-      });
+    while (currentDate <= toDate) {
+      const isToday = currentDate.toDateString() === now.toDateString();
+      const isTomorrow = currentDate.toDateString() === new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString();
+      const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
-      // Mid-morning event (10:00 AM ET)
-      demoEvents.push({
-        country: 'US',
-        event: 'Consumer Price Index (CPI)',
-        time: createEventTime(baseDate, 14, 0).toISOString(), // 10:00 AM ET = 14:00 UTC
-        unit: '%',
-        estimate: 3.2,
-        previous: 3.1,
-        actual: now > createEventTime(baseDate, 15, 0) ? 3.3 : null,
-        impact: 'high'
-      });
+      // Only generate events for weekdays (Monday to Friday)
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
 
-      // Afternoon event (2:00 PM ET)
-      demoEvents.push({
-        country: 'US',
-        event: 'FOMC Meeting Minutes',
-        time: createEventTime(baseDate, 18, 0).toISOString(), // 2:00 PM ET = 18:00 UTC
-        unit: '',
-        estimate: null,
-        previous: null,
-        actual: null,
-        impact: 'high'
-      });
-    }
+        if (isToday) {
+          // TODAY'S EVENTS - Mix of past and future based on current time
+          const currentHourUTC = now.getUTCHours();
 
-    // Add events for tomorrow if in range
-    if (daysDiff >= 1) {
-      const tomorrow = new Date(baseDate);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+          // Early morning event (8:30 AM ET = 12:30 UTC) - PAST
+          if (currentHourUTC >= 13) {
+            const eventTime = createEventTime(currentDate, 12, 30);
+            demoEvents.push({
+              country: 'US',
+              event: 'Initial Jobless Claims',
+              time: eventTime.toISOString(),
+              unit: 'K',
+              estimate: 230,
+              previous: 225,
+              actual: 228, // Already happened
+              impact: 'medium'
+            });
+          }
 
-      demoEvents.push({
-        country: 'US',
-        event: 'Non-Farm Payrolls',
-        time: createEventTime(tomorrow, 12, 30).toISOString(), // 8:30 AM ET = 12:30 UTC
-        unit: 'K',
-        estimate: 180,
-        previous: 175,
-        actual: null,
-        impact: 'high'
-      });
+          // Mid-morning event (10:00 AM ET = 14:00 UTC) - Maybe past or future
+          const midMorningEvent = createEventTime(currentDate, 14, 0);
+          demoEvents.push({
+            country: 'US',
+            event: 'Consumer Price Index (CPI)',
+            time: midMorningEvent.toISOString(),
+            unit: '%',
+            estimate: 3.2,
+            previous: 3.1,
+            actual: shouldHaveActual(midMorningEvent) ? 3.3 : null,
+            impact: 'high'
+          });
 
-      demoEvents.push({
-        country: 'US',
-        event: 'ISM Manufacturing PMI',
-        time: createEventTime(tomorrow, 14, 0).toISOString(), // 10:00 AM ET = 14:00 UTC
-        unit: '',
-        estimate: 48.5,
-        previous: 47.9,
-        actual: null,
-        impact: 'medium'
-      });
-    }
+          // Afternoon event (2:00 PM ET = 18:00 UTC) - Likely future
+          const afternoonEvent = createEventTime(currentDate, 18, 0);
+          demoEvents.push({
+            country: 'US',
+            event: 'FOMC Meeting Minutes',
+            time: afternoonEvent.toISOString(),
+            unit: '',
+            estimate: null,
+            previous: null,
+            actual: shouldHaveActual(afternoonEvent) ? null : null, // This type of event doesn't have numeric actual
+            impact: 'high'
+          });
 
-    // Add events for day after tomorrow if in range
-    if (daysDiff >= 2) {
-      const dayAfter = new Date(baseDate);
-      dayAfter.setDate(dayAfter.getDate() + 2);
+        } else if (isTomorrow) {
+          // TOMORROW'S EVENTS - All future
+          demoEvents.push({
+            country: 'US',
+            event: 'Non-Farm Payrolls',
+            time: createEventTime(currentDate, 12, 30).toISOString(),
+            unit: 'K',
+            estimate: 180,
+            previous: 175,
+            actual: null,
+            impact: 'high'
+          });
 
-      demoEvents.push({
-        country: 'US',
-        event: 'Retail Sales',
-        time: createEventTime(dayAfter, 12, 30).toISOString(), // 8:30 AM ET = 12:30 UTC
-        unit: '%',
-        estimate: 0.3,
-        previous: 0.1,
-        actual: null,
-        impact: 'medium'
-      });
+          demoEvents.push({
+            country: 'US',
+            event: 'ISM Manufacturing PMI',
+            time: createEventTime(currentDate, 14, 0).toISOString(),
+            unit: '',
+            estimate: 48.5,
+            previous: 47.9,
+            actual: null,
+            impact: 'medium'
+          });
+
+        } else if (currentDate > now) {
+          // FUTURE DAYS - All future events
+          demoEvents.push({
+            country: 'US',
+            event: 'Retail Sales',
+            time: createEventTime(currentDate, 12, 30).toISOString(),
+            unit: '%',
+            estimate: 0.3,
+            previous: 0.1,
+            actual: null,
+            impact: 'medium'
+          });
+
+          demoEvents.push({
+            country: 'US',
+            event: 'Producer Price Index (PPI)',
+            time: createEventTime(currentDate, 14, 0).toISOString(),
+            unit: '%',
+            estimate: 0.2,
+            previous: 0.1,
+            actual: null,
+            impact: 'medium'
+          });
+
+        } else {
+          // PAST DAYS - All events should have actuals
+          demoEvents.push({
+            country: 'US',
+            event: 'Building Permits',
+            time: createEventTime(currentDate, 14, 0).toISOString(),
+            unit: 'M',
+            estimate: 1.42,
+            previous: 1.40,
+            actual: 1.44, // Past event has actual
+            impact: 'medium'
+          });
+        }
+      }
+
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
     console.log(`Generated ${demoEvents.length} demo economic events for ${from} to ${to}`);
+
+    // Filter events to ensure they fall within the requested date range
     return demoEvents.filter(event => {
       const eventDate = new Date(event.time);
       return eventDate >= fromDate && eventDate <= toDate;

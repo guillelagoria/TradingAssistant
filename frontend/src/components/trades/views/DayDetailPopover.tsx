@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { ImagePreviewTooltip, ImageLightboxModal } from '@/components/shared';
 import { Trade, TradeDirection, TradeStatus, TradeResult } from '@/types';
 import {
   TrendingUp,
@@ -74,6 +75,8 @@ function useIsMobile() {
 // Mini Trade Card Component
 function TradeCard({ trade, onView, onEdit, onDelete }: TradeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [lightboxTitle, setLightboxTitle] = useState<string>('');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -107,6 +110,16 @@ function TradeCard({ trade, onView, onEdit, onDelete }: TradeCardProps) {
     ) : (
       <TrendingDown className="h-3 w-3" />
     );
+  };
+
+  const handleImageClick = (imageUrl: string, tradeSymbol: string) => {
+    setLightboxImageUrl(imageUrl);
+    setLightboxTitle(`${tradeSymbol} Trade Screenshot`);
+  };
+
+  const closeLightbox = () => {
+    setLightboxImageUrl(null);
+    setLightboxTitle('');
   };
 
   const getStatusBadge = () => {
@@ -157,6 +170,16 @@ function TradeCard({ trade, onView, onEdit, onDelete }: TradeCardProps) {
               {getDirectionIcon()}
             </div>
             <span className="font-semibold text-sm">{trade.symbol}</span>
+            {trade.imageUrl && (
+              <ImagePreviewTooltip
+                imageUrl={trade.imageUrl}
+                onImageClick={(e) => {
+                  e.stopPropagation();
+                  handleImageClick(trade.imageUrl!, trade.symbol);
+                }}
+                size="sm"
+              />
+            )}
             {getStatusBadge()}
           </div>
 
@@ -241,6 +264,17 @@ function TradeCard({ trade, onView, onEdit, onDelete }: TradeCardProps) {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Image Lightbox Modal */}
+      {lightboxImageUrl && (
+        <ImageLightboxModal
+          isOpen={!!lightboxImageUrl}
+          onClose={closeLightbox}
+          imageUrl={lightboxImageUrl}
+          title={lightboxTitle}
+          downloadFilename={`${lightboxTitle.replace(/\s+/g, '-').toLowerCase()}.jpg`}
+        />
+      )}
     </motion.div>
   );
 }
