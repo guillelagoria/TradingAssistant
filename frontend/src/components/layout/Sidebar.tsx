@@ -2,7 +2,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   BarChart3,
   History,
-  Plus,
   Upload,
   TrendingUp
 } from 'lucide-react';
@@ -23,13 +22,6 @@ const navigation = [
     href: '/trades',
     icon: History,
     description: 'All your trading records',
-    exact: true
-  },
-  {
-    name: 'Add Trade',
-    href: '/trades/new',
-    icon: Plus,
-    description: 'Record new trade',
     exact: true
   },
   {

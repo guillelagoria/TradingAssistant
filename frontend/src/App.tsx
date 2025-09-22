@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { MainLayout } from '@/components/layout';
-import { Dashboard, TradeHistory, TradeForm, Settings, ImportPage } from '@/pages';
+import { Dashboard, TradeHistory, Settings, ImportPage } from '@/pages';
 import { setupTestAuth } from '@/utils/setupAuth';
 import { useAccountChangeHandler } from '@/hooks/useAccountChangeHandler';
 import { initializeAccountStore } from '@/store/accountStore';
@@ -37,8 +37,6 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/trades" element={<TradeHistory />} />
-          <Route path="/trades/new" element={<TradeForm />} />
-          <Route path="/trades/:id/edit" element={<TradeForm />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>

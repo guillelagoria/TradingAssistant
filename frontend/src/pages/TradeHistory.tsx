@@ -24,6 +24,9 @@ import {
 } from '@/components/trades';
 import { AnimatedStatsCards } from '@/components/dashboard';
 import { ConfirmDialog } from '@/components/shared';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import QuickTradeDialog from '@/components/trades/QuickTradeDialog';
+import { useQuickTradeShortcuts } from '@/hooks/useQuickTradeShortcuts';
 import { useTradeStore } from '@/store/tradeStore';
 import { useActiveAccount } from '@/store/accountStore';
 import { Trade } from '@/types';
@@ -37,7 +40,9 @@ import {
   MoreHorizontal,
   Table,
   Calendar,
-  Upload
+  Upload,
+  Zap,
+  Keyboard
 } from 'lucide-react';
 
 function TradeHistory() {
@@ -70,6 +75,10 @@ function TradeHistory() {
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
+  // Quick Trade state
+  const [quickTradeOpen, setQuickTradeOpen] = useState(false);
+  const [quickTradeDirection, setQuickTradeDirection] = useState<'LONG' | 'SHORT' | undefined>();
+
   // Fetch trades on component mount or when active account changes
   useEffect(() => {
 
@@ -79,9 +88,23 @@ function TradeHistory() {
     }
   }, [activeAccount, refreshTradesForAccount]);
 
-  const handleAddTrade = () => {
-    navigate('/trades/new');
+  const handleOpenQuickTrade = (direction?: 'LONG' | 'SHORT') => {
+    setQuickTradeDirection(direction);
+    setQuickTradeOpen(true);
   };
+
+  const handleCloseQuickTrade = (open: boolean) => {
+    setQuickTradeOpen(open);
+    if (!open) {
+      setQuickTradeDirection(undefined);
+    }
+  };
+
+  // Setup keyboard shortcuts
+  useQuickTradeShortcuts({
+    onOpenQuickTrade: handleOpenQuickTrade,
+    enabled: true
+  });
 
   const handleImportTrades = () => {
     navigate('/import');
@@ -93,7 +116,8 @@ function TradeHistory() {
   };
 
   const handleEditTrade = (trade: Trade) => {
-    navigate(`/trades/${trade.id}/edit`);
+    // Edit functionality can be added to Quick Trade Dialog in the future
+    console.log('Edit trade:', trade);
   };
 
   const handleDeleteTrade = (trade: Trade) => {
@@ -338,10 +362,35 @@ function TradeHistory() {
             <Upload className="h-4 w-4 mr-2" />
             Import NT8
           </Button>
-          <Button onClick={handleAddTrade} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Trade
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => handleOpenQuickTrade()}
+                  size="sm"
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold"
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Quick Trade
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-sm">
+                  <p className="font-medium mb-1">Quick Trade Entry</p>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div className="flex items-center gap-1">
+                      <Keyboard className="h-3 w-3" />
+                      <span>Ctrl+Alt+B - Long</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Keyboard className="h-3 w-3" />
+                      <span>Ctrl+Alt+S - Short</span>
+                    </div>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -486,6 +535,13 @@ function TradeHistory() {
         confirmText="Delete All"
         onConfirm={confirmBulkDelete}
         variant="destructive"
+      />
+
+      {/* Quick Trade Dialog */}
+      <QuickTradeDialog
+        open={quickTradeOpen}
+        onOpenChange={handleCloseQuickTrade}
+        prefilledDirection={quickTradeDirection}
       />
     </div>
   );

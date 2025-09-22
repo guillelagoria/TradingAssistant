@@ -73,18 +73,18 @@ function Header() {
             <EconomicAlertsBar />
           </div>
 
-          {/* Quick Trade Button */}
+          {/* Quick Trade Button - Primary Action */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="default"
-                  size="sm"
+                  size="default"
                   onClick={() => handleOpenQuickTrade()}
-                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium"
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
-                  <Zap className="h-4 w-4 mr-1" />
-                  <span className="hidden sm:inline">Quick Trade</span>
+                  <Zap className="h-4 w-4 mr-2" />
+                  <span>Quick Trade</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -93,6 +93,7 @@ function Header() {
                   <div className="text-xs text-muted-foreground space-y-1">
                     <div>Ctrl+Alt+B - Long</div>
                     <div>Ctrl+Alt+S - Short</div>
+                    <div>Click or use keyboard shortcuts</div>
                   </div>
                 </div>
               </TooltipContent>
