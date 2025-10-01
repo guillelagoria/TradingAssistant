@@ -25,6 +25,7 @@ import uploadRoutes from './routes/upload.routes';
 import economicEventsRoutes from './routes/economicEvents.routes';
 import importRoutes from './routes/import.routes';
 import dataCapabilitiesRoutes from './routes/dataCapabilities.routes';
+import tradeOptimizationRoutes from './routes/tradeOptimization.routes';
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient();
@@ -114,6 +115,9 @@ app.use('/api/economic-events', economicEventsRoutes);
 
 // Data Capabilities routes (require authentication)
 app.use('/api/data-capabilities', authenticate, dataCapabilitiesRoutes);
+
+// Trade Optimization routes (require authentication)
+app.use('/api/optimization', authenticate, tradeOptimizationRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

@@ -15,6 +15,7 @@ import {
 } from '@/components/dashboard';
 import { WhatIfAnalysis } from '@/components/analysis';
 import { ExportDialog } from '@/components/export';
+import TradeOptimizationInsights from '@/components/optimization/TradeOptimizationInsights';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -142,6 +143,11 @@ function Dashboard() {
           refreshTrigger={trades.length}
           onViewDetails={() => navigate('/analysis/break-even')}
         />
+      </div>
+
+      {/* Trade Optimization Insights */}
+      <div className="space-y-6">
+        <TradeOptimizationInsights />
       </div>
 
       {/* Floating Action Button - Quick Trade Entry */}
