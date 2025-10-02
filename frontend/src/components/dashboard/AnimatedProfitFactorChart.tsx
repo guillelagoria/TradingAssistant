@@ -162,7 +162,7 @@ const AnimatedProfitFactorChart: React.FC<AnimatedProfitFactorChartProps> = ({
 
   if (!stats || (totalProfit === 0 && totalLoss === 0)) {
     return (
-      <Card className={cn("backdrop-blur-sm bg-background/95 border-border/50", className)}>
+      <Card className={cn("backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5", className)}>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Profit Factor</CardTitle>
         </CardHeader>
@@ -206,7 +206,7 @@ const AnimatedProfitFactorChart: React.FC<AnimatedProfitFactorChartProps> = ({
 
   return (
     <Card className={cn(
-      "backdrop-blur-sm bg-background/95 border-border/50 shadow-xl overflow-hidden",
+      "backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5 shadow-xl overflow-hidden",
       className
     )}>
       {/* Animated gradient background */}
@@ -330,7 +330,7 @@ const AnimatedProfitFactorChart: React.FC<AnimatedProfitFactorChartProps> = ({
 
         {/* Summary stats */}
         <motion.div
-          className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border/50"
+          className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-none shadow-xl shadow-black/5"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}

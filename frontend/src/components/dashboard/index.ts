@@ -27,3 +27,7 @@ export { AnimatedBEStatsCard } from './AnimatedBEStatsCard';
 
 // MAE/MFE/ETD Analysis component
 export { MAEMFEStatsCard } from './MAEMFEStatsCard';
+
+// NEW: Hero Metrics and Performance Stats
+export { HeroMetrics } from './HeroMetrics';
+export { PerformanceStats } from './PerformanceStats';

@@ -131,7 +131,7 @@ const AnimatedWinRateChart: React.FC<AnimatedWinRateChartProps> = ({
 
   if (!stats || totalTrades === 0) {
     return (
-      <Card className={cn("backdrop-blur-sm bg-background/95 border-border/50", className)}>
+      <Card className={cn("backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5", className)}>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Win Rate Analysis</CardTitle>
         </CardHeader>
@@ -163,7 +163,7 @@ const AnimatedWinRateChart: React.FC<AnimatedWinRateChartProps> = ({
 
   return (
     <Card className={cn(
-      "backdrop-blur-sm bg-background/95 border-border/50 shadow-xl overflow-hidden",
+      "backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5 shadow-xl overflow-hidden",
       className
     )}>
       {/* Animated gradient background */}
@@ -280,7 +280,7 @@ const AnimatedWinRateChart: React.FC<AnimatedWinRateChartProps> = ({
 
         {/* Performance indicator */}
         <motion.div
-          className="mt-4 pt-4 border-t border-border/50"
+          className="mt-4 pt-4 border-t border-none shadow-xl shadow-black/5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2 }}

@@ -151,16 +151,17 @@ export function MAEMFEStatsCard() {
 
   return (
     <TooltipProvider>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {/* MAE Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="h-full"
         >
-          <Card className="relative overflow-hidden">
+          <Card className="relative overflow-hidden border-none shadow-xl shadow-black/5 h-full flex flex-col">
             <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-red-600/10" />
-            <CardHeader className="relative pb-2">
+            <CardHeader className="relative pb-2 flex-shrink-0">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-red-600" />
                 Maximum Adverse Excursion
@@ -191,7 +192,7 @@ export function MAEMFEStatsCard() {
                 </Tooltip>
               </CardTitle>
             </CardHeader>
-          <CardContent className="relative">
+          <CardContent className="relative flex-1 flex flex-col justify-between">
             <div className="text-2xl font-bold text-red-600">
               {formatPointsAndDollars(stats.avgMAE, trades?.[0])}
             </div>
@@ -217,10 +218,11 @@ export function MAEMFEStatsCard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
+        className="h-full"
       >
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden border-none shadow-xl shadow-black/5 h-full flex flex-col">
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-green-600/10" />
-          <CardHeader className="relative pb-2">
+          <CardHeader className="relative pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-600" />
               Maximum Favorable Excursion
@@ -251,7 +253,7 @@ export function MAEMFEStatsCard() {
               </Tooltip>
             </CardTitle>
           </CardHeader>
-          <CardContent className="relative">
+          <CardContent className="relative flex-1 flex flex-col justify-between">
             <div className="text-2xl font-bold text-green-600">
               {formatPointsAndDollars(stats.avgMFE, trades?.[0])}
             </div>
@@ -277,10 +279,11 @@ export function MAEMFEStatsCard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
+        className="h-full"
       >
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden border-none shadow-xl shadow-black/5 h-full flex flex-col">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-600/10" />
-          <CardHeader className="relative pb-2">
+          <CardHeader className="relative pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Activity className="h-4 w-4 text-blue-600" />
               Trade Efficiency
@@ -316,7 +319,7 @@ export function MAEMFEStatsCard() {
               </Tooltip>
             </CardTitle>
           </CardHeader>
-          <CardContent className="relative">
+          <CardContent className="relative flex-1 flex flex-col justify-center">
             <div className="space-y-3">
               <div>
                 <div className="flex items-center justify-between">
@@ -360,10 +363,11 @@ export function MAEMFEStatsCard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
+        className="h-full"
       >
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden border-none shadow-xl shadow-black/5 h-full flex flex-col">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-amber-600/10" />
-          <CardHeader className="relative pb-2">
+          <CardHeader className="relative pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Target className="h-4 w-4 text-orange-600" />
               End Trade Drawdown
@@ -400,7 +404,7 @@ export function MAEMFEStatsCard() {
               </Tooltip>
             </CardTitle>
           </CardHeader>
-          <CardContent className="relative">
+          <CardContent className="relative flex-1 flex flex-col justify-between">
             <div className="text-2xl font-bold text-orange-600">
               {stats.avgETD.toFixed(1)}
             </div>

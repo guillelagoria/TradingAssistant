@@ -146,7 +146,7 @@ export function AnimatedBEStatsCard({ onViewDetails, refreshTrigger = 0 }: Anima
 
   if (isLoading) {
     return (
-      <Card className="backdrop-blur-sm bg-background/95 border-border/50">
+      <Card className="backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="space-y-2">
@@ -174,7 +174,7 @@ export function AnimatedBEStatsCard({ onViewDetails, refreshTrigger = 0 }: Anima
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="backdrop-blur-sm bg-background/95 border-border/50 border-red-200 dark:border-red-800">
+        <Card className="backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-red-500/10">
           <CardContent className="pt-6">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -208,7 +208,7 @@ export function AnimatedBEStatsCard({ onViewDetails, refreshTrigger = 0 }: Anima
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="backdrop-blur-sm bg-background/95 border-border/50">
+        <Card className="backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5">
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <motion.div
@@ -249,8 +249,8 @@ export function AnimatedBEStatsCard({ onViewDetails, refreshTrigger = 0 }: Anima
       style={{ perspective: 1000 }}
     >
       <Card className={cn(
-        "relative overflow-hidden backdrop-blur-sm bg-background/95 border-border/50 shadow-xl transition-all duration-300",
-        isHovered && "shadow-2xl"
+        "relative overflow-hidden backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5 transition-all duration-300",
+        isHovered && "shadow-2xl shadow-primary/10"
       )}>
         {/* Animated gradient background */}
         <motion.div

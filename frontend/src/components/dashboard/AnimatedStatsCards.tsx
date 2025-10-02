@@ -116,12 +116,11 @@ function ProfessionalStatCard({ card, index }: { card: StatCardData; index: numb
       }}
     >
       <Card className={cn(
-        "relative overflow-hidden border border-border/50",
+        "relative overflow-hidden border-none",
         "bg-gradient-to-br from-card to-card/95",
-        "shadow-sm hover:shadow-md",
+        "shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-primary/10",
         "transition-all duration-300",
-        "min-h-[140px] flex flex-col",
-        isHovered && "border-border"
+        "min-h-[140px] flex flex-col"
       )}>
         {/* Subtle top accent border */}
         <div className={cn(

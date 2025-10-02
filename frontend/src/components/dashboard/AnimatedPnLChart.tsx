@@ -181,7 +181,7 @@ const AnimatedPnLChart: React.FC<AnimatedPnLChartProps> = ({ height = 350, class
 
   if (isEmpty) {
     return (
-      <Card className={cn("backdrop-blur-sm bg-background/95 border-border/50", className)}>
+      <Card className={cn("backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5", className)}>
         <CardHeader>
           <CardTitle className="text-base font-semibold">P&L Evolution</CardTitle>
         </CardHeader>
@@ -219,7 +219,7 @@ const AnimatedPnLChart: React.FC<AnimatedPnLChartProps> = ({ height = 350, class
 
   return (
     <Card className={cn(
-      "backdrop-blur-sm bg-background/95 border-border/50 shadow-xl overflow-hidden",
+      "backdrop-blur-sm bg-background/95 border-none shadow-2xl shadow-primary/5 overflow-hidden",
       className
     )}>
       {/* Animated gradient background */}

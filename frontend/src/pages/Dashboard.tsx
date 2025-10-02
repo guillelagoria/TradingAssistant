@@ -1,19 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, FileBarChart, Zap, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { Download, FileBarChart, Zap, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTradeStore } from '@/store/tradeStore';
 import { useActiveAccount } from '@/store/accountStore';
 import {
-  AnimatedStatsCards,
+  HeroMetrics,
   AnimatedPnLChart,
-  AnimatedWinRateChart,
   AnimatedDailyPnLChart,
-  AnimatedProfitFactorChart,
-  AnimatedBEStatsCard,
   MAEMFEStatsCard,
+  PerformanceStats,
 } from '@/components/dashboard';
-import { WhatIfAnalysis } from '@/components/analysis';
 import { ExportDialog } from '@/components/export';
 import TradeOptimizationInsights from '@/components/optimization/TradeOptimizationInsights';
 
@@ -24,10 +23,8 @@ function Dashboard() {
   
   // Refs for chart elements to capture for PDF export
   const pnlChartRef = useRef<HTMLDivElement>(null);
-  const winRateChartRef = useRef<HTMLDivElement>(null);
   const dailyPnlChartRef = useRef<HTMLDivElement>(null);
   const efficiencyChartRef = useRef<HTMLDivElement>(null);
-  const extendedDailyPnlChartRef = useRef<HTMLDivElement>(null);
 
   // Fetch trades and refresh stats on mount or when active account changes
   useEffect(() => {
@@ -56,27 +53,26 @@ function Dashboard() {
   // Get chart elements for PDF export
   const getChartElements = (): HTMLElement[] => {
     const elements: HTMLElement[] = [];
-    
+
     if (pnlChartRef.current) elements.push(pnlChartRef.current);
-    if (winRateChartRef.current) elements.push(winRateChartRef.current);
     if (dailyPnlChartRef.current) elements.push(dailyPnlChartRef.current);
     if (efficiencyChartRef.current) elements.push(efficiencyChartRef.current);
-    
+
     return elements;
   };
 
   return (
-    <div className="space-y-5">
-      {/* Header - Professional, Tighter */}
-      <div className="flex items-start justify-between pb-2 border-b border-border/50">
+    <div className="min-h-screen pb-8">
+      {/* ===== HEADER SECTION ===== */}
+      <div className="flex items-start justify-between pb-4 mb-6 border-b border-border/50">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Trading performance overview and analytics
           </p>
         </div>
 
-        {/* Export Actions - Refined */}
+        {/* Export Actions */}
         <div className="flex items-center gap-2">
           <ExportDialog
             trades={trades}
@@ -108,36 +104,82 @@ function Dashboard() {
           />
         </div>
       </div>
-      
-      {/* Stats Cards - ANIMATED VERSION */}
-      <AnimatedStatsCards />
 
-      {/* Main P&L Chart - Full Width */}
-      <div ref={pnlChartRef}>
-        <AnimatedPnLChart height={380} />
-      </div>
+      {/* ===== HERO METRICS SECTION ===== */}
+      <section className="mb-8">
+        <HeroMetrics />
+      </section>
 
-      {/* Daily P&L Chart - Full Width */}
-      <div ref={dailyPnlChartRef}>
-        <AnimatedDailyPnLChart height={320} days={21} />
-      </div>
+      {/* ===== PRIMARY CHARTS SECTION ===== */}
+      <section className="mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main P&L Chart - Takes 2/3 width on desktop */}
+          <div className="lg:col-span-2" ref={pnlChartRef}>
+            <AnimatedPnLChart height={450} />
+          </div>
 
-      {/* Win Rate Chart */}
-      <div ref={winRateChartRef}>
-        <AnimatedWinRateChart height={280} />
-      </div>
+          {/* Performance Stats - Takes 1/3 width on desktop */}
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            <PerformanceStats />
+          </div>
+        </div>
+      </section>
 
-      {/* MAE/MFE Statistics */}
-      <MAEMFEStatsCard />
+      {/* ===== MAE/MFE ANALYTICS SECTION ===== */}
+      <section className="mb-8">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold tracking-tight">Execution Analytics</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Maximum Adverse/Favorable Excursion metrics
+          </p>
+        </div>
+        <MAEMFEStatsCard />
+      </section>
 
-      {/* Break-Even Analysis */}
-      <AnimatedBEStatsCard
-        refreshTrigger={trades.length}
-        onViewDetails={() => navigate('/analysis/break-even')}
-      />
+      {/* ===== SECONDARY CHARTS SECTION ===== */}
+      <section className="mb-8">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold tracking-tight">Daily Performance</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Track your day-to-day trading results
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-6">
+          <div ref={dailyPnlChartRef}>
+            <AnimatedDailyPnLChart height={400} days={21} />
+          </div>
+        </div>
+      </section>
 
-      {/* Trade Optimization Insights */}
-      <TradeOptimizationInsights />
+      {/* ===== TRADE OPTIMIZATION SECTION ===== */}
+      <section className="mb-8">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold tracking-tight">Trade Optimization Insights</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Data-driven recommendations to improve your trading performance
+          </p>
+        </div>
+
+        <Collapsible defaultOpen={false}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between group hover:bg-accent">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                <span className="font-semibold">View Insights</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                  Optimization
+                </Badge>
+                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+              </div>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <TradeOptimizationInsights />
+          </CollapsibleContent>
+        </Collapsible>
+      </section>
     </div>
   );
 }

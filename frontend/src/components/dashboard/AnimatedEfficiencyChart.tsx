@@ -221,7 +221,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
               ${data.maxFavorable.toFixed(2)}
             </span>
           </div>
-          <div className="pt-2 border-t border-border/50">
+          <div className="pt-2 border-t border-none shadow-xl shadow-black/5">
             <span className="text-xs text-muted-foreground">
               {new Date(data.date).toLocaleDateString()}
             </span>
@@ -233,7 +233,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
 
   if (chartData.length === 0) {
     return (
-      <Card className={cn("backdrop-blur-sm bg-background/95 border-border/50", className)}>
+      <Card className={cn("backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5", className)}>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Trade Efficiency</CardTitle>
         </CardHeader>
@@ -277,7 +277,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
 
   return (
     <Card className={cn(
-      "backdrop-blur-sm bg-background/95 border-border/50 shadow-xl overflow-hidden",
+      "backdrop-blur-sm bg-background/95 border-none shadow-xl shadow-black/5 shadow-xl overflow-hidden",
       className
     )}>
       {/* Animated gradient background */}
@@ -430,7 +430,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
 
         {/* Summary stats */}
         <motion.div
-          className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-border/50"
+          className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-none shadow-xl shadow-black/5"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}
