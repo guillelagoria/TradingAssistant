@@ -1,11 +1,4 @@
-// Settings components exports
-export { UserSettings } from './UserSettings';
-export { TradingPreferences } from './TradingPreferences';
-export { DisplayPreferences } from './DisplayPreferences';
-export { AccountSettings } from './AccountSettings';
-export { NotificationSettings } from './NotificationSettings';
-export { StrategyManager } from './StrategyManager';
-export { FavoriteSymbols } from './FavoriteSymbols';
-export { CommissionSettings } from './CommissionSettings';
-export { default as MarketConfiguration } from './MarketConfiguration';
+// Simplified Settings Components Export
 export { default as TradingAccountManager } from './TradingAccountManager';
+export { SimplePreferences } from './SimplePreferences';
+export { SimpleProfile } from './SimpleProfile';
