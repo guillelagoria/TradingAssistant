@@ -133,19 +133,22 @@ function TradeTable({
   };
 
   const getDirectionIcon = (direction: TradeDirection) => {
-    return direction === TradeDirection.LONG 
-      ? <TrendingUp className="h-4 w-4 text-green-500" />
-      : <TrendingDown className="h-4 w-4 text-red-500" />;
+    return direction === TradeDirection.LONG
+      ? <TrendingUp className="h-4 w-4 text-profit" />
+      : <TrendingDown className="h-4 w-4 text-loss" />;
   };
 
+  // Professional currency formatting - always 2 decimals
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 2
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(value);
   };
 
+  // Professional percentage formatting
   const formatPercentage = (value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
@@ -311,38 +314,38 @@ function TradeTable({
             
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Entry:</span>
-                <div className="font-medium">{formatCurrency(trade.entryPrice)}</div>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Entry:</span>
+                <div className="font-mono font-semibold tabular-nums">{formatCurrency(trade.entryPrice)}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Exit:</span>
-                <div className="font-medium">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Exit:</span>
+                <div className="font-mono font-semibold tabular-nums">
                   {trade.exitPrice ? formatCurrency(trade.exitPrice) : 'Open'}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Net P&L:</span>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Net P&L:</span>
                 <div className={cn(
-                  "font-medium",
-                  trade.netPnl > 0 ? "text-green-600" : trade.netPnl < 0 ? "text-red-600" : "text-gray-600"
+                  "font-mono font-bold tabular-nums",
+                  trade.netPnl > 0 ? "text-profit" : trade.netPnl < 0 ? "text-loss" : "text-muted-foreground"
                 )}>
                   {formatCurrency(trade.netPnl)}
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">MAE/MFE:</span>
-                <div className="font-medium">
-                  <span className="text-red-600">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">MAE/MFE:</span>
+                <div className="font-mono font-medium tabular-nums text-sm">
+                  <span className="text-loss">
                     {trade.maxAdversePrice ? formatCurrency(trade.maxAdversePrice) : '-'}
                   </span>
                   {' / '}
-                  <span className="text-green-600">
+                  <span className="text-profit">
                     {trade.maxFavorablePrice ? formatCurrency(trade.maxFavorablePrice) : '-'}
                   </span>
                 </div>
               </div>
               <div>
-                <span className="text-muted-foreground">Date:</span>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Date:</span>
                 <div className="font-medium">
                   {format(new Date(trade.entryDate), 'MMM dd, yyyy')}
                 </div>
@@ -367,7 +370,7 @@ function TradeTable({
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="border-b-2">
               {showSelection && (
                 <TableHead className="w-[50px]">
                   <Checkbox
@@ -376,76 +379,76 @@ function TradeTable({
                   />
                 </TableHead>
               )}
-              <TableHead>
+              <TableHead className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                 <Button
                   variant="ghost"
                   onClick={() => handleSort('symbol')}
-                  className="h-8 p-0 font-semibold"
+                  className="h-8 p-0 font-semibold uppercase text-xs tracking-wider hover:text-foreground"
                 >
                   Symbol
                   {getSortIcon('symbol')}
                 </Button>
               </TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Direction</TableHead>
-              <TableHead>
+              <TableHead className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Status</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Direction</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                 <Button
                   variant="ghost"
                   onClick={() => handleSort('entryDate')}
-                  className="h-8 p-0 font-semibold"
+                  className="h-8 p-0 font-semibold uppercase text-xs tracking-wider hover:text-foreground"
                 >
                   Entry Date
                   {getSortIcon('entryDate')}
                 </Button>
               </TableHead>
-              <TableHead className="text-right">
+              <TableHead className="text-right text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                 <Button
                   variant="ghost"
                   onClick={() => handleSort('netPnl')}
-                  className="h-8 p-0 font-semibold"
+                  className="h-8 p-0 font-semibold uppercase text-xs tracking-wider hover:text-foreground"
                 >
                   Net P&L
                   {getSortIcon('netPnl')}
                 </Button>
               </TableHead>
-              <TableHead className="text-right">Net P&L %</TableHead>
-              <TableHead className="text-right">
+              <TableHead className="text-right text-xs uppercase tracking-wider font-semibold text-muted-foreground">P&L %</TableHead>
+              <TableHead className="text-right text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                 <Button
                   variant="ghost"
                   onClick={() => handleSort('maxAdversePrice')}
-                  className="h-8 p-0 font-semibold"
+                  className="h-8 p-0 font-semibold uppercase text-xs tracking-wider hover:text-foreground"
                 >
                   MAE
                   {getSortIcon('maxAdversePrice')}
                 </Button>
               </TableHead>
-              <TableHead className="text-right">
+              <TableHead className="text-right text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                 <Button
                   variant="ghost"
                   onClick={() => handleSort('maxFavorablePrice')}
-                  className="h-8 p-0 font-semibold"
+                  className="h-8 p-0 font-semibold uppercase text-xs tracking-wider hover:text-foreground"
                 >
                   MFE
                   {getSortIcon('maxFavorablePrice')}
                 </Button>
               </TableHead>
-              <TableHead className="text-right">
+              <TableHead className="text-right text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                 <Button
                   variant="ghost"
                   onClick={() => handleSort('entryPrice')}
-                  className="h-8 p-0 font-semibold"
+                  className="h-8 p-0 font-semibold uppercase text-xs tracking-wider hover:text-foreground"
                 >
-                  Entry Price
+                  Entry
                   {getSortIcon('entryPrice')}
                 </Button>
               </TableHead>
-              <TableHead className="text-right">Exit Price</TableHead>
-              <TableHead className="w-[70px]">Actions</TableHead>
+              <TableHead className="text-right text-xs uppercase tracking-wider font-semibold text-muted-foreground">Exit</TableHead>
+              <TableHead className="w-[70px] text-xs uppercase tracking-wider font-semibold text-muted-foreground">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {trades.map((trade) => (
-              <TableRow key={trade.id} className="hover:bg-muted/50">
+              <TableRow key={trade.id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
                 {showSelection && (
                   <TableCell>
                     <Checkbox
@@ -454,10 +457,10 @@ function TradeTable({
                     />
                   </TableCell>
                 )}
-                <TableCell className="font-medium">
+                <TableCell className="font-semibold font-mono">
                   <div className="flex items-center gap-2">
                     {getDirectionIcon(trade.direction)}
-                    <span>{trade.symbol}</span>
+                    <span className="tracking-tight">{trade.symbol}</span>
                     {trade.imageUrl && (
                       <ImagePreviewTooltip
                         imageUrl={trade.imageUrl}
@@ -471,22 +474,25 @@ function TradeTable({
                   {getResultBadge(trade.result, trade.netPnl)}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={trade.direction === TradeDirection.LONG ? "default" : "secondary"}>
+                  <Badge
+                    variant={trade.direction === TradeDirection.LONG ? "default" : "secondary"}
+                    className="font-mono text-xs"
+                  >
                     {trade.direction}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-sm">
                   {format(new Date(trade.entryDate), 'MMM dd, yyyy')}
                 </TableCell>
                 <TableCell className={cn(
-                  "text-right font-medium",
-                  trade.netPnl > 0 ? "text-green-600" : trade.netPnl < 0 ? "text-red-600" : "text-gray-600"
+                  "text-right font-mono font-bold tabular-nums text-sm",
+                  trade.netPnl > 0 ? "text-profit" : trade.netPnl < 0 ? "text-loss" : "text-muted-foreground"
                 )}>
                   {formatCurrency(trade.netPnl)}
                 </TableCell>
                 <TableCell className={cn(
-                  "text-right font-medium",
-                  trade.netPnl > 0 ? "text-green-600" : trade.netPnl < 0 ? "text-red-600" : "text-gray-600"
+                  "text-right font-mono font-semibold tabular-nums text-sm",
+                  trade.netPnl > 0 ? "text-profit" : trade.netPnl < 0 ? "text-loss" : "text-muted-foreground"
                 )}>
                   {formatPercentage(
                     trade.entryPrice && trade.entryPrice > 0
@@ -494,18 +500,18 @@ function TradeTable({
                       : 0
                   )}
                 </TableCell>
-                <TableCell className="text-right text-red-600">
+                <TableCell className="text-right font-mono tabular-nums text-sm text-loss">
                   {trade.maxAdversePrice ? formatCurrency(trade.maxAdversePrice) : '-'}
                 </TableCell>
-                <TableCell className="text-right text-green-600">
+                <TableCell className="text-right font-mono tabular-nums text-sm text-profit">
                   {trade.maxFavorablePrice ? formatCurrency(trade.maxFavorablePrice) : '-'}
                 </TableCell>
-                <TableCell className="text-right font-medium">
+                <TableCell className="text-right font-mono font-medium tabular-nums text-sm">
                   {formatCurrency(trade.entryPrice)}
                 </TableCell>
-                <TableCell className="text-right font-medium">
+                <TableCell className="text-right font-mono font-medium tabular-nums text-sm">
                   {trade.exitPrice ? formatCurrency(trade.exitPrice) : (
-                    <Badge variant="outline">Open</Badge>
+                    <Badge variant="outline" className="font-mono text-xs">OPEN</Badge>
                   )}
                 </TableCell>
                 <TableCell>
@@ -608,7 +614,7 @@ function TradeTable({
                   <span className="text-muted-foreground">Net P&L:</span>
                   <div className={cn(
                     "font-medium",
-                    trade.netPnl > 0 ? "text-green-600" : trade.netPnl < 0 ? "text-red-600" : "text-gray-600"
+                    trade.netPnl > 0 ? "text-profit" : trade.netPnl < 0 ? "text-loss" : "text-muted-foreground"
                   )}>
                     {formatCurrency(trade.netPnl)}
                   </div>
@@ -616,11 +622,11 @@ function TradeTable({
                 <div>
                   <span className="text-muted-foreground">MAE/MFE:</span>
                   <div className="font-medium">
-                    <span className="text-red-600">
+                    <span className="text-loss">
                       {trade.maxAdversePrice ? formatCurrency(trade.maxAdversePrice) : '-'}
                     </span>
                     {' / '}
-                    <span className="text-green-600">
+                    <span className="text-profit">
                       {trade.maxFavorablePrice ? formatCurrency(trade.maxFavorablePrice) : '-'}
                     </span>
                   </div>
@@ -641,10 +647,10 @@ function TradeTable({
 
       {/* Success/Error Feedback */}
       {updateSuccess && (
-        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg dark:bg-green-950/50 dark:border-green-800">
+        <div className="fixed top-4 right-4 z-50 profit-bg border border-profit/20 rounded-lg p-4 shadow-lg">
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-            <span className="text-sm font-medium text-green-800 dark:text-green-200">
+            <CheckCircle className="h-5 w-5 text-profit" />
+            <span className="text-sm font-medium text-profit">
               Trade updated successfully!
             </span>
           </div>
@@ -652,10 +658,10 @@ function TradeTable({
       )}
 
       {updateError && (
-        <div className="fixed top-4 right-4 z-50 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg dark:bg-red-950/50 dark:border-red-800">
+        <div className="fixed top-4 right-4 z-50 loss-bg border border-loss/20 rounded-lg p-4 shadow-lg">
           <div className="flex items-center gap-2">
-            <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-            <span className="text-sm font-medium text-red-800 dark:text-red-200">
+            <XCircle className="h-5 w-5 text-loss" />
+            <span className="text-sm font-medium text-loss">
               {updateError}
             </span>
           </div>

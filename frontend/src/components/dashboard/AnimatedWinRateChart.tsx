@@ -30,8 +30,8 @@ const AnimatedWinRateChart: React.FC<AnimatedWinRateChartProps> = ({
   ];
 
   const COLORS = {
-    win: '#10b981',
-    loss: '#f43f5e',
+    win: 'hsl(142, 71%, 45%)', // CHART_COLORS.profit
+    loss: 'hsl(0, 84%, 60%)',   // CHART_COLORS.loss
   };
 
   useEffect(() => {

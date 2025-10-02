@@ -266,12 +266,12 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
                   {/* Gradient definitions */}
                   <defs>
                     <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.8}/>
-                      <stop offset="100%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="0%" stopColor={CHART_COLORS.profit} stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor={CHART_COLORS.profit} stopOpacity={0.3}/>
                     </linearGradient>
                     <linearGradient id="lossGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.8}/>
-                      <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                      <stop offset="0%" stopColor={CHART_COLORS.loss} stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor={CHART_COLORS.loss} stopOpacity={0.3}/>
                     </linearGradient>
                     {/* Glow filters */}
                     <filter id="glow">
@@ -331,7 +331,7 @@ const AnimatedDailyPnLChart: React.FC<AnimatedDailyPnLChartProps> = ({
                     {animatedData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={entry.pnl >= 0 ? '#10b981' : '#f43f5e'}
+                        fill={entry.pnl >= 0 ? CHART_COLORS.profit : CHART_COLORS.loss}
                       />
                     ))}
                   </Bar>

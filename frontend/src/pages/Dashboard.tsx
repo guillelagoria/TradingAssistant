@@ -66,18 +66,18 @@ function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+    <div className="space-y-5">
+      {/* Header - Professional, Tighter */}
+      <div className="flex items-start justify-between pb-2 border-b border-border/50">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of your trading performance and recent activity.
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Trading performance overview and analytics
           </p>
         </div>
-        
-        {/* Export Actions */}
-        <div className="flex items-center space-x-2">
+
+        {/* Export Actions - Refined */}
+        <div className="flex items-center gap-2">
           <ExportDialog
             trades={trades}
             chartElements={getChartElements()}
@@ -86,13 +86,13 @@ function Dashboard() {
               includeCharts: true
             }}
             trigger={
-              <Button variant="outline">
-                <FileBarChart className="h-4 w-4 mr-2" />
-                Export Report
+              <Button variant="outline" size="sm" className="text-xs font-semibold uppercase tracking-wider">
+                <FileBarChart className="h-3.5 w-3.5 mr-2" />
+                Report
               </Button>
             }
           />
-          
+
           <ExportDialog
             trades={trades}
             defaultOptions={{
@@ -100,9 +100,9 @@ function Dashboard() {
               includeStats: true
             }}
             trigger={
-              <Button variant="ghost" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
+              <Button variant="ghost" size="sm" className="text-xs font-semibold uppercase tracking-wider">
+                <Download className="h-3.5 w-3.5 mr-2" />
+                CSV
               </Button>
             }
           />
@@ -114,61 +114,30 @@ function Dashboard() {
 
       {/* Main P&L Chart - Full Width */}
       <div ref={pnlChartRef}>
-        <AnimatedPnLChart height={400} />
+        <AnimatedPnLChart height={380} />
       </div>
-      
+
       {/* Daily P&L Chart - Full Width */}
-      <div className="space-y-6">
-        <div ref={dailyPnlChartRef}>
-          <AnimatedDailyPnLChart height={350} days={21} />
-        </div>
+      <div ref={dailyPnlChartRef}>
+        <AnimatedDailyPnLChart height={320} days={21} />
       </div>
 
-      {/* Secondary Charts Grid */}
-      <div className="grid gap-6 md:grid-cols-1">
-        {/* Win Rate Donut Chart */}
-        <div ref={winRateChartRef}>
-          <AnimatedWinRateChart height={300} />
-        </div>
+      {/* Win Rate Chart */}
+      <div ref={winRateChartRef}>
+        <AnimatedWinRateChart height={280} />
       </div>
 
-      {/* MAE/MFE Statistics Section */}
-      <div className="space-y-6">
-        <MAEMFEStatsCard />
-      </div>
+      {/* MAE/MFE Statistics */}
+      <MAEMFEStatsCard />
 
-      {/* Break-Even Analysis Section */}
-      <div className="space-y-6">
-        <AnimatedBEStatsCard
-          refreshTrigger={trades.length}
-          onViewDetails={() => navigate('/analysis/break-even')}
-        />
-      </div>
+      {/* Break-Even Analysis */}
+      <AnimatedBEStatsCard
+        refreshTrigger={trades.length}
+        onViewDetails={() => navigate('/analysis/break-even')}
+      />
 
       {/* Trade Optimization Insights */}
-      <div className="space-y-6">
-        <TradeOptimizationInsights />
-      </div>
-
-      {/* Floating Action Button - Quick Trade Entry */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={() => navigate('/trades/wizard')}
-          size="lg"
-          className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all duration-200 hover:scale-105"
-        >
-          <div className="flex flex-col items-center">
-            <Zap className="h-5 w-5" />
-            <Plus className="h-3 w-3 -mt-1" />
-          </div>
-          <span className="sr-only">Quick Trade Entry</span>
-        </Button>
-
-        {/* Tooltip */}
-        <div className="absolute bottom-16 right-0 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          Quick Trade Entry
-        </div>
-      </div>
+      <TradeOptimizationInsights />
     </div>
   );
 }

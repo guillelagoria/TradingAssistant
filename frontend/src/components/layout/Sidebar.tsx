@@ -75,9 +75,9 @@ function Sidebar() {
 
         {/* Dashboard Info */}
         <div className="px-6 py-4 border-t">
-          <div className="rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 p-4 border">
+          <div className="rounded-xl bg-muted p-4 border">
             <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="h-4 w-4 text-green-600" />
+              <BarChart3 className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold">All-in-One Dashboard</span>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -88,15 +88,15 @@ function Sidebar() {
 
         {/* Premium CTA */}
         <div className="mt-auto p-6">
-          <div className="rounded-xl bg-gradient-to-br from-blue-50 to-violet-50 dark:from-blue-950/50 dark:to-violet-950/50 p-4 border">
+          <div className="rounded-xl bg-muted p-4 border">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-blue-600" />
+              <TrendingUp className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold">Advanced Analytics</span>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
               Unlock premium trading insights and risk analysis tools.
             </p>
-            <Button size="sm" className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700">
+            <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
               Coming Soon
             </Button>
           </div>

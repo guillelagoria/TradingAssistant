@@ -340,7 +340,7 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                         repeat: Infinity,
                         ease: "easeInOut"
                       }}
-                      className="p-1.5 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg"
+                      className="p-1.5 rounded-lg bg-primary text-primary-foreground shadow-lg"
                     >
                       <Zap className="h-4 w-4" />
                     </motion.div>
@@ -394,7 +394,7 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                       transition={{ delay: 0.3, duration: 0.3 }}
                     >
                       <Label htmlFor="symbol" className="text-xs font-semibold text-foreground/90 flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                         Symbol
                       </Label>
                       <Select
@@ -412,13 +412,13 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                         <SelectContent className="border-2 bg-background/95 backdrop-blur-xl shadow-xl">
                           <SelectItem value="ES" className="text-sm font-mono py-1.5 hover:bg-primary/10 focus:bg-primary/10">
                             <div className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                               ES - S&P 500
                             </div>
                           </SelectItem>
                           <SelectItem value="NQ" className="text-sm font-mono py-1.5 hover:bg-primary/10 focus:bg-primary/10">
                             <div className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                               NQ - NASDAQ-100
                             </div>
                           </SelectItem>
@@ -444,7 +444,7 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                       transition={{ delay: 0.4, duration: 0.3 }}
                     >
                       <Label className="text-xs font-semibold text-foreground/90 flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                         Direction
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -467,8 +467,8 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                             "w-full h-9 text-sm font-bold transition-all duration-300 border-2 relative overflow-hidden",
                             "shadow-sm hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]",
                             form.direction === TradeDirection.LONG
-                              ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 text-green-700 hover:from-green-100 hover:to-emerald-100 dark:from-green-950/50 dark:to-emerald-950/50 dark:border-green-800 dark:text-green-400"
-                              : "bg-gradient-to-r from-red-50 to-rose-50 border-red-200 text-red-700 hover:from-red-100 hover:to-rose-100 dark:from-red-950/50 dark:to-rose-950/50 dark:border-red-800 dark:text-red-400"
+                              ? "profit-bg border-profit/20 text-profit hover:opacity-90"
+                              : "loss-bg border-loss/20 text-loss hover:opacity-90"
                           )}
                         >
                           <AnimatePresence mode="wait">
@@ -508,7 +508,7 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                     {/* Entry Price */}
                     <div className="space-y-1">
                       <Label htmlFor="entryPrice" className="text-xs font-semibold text-foreground/90 flex items-center gap-1">
-                        <Target className="h-3 w-3 text-blue-500" />
+                        <Target className="h-3 w-3 text-primary" />
                         Entry Price
                       </Label>
                       <div className="relative group">
@@ -547,7 +547,7 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                     {/* Quantity */}
                     <div className="space-y-1">
                       <Label htmlFor="quantity" className="text-xs font-semibold text-foreground/90 flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                         Quantity
                       </Label>
                       <div className="relative group">
@@ -639,8 +639,8 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                       <Label htmlFor="result" className="text-xs font-semibold text-foreground/90 flex items-center gap-1">
                         <DollarSign className={cn(
                           "h-3 w-3 transition-colors duration-200",
-                          Number(form.result) > 0 && "text-green-500",
-                          Number(form.result) < 0 && "text-red-500",
+                          Number(form.result) > 0 && "text-profit",
+                          Number(form.result) < 0 && "text-loss",
                           !form.result && "text-muted-foreground"
                         )} />
                         Result (Points)
@@ -659,9 +659,9 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                             "h-9 text-sm font-mono border-2 transition-all duration-200 bg-background/50 backdrop-blur-sm pl-3 pr-8",
                             "hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20",
                             "shadow-sm hover:shadow-md group-hover:shadow-lg",
-                            validationErrors.result && "border-red-500 focus:border-red-500 focus:ring-red-200",
-                            Number(form.result) > 0 && "text-green-600 border-green-200 focus:border-green-400 bg-green-50/50 dark:bg-green-950/20",
-                            Number(form.result) < 0 && "text-red-600 border-red-200 focus:border-red-400 bg-red-50/50 dark:bg-red-950/20"
+                            validationErrors.result && "border-destructive focus:border-destructive focus:ring-destructive/20",
+                            Number(form.result) > 0 && "text-profit border-profit/20 focus:border-profit profit-bg",
+                            Number(form.result) < 0 && "text-loss border-loss/20 focus:border-loss loss-bg"
                           )}
                         />
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-mono">
@@ -676,8 +676,8 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                           animate={{ opacity: 1, scale: 1 }}
                           className={cn(
                             "text-[10px] font-mono p-1.5 rounded border backdrop-blur-sm transition-colors duration-200",
-                            Number(form.result) > 0 && "text-green-700 bg-green-50/80 border-green-200 dark:text-green-400 dark:bg-green-950/50 dark:border-green-800",
-                            Number(form.result) < 0 && "text-red-700 bg-red-50/80 border-red-200 dark:text-red-400 dark:bg-red-950/50 dark:border-red-800"
+                            Number(form.result) > 0 && "text-profit profit-bg border-profit/20",
+                            Number(form.result) < 0 && "text-loss loss-bg border-loss/20"
                           )}
                         >
                           <div className="flex items-center gap-1">
@@ -789,8 +789,8 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                           className="relative border-2 rounded-lg p-2 bg-gradient-to-br from-background/80 to-muted/50 backdrop-blur-sm shadow-sm"
                         >
                           <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50">
-                              <ImagePlus className="h-3 w-3 text-green-600 dark:text-green-400" />
+                            <div className="p-1.5 rounded profit-bg">
+                              <ImagePlus className="h-3 w-3 text-profit" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-semibold truncate text-foreground">{form.image.name}</p>
@@ -873,7 +873,7 @@ const QuickTradeDialog: React.FC<QuickTradeDialogProps> = ({
                         type="submit"
                         className={cn(
                           "w-full h-9 font-bold text-sm relative overflow-hidden",
-                          "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70",
+                          "bg-primary hover:bg-primary/90 text-primary-foreground",
                           "shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]",
                           "transition-all duration-200"
                         )}

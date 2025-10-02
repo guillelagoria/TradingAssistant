@@ -368,7 +368,8 @@ function TradeHistory() {
                 <Button
                   onClick={() => handleOpenQuickTrade()}
                   size="sm"
-                  className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+                  aria-label="Open Quick Trade Dialog"
                 >
                   <Zap className="h-4 w-4 mr-2" />
                   Quick Trade

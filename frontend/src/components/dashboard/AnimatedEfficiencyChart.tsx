@@ -204,14 +204,14 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
             <span className="text-xs text-muted-foreground">P&L:</span>
             <span className={cn(
               "text-sm font-bold",
-              data.isProfit ? "text-emerald-500" : "text-rose-500"
+              data.isProfit ? "text-profit" : "text-loss"
             )}>
               {formatCurrency(data.pnl)}
             </span>
           </div>
           <div className="flex justify-between items-center gap-4">
             <span className="text-xs text-muted-foreground">Efficiency:</span>
-            <span className="text-sm font-bold text-blue-500">
+            <span className="text-sm font-bold text-primary">
               {data.efficiency.toFixed(1)}%
             </span>
           </div>
@@ -285,9 +285,9 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
         className="absolute inset-0 opacity-5"
         animate={{
           background: [
-            `linear-gradient(135deg, #3b82f6 0%, transparent 50%)`,
-            `linear-gradient(135deg, transparent 50%, #3b82f6 100%)`,
-            `linear-gradient(135deg, #3b82f6 0%, transparent 50%)`,
+            `linear-gradient(135deg, ${CHART_COLORS.primary} 0%, transparent 50%)`,
+            `linear-gradient(135deg, transparent 50%, ${CHART_COLORS.primary} 100%)`,
+            `linear-gradient(135deg, ${CHART_COLORS.primary} 0%, transparent 50%)`,
           ],
         }}
         transition={{
@@ -316,7 +316,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", delay: 0.2 }}
           >
-            <div className="text-lg font-bold text-blue-500">
+            <div className="text-lg font-bold text-primary">
               {avgEfficiency.toFixed(1)}%
             </div>
             <div className="text-xs text-muted-foreground">
@@ -448,7 +448,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
           </div>
           <div className="text-center">
             <motion.div
-              className="text-lg font-bold text-emerald-500"
+              className="text-lg font-bold text-profit"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 1.2, type: "spring" }}
@@ -459,7 +459,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
           </div>
           <div className="text-center">
             <motion.div
-              className="text-lg font-bold text-rose-500"
+              className="text-lg font-bold text-loss"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 1.3, type: "spring" }}
@@ -470,7 +470,7 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
           </div>
           <div className="text-center">
             <motion.div
-              className="text-lg font-bold text-blue-500"
+              className="text-lg font-bold text-primary"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 1.4, type: "spring" }}
@@ -490,11 +490,11 @@ const AnimatedEfficiencyChart: React.FC<AnimatedEfficiencyChartProps> = ({
         >
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" />
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_COLORS.profit }} />
               <span className="text-muted-foreground">Profitable</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-rose-500" />
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_COLORS.loss }} />
               <span className="text-muted-foreground">Loss</span>
             </div>
             <div className="flex items-center gap-1">

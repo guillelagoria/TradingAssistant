@@ -38,15 +38,15 @@ function Header() {
   });
 
   return (
-    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+    <header className="border-b border-border/50 bg-card backdrop-blur-sm sticky top-0 z-50 shadow-sm">
       <div className="container flex h-14 items-center justify-between px-4">
-        {/* Brand - Simplified */}
+        {/* Brand - Professional, Minimal */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600">
-              <TrendingUp className="h-4 w-4 text-white" />
+            <div className="flex h-7 w-7 items-center justify-center rounded bg-foreground">
+              <TrendingUp className="h-4 w-4 text-background" />
             </div>
-            <h1 className="text-base font-bold text-foreground">Trading Diary</h1>
+            <h1 className="text-base font-semibold tracking-tight text-foreground">Trading Diary</h1>
           </div>
 
           {/* Account Selector - Compact */}
@@ -55,8 +55,8 @@ function Header() {
           </div>
         </div>
 
-        {/* Right Actions */}
-        <div className="flex items-center gap-3">
+        {/* Right Actions - Subtle, Professional */}
+        <div className="flex items-center gap-2">
           {/* Economic Events - Compact Icon Version */}
           <TooltipProvider>
             <Tooltip>
@@ -65,24 +65,26 @@ function Header() {
                   variant="ghost"
                   size="sm"
                   onClick={handleEconomicEventsClick}
-                  className="relative h-9 w-9 p-0"
+                  className="relative h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  aria-label="Open economic calendar"
                 >
                   <Bell className="h-4 w-4" />
+                  <span className="sr-only">Open economic calendar</span>
                   {highImpactCount > 0 && (
                     <Badge
                       variant="destructive"
-                      className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 text-xs animate-pulse"
+                      className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 text-[10px] font-mono font-bold border border-background"
                     >
                       {highImpactCount}
                     </Badge>
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
-                <div className="text-sm space-y-1">
-                  <p className="font-medium">Economic Calendar</p>
+              <TooltipContent side="bottom" className="max-w-xs border-border/50">
+                <div className="text-xs space-y-1">
+                  <p className="font-semibold uppercase tracking-wider text-[10px]">Economic Calendar</p>
                   {highImpactCount > 0 && (
-                    <p className="text-xs text-orange-400">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                       {highImpactCount} high impact events today
                     </p>
                   )}
@@ -91,7 +93,6 @@ function Header() {
                       Next: {nextEvent.event}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground">Click to view all events</p>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -105,25 +106,27 @@ function Header() {
                   variant="ghost"
                   size="sm"
                   onClick={handleSettings}
-                  className="h-9 w-9 p-0"
+                  className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  aria-label="Open settings"
                 >
                   <Settings className="h-4 w-4" />
+                  <span className="sr-only">Open settings</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-sm">Settings</p>
+              <TooltipContent side="bottom" className="border-border/50">
+                <p className="text-xs font-semibold uppercase tracking-wider">Settings</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
-          {/* User Avatar - Compact */}
-          <div className="flex items-center gap-2">
+          {/* User Avatar - Minimal, Professional */}
+          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border/50">
             <div className="hidden lg:block text-right">
-              <p className="text-sm font-medium text-foreground">John Trader</p>
+              <p className="text-sm font-medium text-foreground tracking-tight">John Trader</p>
             </div>
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 border border-border/50">
               <AvatarImage src="" alt="User" />
-              <AvatarFallback className="bg-gradient-to-br from-blue-600 to-violet-600 text-white font-semibold text-xs">
+              <AvatarFallback className="bg-foreground text-background font-semibold text-xs">
                 JT
               </AvatarFallback>
             </Avatar>

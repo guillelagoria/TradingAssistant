@@ -131,7 +131,7 @@ const AnimatedPnLChart: React.FC<AnimatedPnLChartProps> = ({ height = 350, class
     if (!payload) return null;
 
     const isWin = payload.tradePnl >= 0;
-    const dotColor = isWin ? '#10b981' : '#f43f5e';
+    const dotColor = isWin ? CHART_COLORS.profit : CHART_COLORS.loss;
     const isHovered = hoveredPoint === index;
 
     return (
@@ -227,9 +227,9 @@ const AnimatedPnLChart: React.FC<AnimatedPnLChartProps> = ({ height = 350, class
         className="absolute inset-0 opacity-5"
         animate={{
           background: [
-            `linear-gradient(135deg, ${isProfit ? '#10b981' : '#f43f5e'} 0%, transparent 50%)`,
-            `linear-gradient(135deg, transparent 50%, ${isProfit ? '#10b981' : '#f43f5e'} 100%)`,
-            `linear-gradient(135deg, ${isProfit ? '#10b981' : '#f43f5e'} 0%, transparent 50%)`,
+            `linear-gradient(135deg, ${isProfit ? CHART_COLORS.profit : CHART_COLORS.loss} 0%, transparent 50%)`,
+            `linear-gradient(135deg, transparent 50%, ${isProfit ? CHART_COLORS.profit : CHART_COLORS.loss} 100%)`,
+            `linear-gradient(135deg, ${isProfit ? CHART_COLORS.profit : CHART_COLORS.loss} 0%, transparent 50%)`,
           ],
         }}
         transition={{
@@ -299,12 +299,12 @@ const AnimatedPnLChart: React.FC<AnimatedPnLChartProps> = ({ height = 350, class
                 >
                   <defs>
                     <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      <stop offset="5%" stopColor={CHART_COLORS.profit} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={CHART_COLORS.profit} stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                      <stop offset="5%" stopColor={CHART_COLORS.loss} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={CHART_COLORS.loss} stopOpacity={0}/>
                     </linearGradient>
                   </defs>
 
@@ -357,7 +357,7 @@ const AnimatedPnLChart: React.FC<AnimatedPnLChartProps> = ({ height = 350, class
                   <Line
                     type="monotone"
                     dataKey="cumulativePnl"
-                    stroke={isProfit ? '#10b981' : '#f43f5e'}
+                    stroke={isProfit ? CHART_COLORS.profit : CHART_COLORS.loss}
                     strokeWidth={3}
                     dot={<CustomDot />}
                     activeDot={false}

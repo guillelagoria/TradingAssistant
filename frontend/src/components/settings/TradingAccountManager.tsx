@@ -299,9 +299,9 @@ const TradingAccountManager: React.FC = () => {
 
   const getAccountTypeIcon = (accountType: AccountType) => {
     return accountType === AccountType.DEMO ? (
-      <Circle className="h-4 w-4 text-blue-500" />
+      <Circle className="h-4 w-4 text-primary" />
     ) : (
-      <CheckCircle className="h-4 w-4 text-green-500" />
+      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
     );
   };
 
@@ -328,7 +328,7 @@ const TradingAccountManager: React.FC = () => {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3 flex-1">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback className="text-sm bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900">
+                  <AvatarFallback className="text-sm bg-primary/10 text-primary">
                     {account.name.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -348,7 +348,7 @@ const TradingAccountManager: React.FC = () => {
                       className={cn(
                         'text-xs',
                         account.accountType === AccountType.DEMO
-                          ? 'border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300'
+                          ? 'border-primary/30 text-primary dark:border-primary/50'
                           : 'border-green-200 text-green-700 dark:border-green-800 dark:text-green-300'
                       )}
                     >
@@ -480,9 +480,9 @@ const TradingAccountManager: React.FC = () => {
                 <SelectItem key={option.value} value={option.value}>
                   <div className="flex items-center gap-2">
                     {option.value === AccountType.DEMO ? (
-                      <Circle className="h-4 w-4 text-blue-500" />
+                      <Circle className="h-4 w-4 text-primary" />
                     ) : (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                     )}
                     <span>{option.label}</span>
                   </div>

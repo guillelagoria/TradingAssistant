@@ -62,8 +62,8 @@ const Settings: React.FC = () => {
         className="mb-8"
       >
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600">
-            <SettingsIcon className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+            <SettingsIcon className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Settings</h1>

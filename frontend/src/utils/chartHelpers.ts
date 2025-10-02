@@ -41,15 +41,22 @@ export interface EfficiencyPoint {
   formattedDate: string;
 }
 
-// Color constants for consistent theming
+// Color constants for consistent theming - Using theme-based colors
+// These match the CSS variables defined in index.css
 export const CHART_COLORS = {
-  profit: '#10b981', // green-500
-  loss: '#ef4444',   // red-500
-  neutral: '#6b7280', // gray-500
-  primary: '#3b82f6', // blue-500
-  secondary: '#8b5cf6', // purple-500
-  grid: '#e5e7eb',   // gray-200
-  text: '#374151',   // gray-700
+  profit: 'hsl(142, 71%, 45%)',    // --profit from theme
+  loss: 'hsl(0, 84%, 60%)',        // --loss from theme
+  neutral: 'hsl(240, 5%, 96%)',    // --muted from theme
+  primary: 'hsl(217, 91%, 60%)',   // --primary from theme (#3b82f6)
+  secondary: 'hsl(240, 5%, 96%)',  // --secondary from theme
+  grid: 'hsl(240, 6%, 90%)',       // --border from theme
+  text: 'hsl(0, 0%, 9%)',          // --foreground from theme
+  // Chart palette using primary variations
+  chart1: 'hsl(217, 91%, 60%)',    // --chart-1 (primary)
+  chart2: 'hsl(221, 83%, 53%)',    // --chart-2
+  chart3: 'hsl(212, 95%, 68%)',    // --chart-3
+  chart4: 'hsl(199, 89%, 48%)',    // --chart-4
+  chart5: 'hsl(198, 93%, 60%)',    // --chart-5
 } as const;
 
 // Format currency values for display
