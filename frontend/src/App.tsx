@@ -6,6 +6,7 @@ import { Dashboard, TradeHistory, Settings, ImportPage } from '@/pages';
 import { setupTestAuth } from '@/utils/setupAuth';
 import { useAccountChangeHandler } from '@/hooks/useAccountChangeHandler';
 import { initializeAccountStore } from '@/store/accountStore';
+import { ThemeProvider } from '@/components/theme';
 
 function App() {
   // Initialize account change handling
@@ -29,20 +30,22 @@ function App() {
   }, []);
 
   return (
-    <Router future={{
-      v7_startTransition: true,
-      v7_relativeSplatPath: true
-    }}>
-      <MainLayout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/trades" element={<TradeHistory />} />
-          <Route path="/import" element={<ImportPage />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </MainLayout>
-      <Toaster richColors position="top-right" />
-    </Router>
+    <ThemeProvider defaultTheme="system" storageKey="trading-diary-theme">
+      <Router future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}>
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/trades" element={<TradeHistory />} />
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </MainLayout>
+        <Toaster richColors position="top-right" />
+      </Router>
+    </ThemeProvider>
   );
 }
 

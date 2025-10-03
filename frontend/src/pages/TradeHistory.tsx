@@ -13,15 +13,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  TradeTable,
   TradeFilters,
-  TradeDetails,
   TradeCalendarView,
   TradeCalendarViewWithPopover,
   DayDetailPopover,
   CompactSearchBar,
   ModernFilterSystem
 } from '@/components/trades';
+import EnhancedTradeDetails from '@/components/trades/EnhancedTradeDetails';
+import EnhancedTradeTable from '@/components/trades/EnhancedTradeTable';
 import { AnimatedStatsCards } from '@/components/dashboard';
 import { ConfirmDialog } from '@/components/shared';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -358,45 +358,12 @@ function TradeHistory() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={handleImportTrades} size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Import NT8
-          </Button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => handleOpenQuickTrade()}
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
-                  aria-label="Open Quick Trade Dialog"
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Quick Trade
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Quick Trade Entry</p>
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <div className="flex items-center gap-1">
-                      <Keyboard className="h-3 w-3" />
-                      <span>Ctrl+Alt+B - Long</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Keyboard className="h-3 w-3" />
-                      <span>Ctrl+Alt+S - Short</span>
-                    </div>
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {/* Quick Trade and Import removed - already in sidebar */}
         </div>
       </div>
 
-      {/* Stats Cards - Hidden to avoid duplication with Dashboard */}
-      {/* <AnimatedStatsCards /> */}
+      {/* Stats Cards - Inline context for quick overview */}
+      <AnimatedStatsCards className="mb-6" />
 
       {/* Compact Search and Filter System */}
       <CompactSearchBar
@@ -449,7 +416,7 @@ function TradeHistory() {
 
       {/* Trades Display - Table or Calendar */}
       {viewMode === 'table' ? (
-        <TradeTable
+        <EnhancedTradeTable
           trades={filteredTrades}
           onView={handleViewTrade}
           onEdit={handleEditTrade}
@@ -510,7 +477,7 @@ function TradeHistory() {
       )}
 
       {/* Trade Details Modal */}
-      <TradeDetails
+      <EnhancedTradeDetails
         trade={selectedTrade}
         open={showTradeDetails}
         onOpenChange={setShowTradeDetails}

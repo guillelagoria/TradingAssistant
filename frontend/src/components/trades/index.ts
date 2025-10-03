@@ -1,8 +1,10 @@
 // Trades components exports
 export { default as TradeForm } from './TradeForm';
 export { default as TradeTable } from './TradeTable';
+export { default as EnhancedTradeTable } from './EnhancedTradeTable';
 export { default as TradeTableWithFilters } from './TradeTableWithFilters';
 export { default as TradeDetails } from './TradeDetails';
+export { default as EnhancedTradeDetails } from './EnhancedTradeDetails';
 export { default as TradeFilters } from './TradeFilters';
 export { default as QuickTradeDialog } from './QuickTradeDialog';
 

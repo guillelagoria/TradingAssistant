@@ -79,12 +79,22 @@ function CalendarDay({ dayData, isCurrentMonth, isToday, onClick }: CalendarDayP
   const color = getDayColor();
 
   const formatCurrency = (value: number) => {
+    const absValue = Math.abs(value);
+    // For values over 1000, show K notation
+    if (absValue >= 1000) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }).format(absValue / 1000) + 'K';
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(Math.abs(value));
+    }).format(absValue);
   };
 
   const dayVariants = {
@@ -121,10 +131,13 @@ function CalendarDay({ dayData, isCurrentMonth, isToday, onClick }: CalendarDayP
       )}
     >
       <Card className={cn(
-        "min-h-[80px] sm:min-h-[100px] transition-all duration-200 hover:shadow-md relative overflow-hidden",
+        "min-h-[100px] sm:min-h-[120px] transition-all duration-200 hover:shadow-lg relative overflow-hidden",
         !isCurrentMonth && "bg-muted/30",
-        isToday && "ring-1 sm:ring-2 ring-blue-500 ring-offset-1 sm:ring-offset-2",
+        isToday && "ring-2 ring-blue-500 shadow-blue-500/20",
         hasAnyTrades && !isCurrentMonth && "bg-background/50",
+        hasAnyTrades && color === 'green' && "border-l-4 border-l-emerald-500",
+        hasAnyTrades && color === 'red' && "border-l-4 border-l-rose-500",
+        hasAnyTrades && color === 'amber' && "border-l-4 border-l-amber-500",
         !hasAnyTrades && "hover:bg-muted/40"
       )}>
 
@@ -178,62 +191,54 @@ function CalendarDay({ dayData, isCurrentMonth, isToday, onClick }: CalendarDayP
           {/* Trade information */}
           {hasAnyTrades ? (
             <div className="flex-1 space-y-1">
-              {/* P&L */}
-              <div className="flex items-center justify-between">
-                <motion.span
-                  className={cn(
-                    "text-xs font-semibold",
-                    color === 'green' && "text-emerald-600",
-                    color === 'red' && "text-rose-600",
-                    color === 'amber' && "text-amber-600"
-                  )}
+              {/* P&L - More prominent */}
+              <div className="flex items-center justify-center mb-1">
+                <motion.div
+                  className="text-center"
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  {isProfitable ? '+' : ''}
-                  {formatCurrency(totalPnl)}
-                </motion.span>
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.25 }}
-                  className={cn(
-                    "p-1 rounded",
-                    color === 'green' && "bg-emerald-500/20",
-                    color === 'red' && "bg-rose-500/20",
-                    color === 'amber' && "bg-amber-500/20"
-                  )}
-                >
-                  {isProfitable ? (
-                    <TrendingUp className="h-3 w-3 text-emerald-600" />
-                  ) : totalPnl < 0 ? (
-                    <TrendingDown className="h-3 w-3 text-rose-600" />
-                  ) : (
-                    <BarChart3 className="h-3 w-3 text-amber-600" />
-                  )}
+                  <div className={cn(
+                    "font-mono font-bold tabular-nums",
+                    "text-sm sm:text-base",
+                    color === 'green' && "text-emerald-600",
+                    color === 'red' && "text-rose-600",
+                    color === 'amber' && "text-amber-600"
+                  )}>
+                    {isProfitable ? '+' : totalPnl < 0 ? '-' : ''}
+                    {formatCurrency(totalPnl)}
+                  </div>
+                  <div className="flex items-center justify-center gap-1 mt-0.5">
+                    {isProfitable ? (
+                      <TrendingUp className="h-3 w-3 text-emerald-500" />
+                    ) : totalPnl < 0 ? (
+                      <TrendingDown className="h-3 w-3 text-rose-500" />
+                    ) : (
+                      <BarChart3 className="h-3 w-3 text-amber-500" />
+                    )}
+                  </div>
                 </motion.div>
               </div>
 
-              {/* Win/Loss breakdown */}
+              {/* Win/Loss breakdown - More prominent */}
               {(winCount > 0 || lossCount > 0) && (
                 <motion.div
-                  className="flex items-center gap-1 text-xs"
+                  className="flex items-center justify-center gap-1.5 text-xs font-semibold"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.3 }}
                 >
                   {winCount > 0 && (
-                    <span className="text-emerald-600 font-medium">
+                    <span className="text-emerald-600 flex items-center gap-0.5">
                       {winCount}W
                     </span>
                   )}
                   {winCount > 0 && lossCount > 0 && (
-                    <span className="text-muted-foreground">•</span>
+                    <span className="text-muted-foreground/50">•</span>
                   )}
                   {lossCount > 0 && (
-                    <span className="text-rose-600 font-medium">
+                    <span className="text-rose-600 flex items-center gap-0.5">
                       {lossCount}L
                     </span>
                   )}
@@ -255,29 +260,29 @@ function CalendarDay({ dayData, isCurrentMonth, isToday, onClick }: CalendarDayP
                 </motion.div>
               )}
 
-              {/* Top symbols */}
+              {/* Top symbols - More subtle */}
               {symbols.length > 0 && (
                 <motion.div
-                  className="flex flex-wrap gap-1 mt-1"
+                  className="flex flex-wrap justify-center gap-1 mt-1"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
                 >
-                  {symbols.slice(0, 2).map((symbol, index) => (
+                  {symbols.slice(0, 1).map((symbol) => (
                     <Badge
                       key={symbol}
                       variant="outline"
-                      className="text-[10px] px-1 py-0 h-4 bg-background/50 border-border/50"
+                      className="text-[9px] sm:text-[10px] px-1 py-0 h-3.5 bg-background/60 border-muted-foreground/30 text-muted-foreground"
                     >
                       {symbol}
                     </Badge>
                   ))}
-                  {symbols.length > 2 && (
+                  {symbols.length > 1 && (
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-1 py-0 h-4 bg-background/50 border-border/50"
+                      className="text-[9px] sm:text-[10px] px-1 py-0 h-3.5 bg-background/60 border-muted-foreground/30 text-muted-foreground"
                     >
-                      +{symbols.length - 2}
+                      +{symbols.length - 1}
                     </Badge>
                   )}
                 </motion.div>
@@ -347,9 +352,9 @@ export default function TradeCalendarView({
       const dateKey = format(date, 'yyyy-MM-dd');
       const dayTrades = tradesByDate.get(dateKey) || [];
 
-      const totalPnl = dayTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
-      const winCount = dayTrades.filter(t => t.result === TradeResult.WIN || (t.pnl > 0 && t.status === TradeStatus.CLOSED)).length;
-      const lossCount = dayTrades.filter(t => t.result === TradeResult.LOSS || (t.pnl < 0 && t.status === TradeStatus.CLOSED)).length;
+      const totalPnl = dayTrades.reduce((sum, trade) => sum + (trade.netPnl || 0), 0);
+      const winCount = dayTrades.filter(t => t.result === TradeResult.WIN || (t.netPnl > 0 && t.status === TradeStatus.CLOSED)).length;
+      const lossCount = dayTrades.filter(t => t.result === TradeResult.LOSS || (t.netPnl < 0 && t.status === TradeStatus.CLOSED)).length;
       const openTradeCount = dayTrades.filter(t => t.status === TradeStatus.OPEN).length;
       const symbols = [...new Set(dayTrades.map(t => t.symbol))];
 

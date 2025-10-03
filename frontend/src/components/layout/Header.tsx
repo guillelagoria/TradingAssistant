@@ -9,6 +9,7 @@ import { EconomicCalendarModal } from '@/components/economic';
 import { useEconomicEvents, useEconomicEventsModal } from '@/store/economicEventsStore';
 import CompactAccountSelector from './CompactAccountSelector';
 import { useQuickTradeShortcuts } from '@/hooks/useQuickTradeShortcuts';
+import { ThemeToggle } from '@/components/theme';
 
 interface ProfileData {
   name: string;
@@ -139,6 +140,9 @@ function Header() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Settings */}
           <TooltipProvider>
