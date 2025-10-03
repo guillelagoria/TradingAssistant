@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, Settings, Bell, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,52 @@ import { useEconomicEvents, useEconomicEventsModal } from '@/store/economicEvent
 import CompactAccountSelector from './CompactAccountSelector';
 import { useQuickTradeShortcuts } from '@/hooks/useQuickTradeShortcuts';
 
+interface ProfileData {
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
 function Header() {
   const navigate = useNavigate();
   const { highImpactCount, nextEvent } = useEconomicEvents();
   const { openModal } = useEconomicEventsModal();
+
+  // Load profile from localStorage and listen for changes
+  const [profile, setProfile] = useState<ProfileData>(() => {
+    const saved = localStorage.getItem('user-profile');
+    return saved ? JSON.parse(saved) : { name: 'User', email: '', avatar: undefined };
+  });
+
+  // Listen for storage changes (when profile is updated from Settings)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('user-profile');
+      if (saved) {
+        setProfile(JSON.parse(saved));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also poll localStorage every second to catch same-tab changes
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const getUserInitials = (name: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const handleSettings = () => {
     navigate('/settings');
@@ -122,12 +164,12 @@ function Header() {
           {/* User Avatar - Minimal, Professional */}
           <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border/50">
             <div className="hidden lg:block text-right">
-              <p className="text-sm font-medium text-foreground tracking-tight">John Trader</p>
+              <p className="text-sm font-medium text-foreground tracking-tight">{profile.name || 'User'}</p>
             </div>
             <Avatar className="h-8 w-8 border border-border/50">
-              <AvatarImage src="" alt="User" />
+              <AvatarImage src={profile.avatar} alt={profile.name} />
               <AvatarFallback className="bg-foreground text-background font-semibold text-xs">
-                JT
+                {getUserInitials(profile.name)}
               </AvatarFallback>
             </Avatar>
           </div>
