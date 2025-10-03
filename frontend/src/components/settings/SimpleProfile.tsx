@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -190,20 +190,10 @@ export function SimpleProfile() {
 
   return (
     <div className="space-y-6">
-      {/* Save Button */}
-      {hasChanges && (
-        <div className="flex justify-end">
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
-          </Button>
-        </div>
-      )}
-
       {/* Profile Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <User className="h-5 w-5" />
             Profile Information
           </CardTitle>
@@ -266,12 +256,15 @@ export function SimpleProfile() {
             </div>
           </div>
 
-          <Separator />
+          <Separator className="my-6" />
 
           {/* Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="profile-name">Full Name</Label>
+              <Label htmlFor="profile-name" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Full Name
+              </Label>
               <Input
                 id="profile-name"
                 placeholder="Enter your name"
@@ -281,7 +274,10 @@ export function SimpleProfile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="profile-email">Email Address</Label>
+              <Label htmlFor="profile-email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address
+              </Label>
               <Input
                 id="profile-email"
                 type="email"
@@ -292,12 +288,22 @@ export function SimpleProfile() {
             </div>
           </div>
         </CardContent>
+        {hasChanges && (
+          <CardFooter className="border-t border-border/50 bg-muted/20 px-6 py-4">
+            <div className="flex justify-end w-full">
+              <Button onClick={handleSave}>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
+          </CardFooter>
+        )}
       </Card>
 
       {/* Security */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Shield className="h-5 w-5" />
             Security
           </CardTitle>
@@ -305,10 +311,10 @@ export function SimpleProfile() {
             Manage your account security settings
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="py-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label className="flex items-center gap-2">
+              <Label className="flex items-center gap-2 text-base">
                 <Key className="h-4 w-4" />
                 Password
               </Label>
@@ -320,6 +326,7 @@ export function SimpleProfile() {
               variant="outline"
               onClick={() => setShowPasswordDialog(true)}
             >
+              <Key className="h-4 w-4 mr-2" />
               Change Password
             </Button>
           </div>
@@ -329,17 +336,17 @@ export function SimpleProfile() {
       {/* Data Management */}
       <Card>
         <CardHeader>
-          <CardTitle>Data Management</CardTitle>
+          <CardTitle className="text-lg">Data Management</CardTitle>
           <CardDescription>
-            Export your trading data or manage your account
+            Export your trading data for backup or analysis
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="py-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label>Export Trades</Label>
+              <Label className="text-base">Export Trades</Label>
               <p className="text-sm text-muted-foreground">
-                Download all your trades as CSV file
+                Download all your trades as CSV file ({trades.length} {trades.length === 1 ? 'trade' : 'trades'})
               </p>
             </div>
             <Button
@@ -355,33 +362,42 @@ export function SimpleProfile() {
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200 bg-red-50/50 dark:bg-red-950/20">
+      <Card className="border-destructive/50 bg-destructive/5">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+          <CardTitle className="flex items-center gap-2 text-lg text-destructive">
             <AlertTriangle className="h-5 w-5" />
             Danger Zone
           </CardTitle>
-          <CardDescription className="text-red-600 dark:text-red-400">
+          <CardDescription className="text-destructive/80">
             Irreversible actions that will permanently affect your account
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-sm font-medium text-red-700 dark:text-red-400">
+        <CardContent className="py-6">
+          <div className="space-y-4">
+            <Alert variant="destructive" className="border-destructive/50">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                This action cannot be undone. All your trades, accounts, and settings will be permanently deleted.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label className="text-base font-semibold text-destructive">
+                  Delete Account
+                </Label>
+                <p className="text-sm text-destructive/80">
+                  Permanently delete all your data and account information
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
                 Delete Account
-              </Label>
-              <p className="text-xs text-red-600 dark:text-red-400">
-                Permanently delete all your data and account information
-              </p>
+              </Button>
             </div>
-            <Button
-              variant="destructive"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Account
-            </Button>
           </div>
         </CardContent>
       </Card>

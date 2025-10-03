@@ -47,24 +47,18 @@ const CompactAccountSelector: React.FC<CompactAccountSelectorProps> = ({
     const currencyInfo = SUPPORTED_CURRENCIES.find(c => c.value === currency);
     const symbol = currencyInfo?.symbol || '$';
 
-    if (balance >= 1000000) {
-      return `${symbol}${(balance / 1000000).toFixed(1)}M`;
-    } else if (balance >= 1000) {
-      return `${symbol}${(balance / 1000).toFixed(1)}K`;
-    }
-
     return new Intl.NumberFormat('en-US', {
       style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(balance).replace(/^/, symbol);
   };
 
   const getAccountIcon = (accountType: AccountType) => {
     return accountType === AccountType.DEMO ? (
-      <Circle className="h-3 w-3 text-blue-500" />
+      <Circle className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
     ) : (
-      <CheckCircle className="h-3 w-3 text-green-500" />
+      <CheckCircle className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
     );
   };
 
@@ -118,34 +112,39 @@ const CompactAccountSelector: React.FC<CompactAccountSelectorProps> = ({
         onValueChange={handleAccountChange}
         disabled={loading}
       >
-        <SelectTrigger className="w-[200px] h-10 bg-card border-border hover:bg-accent/50">
+        <SelectTrigger className="w-[230px] h-11 bg-card border-border hover:bg-accent hover:border-accent-foreground/20 transition-all duration-200">
           <SelectValue asChild>
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-xs bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Avatar className="h-7 w-7 flex-shrink-0">
+                <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900">
                   {activeAccount.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-sm truncate max-w-[80px]">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm truncate">
                     {activeAccount.name}
                   </span>
                   {getAccountIcon(activeAccount.accountType)}
                 </div>
 
                 {balanceData && (
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <span className="text-muted-foreground font-medium">
+                  <div className="flex items-center gap-2 text-xs mt-0.5">
+                    <span className="text-foreground/80 font-semibold">
                       {formatBalance(balanceData.currentBalance, activeAccount.currency)}
                     </span>
                     {balanceData.pnl !== 0 && (
-                      <span className={cn('flex items-center gap-0.5', getPnLColor(balanceData.pnl))}>
+                      <span className={cn(
+                        'flex items-center gap-1 px-1.5 py-0.5 rounded-md font-semibold',
+                        balanceData.pnl > 0
+                          ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                          : 'bg-rose-100 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400'
+                      )}>
                         {balanceData.pnl > 0 ? (
-                          <TrendingUp className="h-2.5 w-2.5" />
+                          <TrendingUp className="h-3 w-3" />
                         ) : (
-                          <TrendingDown className="h-2.5 w-2.5" />
+                          <TrendingDown className="h-3 w-3" />
                         )}
                         {balanceData.pnlPercentage > 0 ? '+' : ''}{balanceData.pnlPercentage.toFixed(1)}%
                       </span>
@@ -157,7 +156,7 @@ const CompactAccountSelector: React.FC<CompactAccountSelectorProps> = ({
           </SelectValue>
         </SelectTrigger>
 
-        <SelectContent className="w-[250px] max-h-[300px]">
+        <SelectContent className="w-[230px] max-h-[300px]">
           {accounts.map((account, index) => {
             const accountBalanceData = (() => {
               if (!accountStats) return null;

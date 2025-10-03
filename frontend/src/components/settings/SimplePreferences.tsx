@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -89,23 +89,10 @@ export function SimplePreferences() {
 
   return (
     <div className="space-y-6">
-      {/* Save Button */}
-      {hasChanges && (
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={handleReset}>
-            Reset to Defaults
-          </Button>
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
-          </Button>
-        </div>
-      )}
-
       {/* Trading Defaults */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <DollarSign className="h-5 w-5" />
             Trading Defaults
           </CardTitle>
@@ -113,7 +100,8 @@ export function SimplePreferences() {
             Default values that will be pre-filled when creating new trades
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Commission Settings */}
           <div className="space-y-2">
             <Label htmlFor="default-commission">Default Commission ($)</Label>
             <Input
@@ -130,19 +118,22 @@ export function SimplePreferences() {
             </p>
           </div>
 
-          <Separator />
+          <Separator className="my-6" />
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Star className="h-4 w-4" />
-              Favorite Symbols
-            </Label>
-            <p className="text-xs text-muted-foreground mb-2">
-              Quick access symbols for the trade form
-            </p>
+          {/* Favorite Symbols Section */}
+          <div className="space-y-3">
+            <div>
+              <Label className="flex items-center gap-2 text-base">
+                <Star className="h-4 w-4" />
+                Favorite Symbols
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Quick access symbols for the trade form
+              </p>
+            </div>
 
             {/* Current Favorites */}
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2">
               {preferences.favoriteSymbols.map((symbol) => (
                 <Badge
                   key={symbol}
@@ -186,7 +177,7 @@ export function SimplePreferences() {
             </div>
 
             {/* Quick Add Popular Symbols */}
-            <div className="space-y-2 mt-3">
+            <div className="space-y-2">
               <Label className="text-sm">Quick Add:</Label>
               <div className="flex flex-wrap gap-1">
                 {POPULAR_SYMBOLS
@@ -208,21 +199,34 @@ export function SimplePreferences() {
             </div>
           </div>
         </CardContent>
+        {hasChanges && (
+          <CardFooter className="border-t border-border/50 bg-muted/20 px-6 py-4">
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={handleReset}>
+                Reset to Defaults
+              </Button>
+              <Button onClick={handleSave}>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
+          </CardFooter>
+        )}
       </Card>
 
       {/* Display Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Palette className="h-5 w-5" />
-            Display
+            Display Settings
           </CardTitle>
           <CardDescription>
-            Customize the appearance of your trading diary
+            Customize the appearance and formatting of your trading diary
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="theme">Theme</Label>
               <Select
@@ -297,6 +301,16 @@ export function SimplePreferences() {
             </div>
           </div>
         </CardContent>
+        {hasChanges && (
+          <CardFooter className="border-t border-border/50 bg-muted/20 px-6 py-4">
+            <div className="flex justify-end w-full">
+              <Button onClick={handleSave}>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
+          </CardFooter>
+        )}
       </Card>
 
       {/* Current Settings Summary */}

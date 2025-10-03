@@ -80,7 +80,7 @@ const Settings: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
           {/* Tab Navigation */}
           <Card>
             <CardHeader className="pb-4">
@@ -89,7 +89,7 @@ const Settings: React.FC = () => {
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all"
                   >
                     <tab.icon className="h-4 w-4" />
                     <span className="hidden sm:inline">{tab.label}</span>
@@ -100,7 +100,7 @@ const Settings: React.FC = () => {
           </Card>
 
           {/* Tab Content */}
-          <div className="space-y-6">
+          <div className="space-y-6 pt-2">
             {/* Trading Accounts */}
             <TabsContent value="accounts" className="space-y-6 mt-0">
               <motion.div

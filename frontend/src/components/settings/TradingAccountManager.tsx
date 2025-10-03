@@ -315,44 +315,40 @@ const TradingAccountManager: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
-        className={cn(
-          'relative',
-          isActive && 'ring-2 ring-primary ring-offset-2'
-        )}
       >
         <Card className={cn(
           'transition-all duration-200 hover:shadow-md cursor-pointer',
-          isActive && 'border-primary bg-primary/5'
+          isActive && 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
         )}>
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3 flex-1">
-                <Avatar className="h-10 w-10">
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarFallback className="text-sm bg-primary/10 text-primary">
                     {account.name.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-base truncate">{account.name}</h3>
-                    {getAccountTypeIcon(account.accountType)}
                     {isActive && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
                         Active
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2">
                     <Badge
                       variant="outline"
                       className={cn(
                         'text-xs',
                         account.accountType === AccountType.DEMO
-                          ? 'border-primary/30 text-primary dark:border-primary/50'
+                          ? 'border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300'
                           : 'border-green-200 text-green-700 dark:border-green-800 dark:text-green-300'
                       )}
                     >
-                      {account.accountType}
+                      {getAccountTypeIcon(account.accountType)}
+                      <span className="ml-1">{account.accountType}</span>
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {SUPPORTED_CURRENCIES.find(c => c.value === account.currency)?.symbol}
@@ -361,10 +357,11 @@ const TradingAccountManager: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-shrink-0">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEdit(account);
@@ -374,37 +371,46 @@ const TradingAccountManager: React.FC = () => {
                 </Button>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowDeleteConfirm(account.id);
                   }}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           </CardHeader>
+
+          <Separator />
+
           <CardContent
-            className="pt-0 cursor-pointer"
+            className="pt-4 pb-4 cursor-pointer"
             onClick={() => handleSwitchAccount(account.id)}
           >
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Current Balance</Label>
-                <p className="text-sm font-medium">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" />
+                  Current Balance
+                </Label>
+                <p className="text-base font-semibold">
                   {formatCurrency(account.currentBalance || account.initialBalance, account.currency)}
                 </p>
               </div>
               {stats && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Total P&L</Label>
-                  <div className="flex items-center gap-1">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Target className="h-3 w-3" />
+                    Total P&L
+                  </Label>
+                  <div className="flex items-center gap-1.5">
                     <p className={cn(
-                      'text-sm font-medium',
-                      stats.totalPnL > 0 ? 'text-green-600' :
-                      stats.totalPnL < 0 ? 'text-red-600' : 'text-muted-foreground'
+                      'text-base font-semibold',
+                      stats.totalPnL > 0 ? 'text-emerald-600 dark:text-emerald-400' :
+                      stats.totalPnL < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'
                     )}>
                       {stats.totalPnL > 0 && '+'}
                       {formatCurrency(stats.totalPnL, account.currency)}
@@ -412,9 +418,9 @@ const TradingAccountManager: React.FC = () => {
                     {stats.totalPnL !== 0 && (
                       <>
                         {stats.totalPnL > 0 ? (
-                          <TrendingUp className="h-3 w-3 text-green-600" />
+                          <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         ) : (
-                          <TrendingDown className="h-3 w-3 text-red-600" />
+                          <TrendingDown className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                         )}
                       </>
                     )}
@@ -424,14 +430,15 @@ const TradingAccountManager: React.FC = () => {
             </div>
 
             {account.profitTarget && (
-              <div className="mt-3 pt-3 border-t">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Profit Target</span>
-                  <span className="font-medium">
+              <>
+                <Separator className="my-4" />
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Profit Target</Label>
+                  <span className="text-sm font-semibold">
                     {formatCurrency(account.profitTarget, account.currency)}
                   </span>
                 </div>
-              </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -688,33 +695,42 @@ const TradingAccountManager: React.FC = () => {
   ]);
 
   return (
-    <div className="space-y-6">
-      {/* Header with Create Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Your Trading Accounts</h3>
-          <p className="text-sm text-muted-foreground">
-            Manage your demo and live trading accounts
-          </p>
-        </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button onClick={() => resetForm()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Account
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Trading Account</DialogTitle>
-              <DialogDescription>
-                Add a new demo or live trading account to track your performance
-              </DialogDescription>
-            </DialogHeader>
-            <AccountForm />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="space-y-8">
+      {/* Header Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Wallet className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Your Trading Accounts</CardTitle>
+                <CardDescription>
+                  Manage your demo and live trading accounts
+                </CardDescription>
+              </div>
+            </div>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button onClick={() => resetForm()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Account
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New Trading Account</DialogTitle>
+                  <DialogDescription>
+                    Add a new demo or live trading account to track your performance
+                  </DialogDescription>
+                </DialogHeader>
+                <AccountForm />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+      </Card>
 
       {/* Error Display */}
       {error && !showCreateDialog && !editingAccount && (
