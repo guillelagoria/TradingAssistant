@@ -8,23 +8,39 @@ datasource db {
 }
 
 model User {
-  id                String                 @id @default(cuid())
-  email             String                 @unique
-  password          String
-  name              String?
-  commission        Float                  @default(0)
-  timezone          String                 @default("UTC")
-  subscriptionTier  SubscriptionTier       @default(FREE)
-  activeAccountId   String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  strategies        Strategy[]
-  trades            Trade[]
-  accounts          Account[]
-  marketPreferences UserMarketPreferences?
-  importSessions    ImportSession[]
+  id                        String                 @id @default(cuid())
+  email                     String                 @unique
+  password                  String
+  name                      String?
+  commission                Float                  @default(0)
+  timezone                  String                 @default("UTC")
+  subscriptionTier          SubscriptionTier       @default(FREE)
+  activeAccountId           String?
+
+  // Email verification fields
+  emailVerified             Boolean                @default(false)
+  emailVerificationToken    String?                @unique
+  emailVerificationExpires  DateTime?
+
+  // Password reset fields
+  passwordResetToken        String?                @unique
+  passwordResetExpires      DateTime?
+
+  // Account status
+  lastLoginAt               DateTime?
+  isActive                  Boolean                @default(true)
+
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  strategies                Strategy[]
+  trades                    Trade[]
+  accounts                  Account[]
+  marketPreferences         UserMarketPreferences?
+  importSessions            ImportSession[]
 
   @@index([activeAccountId])
+  @@index([emailVerificationToken])
+  @@index([passwordResetToken])
   @@map("users")
 }
 

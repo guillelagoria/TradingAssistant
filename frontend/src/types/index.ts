@@ -1,5 +1,22 @@
 // TypeScript types and enums exports
-export type { 
+
+// Auth types
+export type {
+  User as AuthUser,
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  RefreshTokenRequest,
+  VerifyEmailRequest,
+  RequestPasswordResetRequest,
+  ResetPasswordRequest,
+  ChangePasswordRequest,
+  AuthState,
+  AuthActions,
+  AuthStore,
+} from './auth';
+
+export type {
   Trade,
   TradeFormData,
   TradeCalculationResult,

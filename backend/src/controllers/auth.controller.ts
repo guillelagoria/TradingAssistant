@@ -1,123 +1,122 @@
 import { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { prisma } from '../server';
+import { validationResult } from 'express-validator';
+import { authService } from '../services/auth.service';
 import { AuthRequest } from '../middleware/auth';
 
+/**
+ * Register a new user
+ * POST /api/auth/register
+ */
 export const register = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { email, password, name } = req.body;
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
       res.status(400).json({
         success: false,
         error: {
-          message: 'User already exists',
-          statusCode: 400
+          message: 'Validation failed',
+          statusCode: 400,
+          errors: errors.array()
         }
       });
       return;
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const { email, password, name } = req.body;
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        commission: true,
-        timezone: true,
-        createdAt: true
-      }
-    });
-
-    // Generate token
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET!
-    );
+    const result = await authService.register({ email, password, name });
 
     res.status(201).json({
       success: true,
-      data: {
-        user,
-        token
-      }
+      data: result
     });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('already exists')) {
+      res.status(409).json({
+        success: false,
+        error: {
+          message: error.message,
+          statusCode: 409
+        }
+      });
+      return;
+    }
     next(error);
   }
 };
 
+/**
+ * Login user
+ * POST /api/auth/login
+ */
 export const login = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          statusCode: 400,
+          errors: errors.array()
+        }
+      });
+      return;
+    }
+
     const { email, password } = req.body;
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email }
+    const result = await authService.login({ email, password });
+
+    res.json({
+      success: true,
+      data: result
     });
-
-    if (!user) {
+  } catch (error) {
+    if (error instanceof Error) {
       res.status(401).json({
         success: false,
         error: {
-          message: 'Invalid credentials',
+          message: error.message,
           statusCode: 401
         }
       });
       return;
     }
+    next(error);
+  }
+};
 
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      res.status(401).json({
-        success: false,
-        error: {
-          message: 'Invalid credentials',
-          statusCode: 401
-        }
-      });
-      return;
+/**
+ * Logout user
+ * POST /api/auth/logout
+ * Note: Since we're using JWT, logout is handled client-side by removing the token
+ */
+export const logout = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Log logout event
+    if (req.user) {
+      console.log(`[AUTH] User logged out: ${req.user.email} (ID: ${req.user.id})`);
     }
-
-    // Generate token
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET!
-    );
-
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
 
     res.json({
       success: true,
       data: {
-        user: userWithoutPassword,
-        token
+        message: 'Logged out successfully'
       }
     });
   } catch (error) {
@@ -125,12 +124,266 @@ export const login = async (
   }
 };
 
+/**
+ * Verify email with token
+ * POST /api/auth/verify-email
+ */
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          statusCode: 400,
+          errors: errors.array()
+        }
+      });
+      return;
+    }
+
+    const { token } = req.body;
+
+    const user = await authService.verifyEmail(token);
+
+    res.json({
+      success: true,
+      data: {
+        user,
+        message: 'Email verified successfully! You can now log in.'
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: error.message,
+          statusCode: 400
+        }
+      });
+      return;
+    }
+    next(error);
+  }
+};
+
+/**
+ * Request password reset
+ * POST /api/auth/request-password-reset
+ */
+export const requestPasswordReset = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          statusCode: 400,
+          errors: errors.array()
+        }
+      });
+      return;
+    }
+
+    const { email } = req.body;
+
+    const result = await authService.requestPasswordReset(email);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Reset password with token
+ * POST /api/auth/reset-password
+ */
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          statusCode: 400,
+          errors: errors.array()
+        }
+      });
+      return;
+    }
+
+    const { token, password } = req.body;
+
+    const result = await authService.resetPassword(token, password);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: error.message,
+          statusCode: 400
+        }
+      });
+      return;
+    }
+    next(error);
+  }
+};
+
+/**
+ * Change password for logged-in user
+ * POST /api/auth/change-password
+ */
+export const changePassword = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          statusCode: 400,
+          errors: errors.array()
+        }
+      });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!req.userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          message: 'Authentication required',
+          statusCode: 401
+        }
+      });
+      return;
+    }
+
+    const result = await authService.changePassword(req.userId, currentPassword, newPassword);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: error.message,
+          statusCode: 400
+        }
+      });
+      return;
+    }
+    next(error);
+  }
+};
+
+/**
+ * Refresh access token
+ * POST /api/auth/refresh-token
+ */
+export const refreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          statusCode: 400,
+          errors: errors.array()
+        }
+      });
+      return;
+    }
+
+    const { refreshToken } = req.body;
+
+    const result = await authService.refreshToken(refreshToken);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(401).json({
+        success: false,
+        error: {
+          message: error.message,
+          statusCode: 401
+        }
+      });
+      return;
+    }
+    next(error);
+  }
+};
+
+/**
+ * Get current user info
+ * GET /api/auth/me
+ */
 export const me = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: {
+          message: 'Authentication required',
+          statusCode: 401
+        }
+      });
+      return;
+    }
+
     res.json({
       success: true,
       data: req.user
@@ -140,36 +393,49 @@ export const me = async (
   }
 };
 
-export const updateProfile = async (
-  req: AuthRequest,
+/**
+ * Resend verification email
+ * POST /api/auth/resend-verification
+ */
+export const resendVerification = async (
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { name, commission, timezone } = req.body;
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          statusCode: 400,
+          errors: errors.array()
+        }
+      });
+      return;
+    }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: req.userId },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(commission !== undefined && { commission }),
-        ...(timezone !== undefined && { timezone })
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        commission: true,
-        timezone: true,
-        updatedAt: true
-      }
-    });
+    const { email } = req.body;
+
+    const result = await authService.resendVerificationEmail(email);
 
     res.json({
       success: true,
-      data: updatedUser
+      data: result
     });
   } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: error.message,
+          statusCode: 400
+        }
+      });
+      return;
+    }
     next(error);
   }
 };

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTradeStore } from '@/store/tradeStore';
+import { useAuthStore } from '@/store/authStore';
 
 interface ProfileData {
   name: string;
@@ -35,7 +36,19 @@ const DEFAULT_PROFILE: ProfileData = {
 };
 
 export function SimpleProfile() {
+  const { user } = useAuthStore();
+
   const [profile, setProfile] = useState<ProfileData>(() => {
+    // First check if we have auth user data
+    if (user) {
+      return {
+        name: user.name || '',
+        email: user.email || '',
+        avatar: undefined
+      };
+    }
+
+    // Fallback to localStorage
     const saved = localStorage.getItem('user-profile');
     return saved ? JSON.parse(saved) : DEFAULT_PROFILE;
   });
@@ -50,6 +63,17 @@ export function SimpleProfile() {
   });
 
   const trades = useTradeStore((state) => state.trades);
+
+  // Update profile when user changes (e.g., after login)
+  React.useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name || '',
+        email: user.email || '',
+        avatar: undefined
+      });
+    }
+  }, [user]);
 
   const handleChange = <K extends keyof ProfileData>(
     field: K,
@@ -277,13 +301,21 @@ export function SimpleProfile() {
               <Label htmlFor="profile-email" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email Address
+                {user?.emailVerified && (
+                  <span className="ml-auto text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <Shield className="h-3 w-3" />
+                    Verified
+                  </span>
+                )}
               </Label>
               <Input
                 id="profile-email"
                 type="email"
                 placeholder="your.email@example.com"
                 value={profile.email}
-                onChange={(e) => handleChange('email', e.target.value)}
+                readOnly
+                disabled
+                className="bg-muted cursor-not-allowed"
               />
             </div>
           </div>

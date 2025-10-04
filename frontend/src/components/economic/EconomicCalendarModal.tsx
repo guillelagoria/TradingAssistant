@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Filter, RefreshCw, TrendingUp, AlertCircle, Clock } from 'lucide-react';
 import {
@@ -155,6 +156,13 @@ export function EconomicCalendarModal() {
     toggleHighImpactFilter
   } = useEconomicEventsModal();
   const { refreshAllEvents } = useEconomicEventsActions();
+
+  // Fetch events when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      refreshAllEvents();
+    }
+  }, [isOpen, refreshAllEvents]);
 
   const handleRefresh = () => {
     refreshAllEvents();

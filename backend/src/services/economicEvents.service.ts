@@ -144,6 +144,9 @@ export class EconomicEventsService {
       relevance = 'Housing market health affects broader economic sentiment';
     }
 
+    // Determine currency based on country
+    const currency = event.country === 'US' ? 'USD' : 'USD';
+
     return {
       id: `${event.country}_${event.time}_${event.event}`.replace(/\s+/g, '_'),
       event: event.event,
@@ -155,7 +158,8 @@ export class EconomicEventsService {
       previous: event.previous ?? null,
       unit: event.unit,
       relevance,
-      country: event.country
+      country: event.country,
+      currency
     };
   }
 
@@ -176,15 +180,12 @@ export class EconomicEventsService {
 
     try {
       events = await this.fetchEconomicCalendar(from, to);
+      console.log(`[API] Successfully fetched ${events.length} events from Finnhub`);
     } catch (error: any) {
-      // If it's a 403 or rate limit, use demo data (API key is configured but doesn't have access)
-      // If it's missing API key, also use demo data
-      if (error.message.includes('API key') || error.message.includes('403') || error.message.includes('rate limit')) {
-        usingDemoData = true;
-        events = this.generateDemoData(from, to);
-      } else {
-        throw error;
-      }
+      console.warn(`[API] Failed to fetch from Finnhub, using demo data. Reason: ${error.message}`);
+      // Always fallback to demo data on any error
+      usingDemoData = true;
+      events = this.generateDemoData(from, to);
     }
 
     const processedEvents = events
@@ -192,9 +193,11 @@ export class EconomicEventsService {
       .map(event => this.transformEvent(event))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
+    console.log(`[PROCESSED] ${processedEvents.length} relevant ES/NQ events after filtering`);
+
     return {
       events: processedEvents,
-      apiKeyConfigured: hasApiKey,  // Show as configured if API key exists, even if using demo data
+      apiKeyConfigured: hasApiKey,
       usingDemoData
     };
   }
@@ -216,15 +219,12 @@ export class EconomicEventsService {
 
     try {
       events = await this.fetchEconomicCalendar(from, to);
+      console.log(`[API] Successfully fetched ${events.length} upcoming events from Finnhub`);
     } catch (error: any) {
-      // If it's a 403 or rate limit, use demo data (API key is configured but doesn't have access)
-      // If it's missing API key, also use demo data
-      if (error.message.includes('API key') || error.message.includes('403') || error.message.includes('rate limit')) {
-        usingDemoData = true;
-        events = this.generateDemoData(from, to);
-      } else {
-        throw error;
-      }
+      console.warn(`[API] Failed to fetch upcoming events, using demo data. Reason: ${error.message}`);
+      // Always fallback to demo data on any error
+      usingDemoData = true;
+      events = this.generateDemoData(from, to);
     }
 
     const processedEvents = events
@@ -232,9 +232,11 @@ export class EconomicEventsService {
       .map(event => this.transformEvent(event))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
+    console.log(`[PROCESSED] ${processedEvents.length} relevant upcoming events after filtering`);
+
     return {
       events: processedEvents,
-      apiKeyConfigured: hasApiKey,  // Show as configured if API key exists, even if using demo data
+      apiKeyConfigured: hasApiKey,
       usingDemoData
     };
   }
@@ -255,15 +257,12 @@ export class EconomicEventsService {
 
     try {
       events = await this.fetchEconomicCalendar(from, to);
+      console.log(`[API] Successfully fetched ${events.length} filtered events from Finnhub`);
     } catch (error: any) {
-      // If it's a 403 or rate limit, use demo data (API key is configured but doesn't have access)
-      // If it's missing API key, also use demo data
-      if (error.message.includes('API key') || error.message.includes('403') || error.message.includes('rate limit')) {
-        usingDemoData = true;
-        events = this.generateDemoData(from, to);
-      } else {
-        throw error;
-      }
+      console.warn(`[API] Failed to fetch filtered events, using demo data. Reason: ${error.message}`);
+      // Always fallback to demo data on any error
+      usingDemoData = true;
+      events = this.generateDemoData(from, to);
     }
 
     let filteredEvents = events
@@ -292,9 +291,11 @@ export class EconomicEventsService {
 
     const processedEvents = filteredEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
 
+    console.log(`[PROCESSED] ${processedEvents.length} events after custom filtering`);
+
     return {
       events: processedEvents,
-      apiKeyConfigured: hasApiKey,  // Show as configured if API key exists, even if using demo data
+      apiKeyConfigured: hasApiKey,
       usingDemoData
     };
   }
@@ -308,165 +309,132 @@ export class EconomicEventsService {
   }
 
   /**
-   * Generate demo economic events for testing purposes - REALISTIC TIME AWARE
+   * Generate demo economic events - CONSISTENT REALISTIC WEEKLY SCHEDULE
+   * Events follow a realistic US economic calendar pattern
    */
   private generateDemoData(from: string, to: string): FinnhubEconomicEvent[] {
     const now = new Date();
-
-    // Parse the requested date range
     const fromDate = new Date(from);
     const toDate = new Date(to);
 
-    console.log(`Generating demo data for ${from} to ${to}, current time: ${now.toISOString()}`);
+    console.log(`[DEMO DATA] Generating consistent events for ${from} to ${to}`);
 
-    // Helper function to create a date with specific time in ET (Eastern Time)
+    // Helper to create event time in UTC
     const createEventTime = (baseDate: Date, hour: number, minute: number): Date => {
-      const eventTime = new Date(baseDate);
-      // Economic events are typically published in ET (Eastern Time)
-      // ET is UTC-5 (EST) or UTC-4 (EDT) depending on daylight saving
-      // For September, we're in EDT (UTC-4)
-      // So 8:30 AM ET = 12:30 UTC (during EDT)
-      eventTime.setUTCHours(hour, minute, 0, 0);
-      return eventTime;
+      const eventDate = new Date(baseDate);
+      eventDate.setUTCHours(hour, minute, 0, 0);
+      return eventDate;
     };
 
-    // Helper to check if event should have actual data (if time has passed)
+    // Check if event should have actual data (15min buffer)
     const shouldHaveActual = (eventTime: Date): boolean => {
-      return now > new Date(eventTime.getTime() + 15 * 60 * 1000); // 15 min buffer
+      return now.getTime() > eventTime.getTime() + (15 * 60 * 1000);
     };
+
+    // Fixed weekly schedule - predictable and realistic
+    // Day of week: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday
+    const weeklySchedule: { [key: number]: Array<{ event: string; time: [number, number]; impact: string; unit: string; estimate: number | null; previous: number | null }> } = {
+      1: [ // Monday
+        { event: 'ISM Manufacturing PMI', time: [14, 0], impact: 'medium', unit: '', estimate: 48.5, previous: 47.9 }
+      ],
+      2: [ // Tuesday
+        { event: 'JOLTS Job Openings', time: [14, 0], impact: 'medium', unit: 'M', estimate: 8.1, previous: 8.0 }
+      ],
+      3: [ // Wednesday
+        { event: 'ADP Employment Change', time: [12, 15], impact: 'medium', unit: 'K', estimate: 145, previous: 140 },
+        { event: 'FOMC Meeting Minutes', time: [18, 0], impact: 'high', unit: '', estimate: null, previous: null }
+      ],
+      4: [ // Thursday
+        { event: 'Initial Jobless Claims', time: [12, 30], impact: 'medium', unit: 'K', estimate: 230, previous: 225 },
+        { event: 'Producer Price Index (PPI)', time: [12, 30], impact: 'medium', unit: '%', estimate: 0.4, previous: 0.3 }
+      ],
+      5: [ // Friday
+        { event: 'Non-Farm Payrolls', time: [12, 30], impact: 'high', unit: 'K', estimate: 180, previous: 175 },
+        { event: 'Unemployment Rate', time: [12, 30], impact: 'high', unit: '%', estimate: 3.7, previous: 3.8 }
+      ]
+    };
+
+    // Monthly events (show on specific days of month)
+    const monthlyEvents = [
+      { day: 12, event: 'Consumer Price Index (CPI)', time: [12, 30], impact: 'high', unit: '%', estimate: 3.2, previous: 3.1 },
+      { day: 13, event: 'Core CPI', time: [12, 30], impact: 'high', unit: '%', estimate: 3.0, previous: 2.9 },
+      { day: 15, event: 'Retail Sales', time: [12, 30], impact: 'medium', unit: '%', estimate: 0.5, previous: 0.2 },
+      { day: 16, event: 'Building Permits', time: [12, 30], impact: 'medium', unit: 'M', estimate: 1.42, previous: 1.40 },
+      { day: 27, event: 'Core PCE Price Index', time: [12, 30], impact: 'high', unit: '%', estimate: 0.3, previous: 0.2 }
+    ];
 
     const demoEvents: FinnhubEconomicEvent[] = [];
 
-    // Generate events for each day in the range
+    // Generate events for each day in range
     let currentDate = new Date(fromDate);
+    currentDate.setHours(0, 0, 0, 0);
 
     while (currentDate <= toDate) {
-      const isToday = currentDate.toDateString() === now.toDateString();
-      const isTomorrow = currentDate.toDateString() === new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString();
-      const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const dayOfWeek = currentDate.getDay();
+      const dayOfMonth = currentDate.getDate();
 
-      // Only generate events for weekdays (Monday to Friday)
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      // Add weekly recurring events (Mon-Fri only)
+      if (dayOfWeek >= 1 && dayOfWeek <= 5 && weeklySchedule[dayOfWeek]) {
+        weeklySchedule[dayOfWeek].forEach(template => {
+          const eventTime = createEventTime(currentDate, template.time[0], template.time[1]);
+          const isPast = shouldHaveActual(eventTime);
 
-        if (isToday) {
-          // TODAY'S EVENTS - Mix of past and future based on current time
-          const currentHourUTC = now.getUTCHours();
-
-          // Early morning event (8:30 AM ET = 12:30 UTC) - PAST
-          if (currentHourUTC >= 13) {
-            const eventTime = createEventTime(currentDate, 12, 30);
-            demoEvents.push({
-              country: 'US',
-              event: 'Initial Jobless Claims',
-              time: eventTime.toISOString(),
-              unit: 'K',
-              estimate: 230,
-              previous: 225,
-              actual: 228, // Already happened
-              impact: 'medium'
-            });
+          // Generate consistent actual values (use date as seed for deterministic randomness)
+          let actual = null;
+          if (isPast && template.estimate !== null) {
+            const seed = currentDate.getTime();
+            const variance = ((seed % 10) - 5) / 100; // -5% to +5% based on date
+            actual = Number((template.estimate * (1 + variance)).toFixed(2));
           }
 
-          // Mid-morning event (10:00 AM ET = 14:00 UTC) - Maybe past or future
-          const midMorningEvent = createEventTime(currentDate, 14, 0);
           demoEvents.push({
             country: 'US',
-            event: 'Consumer Price Index (CPI)',
-            time: midMorningEvent.toISOString(),
-            unit: '%',
-            estimate: 3.2,
-            previous: 3.1,
-            actual: shouldHaveActual(midMorningEvent) ? 3.3 : null,
-            impact: 'high'
+            event: template.event,
+            time: eventTime.toISOString(),
+            unit: template.unit,
+            estimate: template.estimate,
+            previous: template.previous,
+            actual: actual,
+            impact: template.impact as 'high' | 'medium' | 'low'
           });
-
-          // Afternoon event (2:00 PM ET = 18:00 UTC) - Likely future
-          const afternoonEvent = createEventTime(currentDate, 18, 0);
-          demoEvents.push({
-            country: 'US',
-            event: 'FOMC Meeting Minutes',
-            time: afternoonEvent.toISOString(),
-            unit: '',
-            estimate: null,
-            previous: null,
-            actual: shouldHaveActual(afternoonEvent) ? null : null, // This type of event doesn't have numeric actual
-            impact: 'high'
-          });
-
-        } else if (isTomorrow) {
-          // TOMORROW'S EVENTS - All future
-          demoEvents.push({
-            country: 'US',
-            event: 'Non-Farm Payrolls',
-            time: createEventTime(currentDate, 12, 30).toISOString(),
-            unit: 'K',
-            estimate: 180,
-            previous: 175,
-            actual: null,
-            impact: 'high'
-          });
-
-          demoEvents.push({
-            country: 'US',
-            event: 'ISM Manufacturing PMI',
-            time: createEventTime(currentDate, 14, 0).toISOString(),
-            unit: '',
-            estimate: 48.5,
-            previous: 47.9,
-            actual: null,
-            impact: 'medium'
-          });
-
-        } else if (currentDate > now) {
-          // FUTURE DAYS - All future events
-          demoEvents.push({
-            country: 'US',
-            event: 'Retail Sales',
-            time: createEventTime(currentDate, 12, 30).toISOString(),
-            unit: '%',
-            estimate: 0.3,
-            previous: 0.1,
-            actual: null,
-            impact: 'medium'
-          });
-
-          demoEvents.push({
-            country: 'US',
-            event: 'Producer Price Index (PPI)',
-            time: createEventTime(currentDate, 14, 0).toISOString(),
-            unit: '%',
-            estimate: 0.2,
-            previous: 0.1,
-            actual: null,
-            impact: 'medium'
-          });
-
-        } else {
-          // PAST DAYS - All events should have actuals
-          demoEvents.push({
-            country: 'US',
-            event: 'Building Permits',
-            time: createEventTime(currentDate, 14, 0).toISOString(),
-            unit: 'M',
-            estimate: 1.42,
-            previous: 1.40,
-            actual: 1.44, // Past event has actual
-            impact: 'medium'
-          });
-        }
+        });
       }
 
-      // Move to next day
+      // Add monthly events (specific days of month)
+      monthlyEvents.forEach(monthlyEvent => {
+        if (dayOfMonth === monthlyEvent.day) {
+          const eventTime = createEventTime(currentDate, monthlyEvent.time[0], monthlyEvent.time[1]);
+          const isPast = shouldHaveActual(eventTime);
+
+          let actual = null;
+          if (isPast && monthlyEvent.estimate !== null) {
+            const seed = currentDate.getTime();
+            const variance = ((seed % 10) - 5) / 100;
+            actual = Number((monthlyEvent.estimate * (1 + variance)).toFixed(2));
+          }
+
+          demoEvents.push({
+            country: 'US',
+            event: monthlyEvent.event,
+            time: eventTime.toISOString(),
+            unit: monthlyEvent.unit,
+            estimate: monthlyEvent.estimate,
+            previous: monthlyEvent.previous,
+            actual: actual,
+            impact: monthlyEvent.impact as 'high' | 'medium' | 'low'
+          });
+        }
+      });
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    console.log(`Generated ${demoEvents.length} demo economic events for ${from} to ${to}`);
+    // Sort by time
+    demoEvents.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
-    // Filter events to ensure they fall within the requested date range
-    return demoEvents.filter(event => {
-      const eventDate = new Date(event.time);
-      return eventDate >= fromDate && eventDate <= toDate;
-    });
+    console.log(`[DEMO DATA] Generated ${demoEvents.length} consistent events`);
+
+    return demoEvents;
   }
 
   /**

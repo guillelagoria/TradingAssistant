@@ -26,6 +26,7 @@ export interface EconomicEvent {
   unit?: string;
   relevance: string;
   country: string;
+  currency: string;
 }
 
 export interface EconomicEventFilter {

@@ -1,48 +1,66 @@
 import { Router } from 'express';
-import { body } from 'express-validator';
-import { register, login, me, updateProfile } from '../controllers/auth.controller';
+import {
+  register,
+  login,
+  logout,
+  verifyEmail,
+  requestPasswordReset,
+  resetPassword,
+  changePassword,
+  refreshToken,
+  me,
+  resendVerification
+} from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
-import { handleValidationErrors } from '../middleware/validation';
+import {
+  registerValidation,
+  loginValidation,
+  verifyEmailValidation,
+  requestPasswordResetValidation,
+  resetPasswordValidation,
+  changePasswordValidation,
+  refreshTokenValidation,
+  resendVerificationValidation
+} from '../middleware/authValidation';
 
 const router = Router();
 
+/**
+ * Public routes - No authentication required
+ */
+
 // Register new user
-router.post(
-  '/register',
-  [
-    body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('name').optional().trim().notEmpty(),
-    handleValidationErrors
-  ],
-  register
-);
+router.post('/register', registerValidation, register);
 
 // Login user
-router.post(
-  '/login',
-  [
-    body('email').isEmail().normalizeEmail(),
-    body('password').notEmpty(),
-    handleValidationErrors
-  ],
-  login
-);
+router.post('/login', loginValidation, login);
 
-// Get current user
+// Verify email with token
+router.post('/verify-email', verifyEmailValidation, verifyEmail);
+
+// Request password reset
+router.post('/request-password-reset', requestPasswordResetValidation, requestPasswordReset);
+
+// Reset password with token
+router.post('/reset-password', resetPasswordValidation, resetPassword);
+
+// Refresh access token
+router.post('/refresh-token', refreshTokenValidation, refreshToken);
+
+// Resend verification email
+router.post('/resend-verification', resendVerificationValidation, resendVerification);
+
+/**
+ * Protected routes - Authentication required
+ */
+
+// Get current user info
 router.get('/me', authenticate, me);
 
-// Update profile
-router.patch(
-  '/profile',
-  authenticate,
-  [
-    body('name').optional().trim().notEmpty(),
-    body('commission').optional().isFloat({ min: 0 }),
-    body('timezone').optional().isString(),
-    handleValidationErrors
-  ],
-  updateProfile
-);
+// Logout user
+router.post('/logout', authenticate, logout);
+
+// Change password for logged-in user
+router.post('/change-password', authenticate, changePasswordValidation, changePassword);
 
 export default router;
