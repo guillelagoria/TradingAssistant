@@ -67,6 +67,273 @@ interface AccountFormData {
   dataInfoNotes: string;
 }
 
+interface AccountFormProps {
+  formData: AccountFormData;
+  formErrors: Record<string, string>;
+  error: string | null;
+  loading: boolean;
+  showPassword: boolean;
+  editingAccount: Account | null;
+  onFormDataChange: (data: AccountFormData) => void;
+  onPasswordToggle: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onCancel: () => void;
+}
+
+const AccountFormComponent: React.FC<AccountFormProps> = ({
+  formData,
+  formErrors,
+  error,
+  loading,
+  showPassword,
+  editingAccount,
+  onFormDataChange,
+  onPasswordToggle,
+  onSubmit,
+  onCancel
+}) => {
+  const handleInputChange = (field: keyof AccountFormData) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      onFormDataChange({ ...formData, [field]: e.target.value });
+    };
+
+  const handleSelectChange = (field: keyof AccountFormData) =>
+    (value: string) => {
+      onFormDataChange({ ...formData, [field]: value });
+    };
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="account-name">Account Name *</Label>
+          <Input
+            id="account-name"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange('name')}
+            placeholder="My Trading Account"
+            className={formErrors.name ? 'border-red-500' : ''}
+            autoComplete="off"
+          />
+          {formErrors.name && (
+            <p className="text-sm text-red-600">{formErrors.name}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="account-type">Account Type *</Label>
+          <Select
+            value={formData.accountType}
+            onValueChange={handleSelectChange('accountType')}
+          >
+            <SelectTrigger id="account-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex items-center gap-2">
+                    {option.value === AccountType.DEMO ? (
+                      <Circle className="h-4 w-4 text-primary" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    )}
+                    <span>{option.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="currency">Currency *</Label>
+          <Select
+            value={formData.currency}
+            onValueChange={handleSelectChange('currency')}
+          >
+            <SelectTrigger id="currency">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_CURRENCIES.map((currency) => (
+                <SelectItem key={currency.value} value={currency.value}>
+                  {currency.symbol} {currency.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="creationDate">Creation Date</Label>
+          <Input
+            id="creationDate"
+            type="date"
+            value={formData.creationDate}
+            onChange={handleInputChange('creationDate')}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="initial-balance">Initial Balance *</Label>
+          <Input
+            id="initial-balance"
+            name="initialBalance"
+            type="number"
+            step="0.01"
+            value={formData.initialBalance}
+            onChange={handleInputChange('initialBalance')}
+            placeholder="10000"
+            className={formErrors.initialBalance ? 'border-red-500' : ''}
+            autoComplete="off"
+          />
+          {formErrors.initialBalance && (
+            <p className="text-sm text-red-600">{formErrors.initialBalance}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="current-balance">Current Balance</Label>
+          <Input
+            id="current-balance"
+            name="currentBalance"
+            type="number"
+            step="0.01"
+            value={formData.currentBalance}
+            onChange={handleInputChange('currentBalance')}
+            placeholder="Optional"
+            className={formErrors.currentBalance ? 'border-red-500' : ''}
+            autoComplete="off"
+          />
+          {formErrors.currentBalance && (
+            <p className="text-sm text-red-600">{formErrors.currentBalance}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="maxDrawdown">Max Drawdown</Label>
+          <Input
+            id="maxDrawdown"
+            type="number"
+            step="0.01"
+            value={formData.maxDrawdown}
+            onChange={handleInputChange('maxDrawdown')}
+            placeholder="Optional"
+            className={formErrors.maxDrawdown ? 'border-red-500' : ''}
+            autoComplete="off"
+          />
+          {formErrors.maxDrawdown && (
+            <p className="text-sm text-red-600">{formErrors.maxDrawdown}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="profitTarget">Profit Target</Label>
+          <Input
+            id="profitTarget"
+            type="number"
+            step="0.01"
+            value={formData.profitTarget}
+            onChange={handleInputChange('profitTarget')}
+            placeholder="Optional"
+            className={formErrors.profitTarget ? 'border-red-500' : ''}
+            autoComplete="off"
+          />
+          {formErrors.profitTarget && (
+            <p className="text-sm text-red-600">{formErrors.profitTarget}</p>
+          )}
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <Label className="text-sm font-medium">Account Information (Optional)</Label>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="dataInfoName">Account Login/Name</Label>
+            <Input
+              id="dataInfoName"
+              value={formData.dataInfoName}
+              onChange={handleInputChange('dataInfoName')}
+              placeholder="Login or account identifier"
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="dataInfoPassword">Password</Label>
+            <div className="relative">
+              <Input
+                id="dataInfoPassword"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.dataInfoPassword}
+                onChange={handleInputChange('dataInfoPassword')}
+                placeholder="Account password"
+                className="pr-10"
+                autoComplete="off"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3"
+                onClick={onPasswordToggle}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="dataInfoNotes">Notes</Label>
+          <Textarea
+            id="dataInfoNotes"
+            value={formData.dataInfoNotes}
+            onChange={handleInputChange('dataInfoNotes')}
+            placeholder="Additional notes about this account..."
+            className="min-h-[80px]"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={loading}
+        >
+          <X className="h-4 w-4 mr-2" />
+          Cancel
+        </Button>
+        <Button type="submit" disabled={loading}>
+          <Save className="h-4 w-4 mr-2" />
+          {loading ? 'Saving...' : editingAccount ? 'Update Account' : 'Create Account'}
+        </Button>
+      </div>
+    </form>
+  );
+};
+
 const TradingAccountManager: React.FC = () => {
   const accounts = useAccounts();
   const activeAccount = useActiveAccount();
@@ -189,26 +456,6 @@ const TradingAccountManager: React.FC = () => {
     return Object.keys(errors).length === 0;
   }, [formData]);
 
-  // Optimized onChange handlers to prevent unnecessary re-renders
-  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, name: e.target.value }));
-  }, []);
-
-  const handleAccountTypeChange = useCallback((value: AccountType) => {
-    setFormData(prev => ({ ...prev, accountType: value }));
-  }, []);
-
-  const handleCurrencyChange = useCallback((value: string) => {
-    setFormData(prev => ({ ...prev, currency: value }));
-  }, []);
-
-  const handleInitialBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, initialBalance: e.target.value }));
-  }, []);
-
-  const handleCurrentBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, currentBalance: e.target.value }));
-  }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,253 +693,14 @@ const TradingAccountManager: React.FC = () => {
     );
   };
 
-  const AccountForm: React.FC = React.useMemo(() => () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="account-name">Account Name *</Label>
-          <Input
-            key="account-name-input"
-            id="account-name"
-            name="name"
-            value={formData.name}
-            onChange={handleNameChange}
-            placeholder="My Trading Account"
-            className={formErrors.name ? 'border-red-500' : ''}
-          />
-          {formErrors.name && (
-            <p className="text-sm text-red-600">{formErrors.name}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="account-type">Account Type *</Label>
-          <Select
-            key="account-type-select"
-            value={formData.accountType}
-            onValueChange={handleAccountTypeChange}
-          >
-            <SelectTrigger id="account-type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  <div className="flex items-center gap-2">
-                    {option.value === AccountType.DEMO ? (
-                      <Circle className="h-4 w-4 text-primary" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    )}
-                    <span>{option.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="currency">Currency *</Label>
-          <Select
-            key="currency-select"
-            value={formData.currency}
-            onValueChange={handleCurrencyChange}
-          >
-            <SelectTrigger id="currency">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SUPPORTED_CURRENCIES.map((currency) => (
-                <SelectItem key={currency.value} value={currency.value}>
-                  {currency.symbol} {currency.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="creationDate">Creation Date</Label>
-          <Input
-            id="creationDate"
-            type="date"
-            value={formData.creationDate}
-            onChange={(e) => setFormData({ ...formData, creationDate: e.target.value })}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="initial-balance">Initial Balance *</Label>
-          <Input
-            key="initial-balance-input"
-            id="initial-balance"
-            name="initialBalance"
-            type="number"
-            step="0.01"
-            value={formData.initialBalance}
-            onChange={handleInitialBalanceChange}
-            placeholder="10000"
-            className={formErrors.initialBalance ? 'border-red-500' : ''}
-          />
-          {formErrors.initialBalance && (
-            <p className="text-sm text-red-600">{formErrors.initialBalance}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="current-balance">Current Balance</Label>
-          <Input
-            key="current-balance-input"
-            id="current-balance"
-            name="currentBalance"
-            type="number"
-            step="0.01"
-            value={formData.currentBalance}
-            onChange={handleCurrentBalanceChange}
-            placeholder="Optional"
-            className={formErrors.currentBalance ? 'border-red-500' : ''}
-          />
-          {formErrors.currentBalance && (
-            <p className="text-sm text-red-600">{formErrors.currentBalance}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="maxDrawdown">Max Drawdown</Label>
-          <Input
-            id="maxDrawdown"
-            type="number"
-            step="0.01"
-            value={formData.maxDrawdown}
-            onChange={(e) => setFormData({ ...formData, maxDrawdown: e.target.value })}
-            placeholder="Optional"
-            className={formErrors.maxDrawdown ? 'border-red-500' : ''}
-          />
-          {formErrors.maxDrawdown && (
-            <p className="text-sm text-red-600">{formErrors.maxDrawdown}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="profitTarget">Profit Target</Label>
-          <Input
-            id="profitTarget"
-            type="number"
-            step="0.01"
-            value={formData.profitTarget}
-            onChange={(e) => setFormData({ ...formData, profitTarget: e.target.value })}
-            placeholder="Optional"
-            className={formErrors.profitTarget ? 'border-red-500' : ''}
-          />
-          {formErrors.profitTarget && (
-            <p className="text-sm text-red-600">{formErrors.profitTarget}</p>
-          )}
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-muted-foreground" />
-          <Label className="text-sm font-medium">Account Information (Optional)</Label>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="dataInfoName">Account Login/Name</Label>
-            <Input
-              id="dataInfoName"
-              value={formData.dataInfoName}
-              onChange={(e) => setFormData({ ...formData, dataInfoName: e.target.value })}
-              placeholder="Login or account identifier"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="dataInfoPassword">Password</Label>
-            <div className="relative">
-              <Input
-                id="dataInfoPassword"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.dataInfoPassword}
-                onChange={(e) => setFormData({ ...formData, dataInfoPassword: e.target.value })}
-                placeholder="Account password"
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="dataInfoNotes">Notes</Label>
-          <Textarea
-            id="dataInfoNotes"
-            value={formData.dataInfoNotes}
-            onChange={(e) => setFormData({ ...formData, dataInfoNotes: e.target.value })}
-            placeholder="Additional notes about this account..."
-            className="min-h-[80px]"
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            if (editingAccount) {
-              setEditingAccount(null);
-            } else {
-              setShowCreateDialog(false);
-            }
-            resetForm();
-          }}
-          disabled={loading}
-        >
-          <X className="h-4 w-4 mr-2" />
-          Cancel
-        </Button>
-        <Button type="submit" disabled={loading}>
-          <Save className="h-4 w-4 mr-2" />
-          {loading ? 'Saving...' : editingAccount ? 'Update Account' : 'Create Account'}
-        </Button>
-      </div>
-    </form>
-  ), [
-    handleSubmit,
-    error,
-    formData,
-    formErrors,
-    showPassword,
-    setShowPassword,
-    editingAccount,
-    loading,
-    setShowCreateDialog,
-    setEditingAccount,
-    resetForm
-  ]);
+  const handleFormCancel = useCallback(() => {
+    if (editingAccount) {
+      setEditingAccount(null);
+    } else {
+      setShowCreateDialog(false);
+    }
+    resetForm();
+  }, [editingAccount, resetForm]);
 
   return (
     <div className="space-y-8">
@@ -725,7 +733,18 @@ const TradingAccountManager: React.FC = () => {
                     Add a new demo or live trading account to track your performance
                   </DialogDescription>
                 </DialogHeader>
-                <AccountForm />
+                <AccountFormComponent
+                  formData={formData}
+                  formErrors={formErrors}
+                  error={error}
+                  loading={loading}
+                  showPassword={showPassword}
+                  editingAccount={editingAccount}
+                  onFormDataChange={setFormData}
+                  onPasswordToggle={() => setShowPassword(!showPassword)}
+                  onSubmit={handleSubmit}
+                  onCancel={handleFormCancel}
+                />
               </DialogContent>
             </Dialog>
           </div>
@@ -782,7 +801,18 @@ const TradingAccountManager: React.FC = () => {
               Update your trading account details and settings
             </DialogDescription>
           </DialogHeader>
-          <AccountForm />
+          <AccountFormComponent
+            formData={formData}
+            formErrors={formErrors}
+            error={error}
+            loading={loading}
+            showPassword={showPassword}
+            editingAccount={editingAccount}
+            onFormDataChange={setFormData}
+            onPasswordToggle={() => setShowPassword(!showPassword)}
+            onSubmit={handleSubmit}
+            onCancel={handleFormCancel}
+          />
         </DialogContent>
       </Dialog>
 
