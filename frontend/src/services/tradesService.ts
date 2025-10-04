@@ -17,7 +17,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Add auth token when authentication is implemented
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -43,9 +43,11 @@ apiClient.interceptors.response.use(
         case 400:
           throw new Error(`Bad Request: ${message}`);
         case 401:
-          // Handle authentication errors
-          localStorage.removeItem('authToken');
-          throw new Error('Authentication required. Please log in.');
+          // Handle authentication errors - clear auth data
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          throw new Error('Session expired. Please log in again.');
         case 403:
           throw new Error('Access forbidden. Insufficient permissions.');
         case 404:

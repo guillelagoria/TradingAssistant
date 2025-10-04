@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Settings, Bell, Calendar } from 'lucide-react';
+import { TrendingUp, Settings, Bell, LogOut, User, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { EconomicCalendarModal } from '@/components/economic';
 import { useEconomicEvents, useEconomicEventsModal } from '@/store/economicEventsStore';
+import { useAuthStore } from '@/store/authStore';
 import CompactAccountSelector from './CompactAccountSelector';
 import { useQuickTradeShortcuts } from '@/hooks/useQuickTradeShortcuts';
 import { ThemeToggle } from '@/components/theme';
@@ -21,6 +30,7 @@ function Header() {
   const navigate = useNavigate();
   const { highImpactCount, nextEvent } = useEconomicEvents();
   const { openModal } = useEconomicEventsModal();
+  const { user, logout } = useAuthStore();
 
   // Load profile from localStorage and listen for changes
   const [profile, setProfile] = useState<ProfileData>(() => {
@@ -48,6 +58,11 @@ function Header() {
     };
   }, []);
 
+  // Determine display name and email (prioritize auth user, fallback to profile)
+  const displayName = user?.name || profile.name || 'User';
+  const displayEmail = user?.email || profile.email || '';
+  const displayAvatar = profile.avatar;
+
   const getUserInitials = (name: string) => {
     if (!name) return 'U';
     return name
@@ -60,6 +75,11 @@ function Header() {
 
   const handleSettings = () => {
     navigate('/settings');
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const handleCreateAccount = () => {
@@ -144,38 +164,47 @@ function Header() {
           {/* Theme Toggle */}
           <ThemeToggle />
 
-          {/* Settings */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+          {/* User Menu Dropdown */}
+          <div className="ml-2 pl-2 border-l border-border/50">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="sm"
-                  onClick={handleSettings}
-                  className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                  aria-label="Open settings"
+                  className="flex items-center gap-2 h-9 px-2 hover:bg-muted/50 transition-colors"
                 >
-                  <Settings className="h-4 w-4" />
-                  <span className="sr-only">Open settings</span>
+                  <Avatar className="h-7 w-7 border border-border/50">
+                    <AvatarImage src={displayAvatar} alt={displayName} />
+                    <AvatarFallback className="bg-foreground text-background font-semibold text-[10px]">
+                      {getUserInitials(displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden lg:inline text-sm font-medium text-foreground tracking-tight">
+                    {displayName}
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="border-border/50">
-                <p className="text-xs font-semibold uppercase tracking-wider">Settings</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* User Avatar - Minimal, Professional */}
-          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border/50">
-            <div className="hidden lg:block text-right">
-              <p className="text-sm font-medium text-foreground tracking-tight">{profile.name || 'User'}</p>
-            </div>
-            <Avatar className="h-8 w-8 border border-border/50">
-              <AvatarImage src={profile.avatar} alt={profile.name} />
-              <AvatarFallback className="bg-foreground text-background font-semibold text-xs">
-                {getUserInitials(profile.name)}
-              </AvatarFallback>
-            </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {displayEmail}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSettings} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
