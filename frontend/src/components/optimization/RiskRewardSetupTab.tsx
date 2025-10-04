@@ -44,52 +44,138 @@ const RiskRewardSetupTab = ({ data }: Props) => {
       className="space-y-4"
     >
       {/* Main Recommendation Card */}
-      <Card className={`border-${rrQuality.color}-300 bg-gradient-to-br from-${rrQuality.color}-50 to-${rrQuality.color}-100/50`}>
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-full bg-${rrQuality.color}-500 text-white`}>
-              <Scale className="h-6 w-6" />
-            </div>
-            <div className="flex-1">
-              <h3 className={`text-lg font-semibold text-${rrQuality.color}-900 mb-1`}>
-                Suggested Risk:Reward Setup
-              </h3>
-              <div className="flex items-baseline gap-3 mb-3">
-                <span className={`text-3xl font-bold text-${rrQuality.color}-600`}>
-                  {formatRatio(data.suggestedRR)}
-                </span>
-                <span className="text-lg">{rrQuality.icon}</span>
-                <span className={`text-lg text-${rrQuality.color}-500`}>
-                  {rrQuality.label}
-                </span>
+      {rrQuality.color === 'green' && (
+        <Card className="border-green-300 dark:border-green-700 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-full bg-green-500 dark:bg-green-600 text-white">
+                <Scale className="h-6 w-6" />
               </div>
-              <p className={`text-sm text-${rrQuality.color}-700 leading-relaxed`}>
-                {data.comparison}
-              </p>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-1">
+                  Suggested Risk:Reward Setup
+                </h3>
+                <div className="flex items-baseline gap-3 mb-3">
+                  <span className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {formatRatio(data.suggestedRR)}
+                  </span>
+                  <span className="text-lg">{rrQuality.icon}</span>
+                  <span className="text-lg text-green-500 dark:text-green-300">
+                    {rrQuality.label}
+                  </span>
+                </div>
+                <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
+                  {data.comparison}
+                </p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+      {rrQuality.color === 'blue' && (
+        <Card className="border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-full bg-blue-500 dark:bg-blue-600 text-white">
+                <Scale className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                  Suggested Risk:Reward Setup
+                </h3>
+                <div className="flex items-baseline gap-3 mb-3">
+                  <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {formatRatio(data.suggestedRR)}
+                  </span>
+                  <span className="text-lg">{rrQuality.icon}</span>
+                  <span className="text-lg text-blue-500 dark:text-blue-300">
+                    {rrQuality.label}
+                  </span>
+                </div>
+                <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                  {data.comparison}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {rrQuality.color === 'amber' && (
+        <Card className="border-amber-300 dark:border-amber-700 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-full bg-amber-500 dark:bg-amber-600 text-white">
+                <Scale className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                  Suggested Risk:Reward Setup
+                </h3>
+                <div className="flex items-baseline gap-3 mb-3">
+                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                    {formatRatio(data.suggestedRR)}
+                  </span>
+                  <span className="text-lg">{rrQuality.icon}</span>
+                  <span className="text-lg text-amber-500 dark:text-amber-300">
+                    {rrQuality.label}
+                  </span>
+                </div>
+                <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
+                  {data.comparison}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {rrQuality.color === 'red' && (
+        <Card className="border-red-300 dark:border-red-700 bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-full bg-red-500 dark:bg-red-600 text-white">
+                <Scale className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-900 dark:text-red-100 mb-1">
+                  Suggested Risk:Reward Setup
+                </h3>
+                <div className="flex items-baseline gap-3 mb-3">
+                  <span className="text-3xl font-bold text-red-600 dark:text-red-400">
+                    {formatRatio(data.suggestedRR)}
+                  </span>
+                  <span className="text-lg">{rrQuality.icon}</span>
+                  <span className="text-lg text-red-500 dark:text-red-300">
+                    {rrQuality.label}
+                  </span>
+                </div>
+                <p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">
+                  {data.comparison}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Setup Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Suggested Stop */}
-        <Card className="border-red-200 bg-red-50/50">
+        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-2">
-              <Shield className="h-5 w-5 text-red-600" />
-              <h4 className="font-semibold text-red-900">Suggested Stop Loss</h4>
+              <Shield className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <h4 className="font-semibold text-red-900 dark:text-red-100">Suggested Stop Loss</h4>
             </div>
             <div className="space-y-2">
               <div>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(data.suggestedStop)}
                 </p>
-                <p className="text-sm text-red-600">
+                <p className="text-sm text-red-600 dark:text-red-400">
                   {formatPoints(data.suggestedStopPoints)}
                 </p>
               </div>
-              <p className="text-xs text-red-700 leading-relaxed">
+              <p className="text-xs text-red-700 dark:text-red-300 leading-relaxed">
                 Based on your MAE analysis
               </p>
             </div>
@@ -97,22 +183,22 @@ const RiskRewardSetupTab = ({ data }: Props) => {
         </Card>
 
         {/* Suggested Target */}
-        <Card className="border-green-200 bg-green-50/50">
+        <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-2">
-              <Target className="h-5 w-5 text-green-600" />
-              <h4 className="font-semibold text-green-900">Suggested Take Profit</h4>
+              <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <h4 className="font-semibold text-green-900 dark:text-green-100">Suggested Take Profit</h4>
             </div>
             <div className="space-y-2">
               <div>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(data.suggestedTarget)}
                 </p>
-                <p className="text-sm text-green-600">
+                <p className="text-sm text-green-600 dark:text-green-400">
                   {formatPoints(data.suggestedTargetPoints)}
                 </p>
               </div>
-              <p className="text-xs text-green-700 leading-relaxed">
+              <p className="text-xs text-green-700 dark:text-green-300 leading-relaxed">
                 Based on your MFE analysis
               </p>
             </div>
@@ -123,17 +209,17 @@ const RiskRewardSetupTab = ({ data }: Props) => {
       {/* Current vs Suggested Performance */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Current R:R */}
-        <Card className="border-blue-200 bg-blue-50/50">
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-2">
-              <Scale className="h-5 w-5 text-blue-600" />
-              <h4 className="font-semibold text-blue-900">Current R:R</h4>
+              <Scale className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100">Current R:R</h4>
             </div>
             <div>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {formatRatio(data.currentAvgRR)}
               </p>
-              <p className="text-xs text-blue-700 mt-2">
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
                 Your historical average
               </p>
             </div>
@@ -141,17 +227,17 @@ const RiskRewardSetupTab = ({ data }: Props) => {
         </Card>
 
         {/* Current Win Rate */}
-        <Card className="border-purple-200 bg-purple-50/50">
+        <Card className="border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-2">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
-              <h4 className="font-semibold text-purple-900">Win Rate</h4>
+              <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <h4 className="font-semibold text-purple-900 dark:text-purple-100">Win Rate</h4>
             </div>
             <div>
-              <p className="text-2xl font-bold text-purple-600">
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {data.currentWinRate.toFixed(1)}%
               </p>
-              <p className="text-xs text-purple-700 mt-2">
+              <p className="text-xs text-purple-700 dark:text-purple-300 mt-2">
                 Current performance
               </p>
             </div>
@@ -159,17 +245,17 @@ const RiskRewardSetupTab = ({ data }: Props) => {
         </Card>
 
         {/* Current Expectancy */}
-        <Card className="border-indigo-200 bg-indigo-50/50">
+        <Card className="border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-2">
-              <Zap className="h-5 w-5 text-indigo-600" />
-              <h4 className="font-semibold text-indigo-900">Expectancy</h4>
+              <Zap className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <h4 className="font-semibold text-indigo-900 dark:text-indigo-100">Expectancy</h4>
             </div>
             <div>
-              <p className={`text-2xl font-bold ${data.currentExpectancy >= 0 ? 'text-indigo-600' : 'text-red-600'}`}>
+              <p className={`text-2xl font-bold ${data.currentExpectancy >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-red-600 dark:text-red-400'}`}>
                 {formatCurrency(data.currentExpectancy)}
               </p>
-              <p className="text-xs text-indigo-700 mt-2">
+              <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2">
                 Per trade average
               </p>
             </div>
@@ -178,83 +264,119 @@ const RiskRewardSetupTab = ({ data }: Props) => {
       </div>
 
       {/* Break-Even Analysis */}
-      <Card className={`border-${hasEdge ? 'green' : 'amber'}-200 bg-${hasEdge ? 'green' : 'amber'}-50/50`}>
-        <CardContent className="pt-6">
-          <h4 className={`font-semibold text-${hasEdge ? 'green' : 'amber'}-900 mb-4 flex items-center gap-2`}>
-            <Scale className={`h-5 w-5 text-${hasEdge ? 'green' : 'amber'}-600`} />
-            Break-Even Analysis
-          </h4>
+      {hasEdge ? (
+        <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+          <CardContent className="pt-6">
+            <h4 className="font-semibold text-green-900 dark:text-green-100 mb-4 flex items-center gap-2">
+              <Scale className="h-5 w-5 text-green-600 dark:text-green-400" />
+              Break-Even Analysis
+            </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-white rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-600 mb-1">Required Win Rate</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Required Win Rate</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {data.breakEvenWinRate.toFixed(1)}%
               </p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 To break even with {formatRatio(data.suggestedRR)}
               </p>
             </div>
-            <div className="p-4 bg-white rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-600 mb-1">Expected P&L per Trade</p>
-              <p className={`text-2xl font-bold ${data.expectedPnLPerTrade >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Expected P&L per Trade</p>
+              <p className={`text-2xl font-bold ${data.expectedPnLPerTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {formatCurrency(data.expectedPnLPerTrade)}
               </p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 With suggested setup
               </p>
             </div>
           </div>
           {hasEdge ? (
-            <div className="mt-4 p-3 bg-green-100 rounded-lg">
-              <p className="text-sm text-green-800">
+            <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <p className="text-sm text-green-800 dark:text-green-200">
                 ✅ Your {data.currentWinRate.toFixed(1)}% win rate exceeds the required {data.breakEvenWinRate.toFixed(1)}% - you have a positive edge!
               </p>
             </div>
           ) : (
-            <div className="mt-4 p-3 bg-amber-100 rounded-lg">
-              <p className="text-sm text-amber-800">
+            <div className="mt-4 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
                 ⚠️ Your {data.currentWinRate.toFixed(1)}% win rate is below the required {data.breakEvenWinRate.toFixed(1)}%. Focus on trade quality or adjust R:R.
               </p>
             </div>
           )}
         </CardContent>
       </Card>
+      ) : (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="pt-6">
+            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-4 flex items-center gap-2">
+              <Scale className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              Break-Even Analysis
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Required Win Rate</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {data.breakEvenWinRate.toFixed(1)}%
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  To break even with {formatRatio(data.suggestedRR)}
+                </p>
+              </div>
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Expected P&L per Trade</p>
+                <p className={`text-2xl font-bold ${data.expectedPnLPerTrade >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {formatCurrency(data.expectedPnLPerTrade)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  With suggested setup
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                ⚠️ Your {data.currentWinRate.toFixed(1)}% win rate is below the required {data.breakEvenWinRate.toFixed(1)}%. Focus on trade quality or adjust R:R.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action Recommendation */}
-      <Card className="border-blue-200 bg-blue-50/30">
+      <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20">
         <CardContent className="pt-6">
-          <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
+          <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             How to Apply
           </h4>
-          <ul className="space-y-2 text-sm text-blue-800">
+          <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
             <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">•</span>
+              <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
               <span>
                 Use <strong>{formatRatio(data.suggestedRR)}</strong> as your minimum acceptable setup
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">•</span>
+              <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
               <span>
                 Only take trades where you can achieve at least <strong>{formatCurrency(data.suggestedTarget)}</strong> target
                 with <strong>{formatCurrency(data.suggestedStop)}</strong> risk
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">•</span>
+              <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
               <span>
                 With your {data.currentWinRate.toFixed(1)}% win rate, this setup yields <strong>{formatCurrency(data.expectedPnLPerTrade)}</strong> per trade
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">•</span>
+              <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
               <span>
                 If you can't achieve this R:R, either improve entry quality or skip the trade
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-600 mt-0.5">•</span>
+              <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
               <span>
                 Track every trade against this benchmark and adjust quarterly
               </span>
