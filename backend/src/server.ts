@@ -26,6 +26,7 @@ import economicEventsRoutes from './routes/economicEvents.routes';
 import importRoutes from './routes/import.routes';
 import dataCapabilitiesRoutes from './routes/dataCapabilities.routes';
 import tradeOptimizationRoutes from './routes/tradeOptimization.routes';
+import nt8ImportV2Routes from './routes/nt8ImportV2.routes';
 
 // Initialize Prisma Client
 export const prisma = new PrismaClient();
@@ -118,6 +119,9 @@ app.use('/api/data-capabilities', authenticate, dataCapabilitiesRoutes);
 
 // Trade Optimization routes (require authentication)
 app.use('/api/optimization', authenticate, tradeOptimizationRoutes);
+
+// NinjaTrader 8 Import V2 routes (require authentication)
+app.use('/api/nt8-import-v2', nt8ImportV2Routes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

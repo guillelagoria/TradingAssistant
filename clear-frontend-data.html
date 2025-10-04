@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Trading Diary Data</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #1a202c;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .info-box {
+            background: #edf2f7;
+            border-left: 4px solid #4299e1;
+            padding: 16px;
+            margin-bottom: 24px;
+            border-radius: 4px;
+        }
+
+        .info-box h3 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-box p {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        #status {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #2d3748;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .log-info {
+            background: #e6fffa;
+            color: #234e52;
+        }
+
+        .log-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .log-warning {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+
+        .log-error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+            box-shadow: 0 4px 12px rgba(45, 55, 72, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Clear Trading Diary Data</h1>
+        <p class="subtitle">Clean all localStorage data and cache</p>
+
+        <div class="info-box">
+            <h3>⚠️ What this does:</h3>
+            <p>This tool will clear all cached data from your browser's localStorage. This includes trade drafts, filter presets, and any other locally stored settings.</p>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="keyCount">-</div>
+                <div class="stat-label">localStorage Keys</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="dataSize">-</div>
+                <div class="stat-label">Data Size (KB)</div>
+            </div>
+        </div>
+
+        <div id="status">
+            <div class="log-entry log-info">Ready to scan localStorage...</div>
+        </div>
+
+        <button class="btn" onclick="scanLocalStorage()">🔍 Scan localStorage</button>
+        <button class="btn" onclick="clearAllData()">🗑️ Clear All Data</button>
+        <button class="btn btn-secondary" onclick="clearSpecificKey()">🎯 Clear Specific Key</button>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            status.appendChild(entry);
+            status.scrollTop = status.scrollHeight;
+        }
+
+        function updateStats() {
+            const keyCount = localStorage.length;
+            let totalSize = 0;
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                totalSize += (key.length + value.length) * 2; // UTF-16 = 2 bytes per char
+            }
+
+            document.getElementById('keyCount').textContent = keyCount;
+            document.getElementById('dataSize').textContent = (totalSize / 1024).toFixed(2);
+        }
+
+        function scanLocalStorage() {
+            log('Scanning localStorage...', 'info');
+
+            if (localStorage.length === 0) {
+                log('✅ localStorage is empty!', 'success');
+                updateStats();
+                return;
+            }
+
+            log(`Found ${localStorage.length} keys:`, 'info');
+
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                keys.push(localStorage.key(i));
+            }
+
+            keys.sort().forEach(key => {
+                const value = localStorage.getItem(key);
+                const size = ((key.length + value.length) * 2 / 1024).toFixed(2);
+                log(`  • ${key} (${size} KB)`, 'info');
+            });
+
+            updateStats();
+        }
+
+        function clearAllData() {
+            if (!confirm('⚠️ Are you sure you want to clear ALL localStorage data?\n\nThis action cannot be undone!')) {
+                log('❌ Operation cancelled by user', 'warning');
+                return;
+            }
+
+            const keyCount = localStorage.length;
+            log('Starting cleanup...', 'info');
+
+            try {
+                localStorage.clear();
+                log(`✅ Successfully cleared ${keyCount} keys from localStorage`, 'success');
+                log('✅ All data has been removed!', 'success');
+                updateStats();
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearSpecificKey() {
+            const key = prompt('Enter the exact key name to delete:');
+
+            if (!key) {
+                log('❌ Operation cancelled', 'warning');
+                return;
+            }
+
+            if (!localStorage.getItem(key)) {
+                log(`❌ Key "${key}" not found in localStorage`, 'error');
+                return;
+            }
+
+            try {
+                localStorage.removeItem(key);
+                log(`✅ Successfully removed key: ${key}`, 'success');
+                updateStats();
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initial scan on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                scanLocalStorage();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

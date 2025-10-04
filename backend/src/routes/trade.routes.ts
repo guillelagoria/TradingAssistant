@@ -3,7 +3,7 @@ import { body, query } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-// import { authenticate } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { handleValidationErrors, validateTradeData, validatePriceTicks, validateMarketExists } from '../middleware/validation';
 import {
   createTrade,
@@ -48,9 +48,8 @@ const upload = multer({
   }
 });
 
-// Temporarily disable authentication for development
-// TODO: Re-enable authentication when frontend auth is implemented
-// router.use(authenticate);
+// Apply authentication to all trade routes
+router.use(authenticate);
 
 // Get all trades with filters
 router.get(

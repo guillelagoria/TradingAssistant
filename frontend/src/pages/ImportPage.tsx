@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ImportWizard, ImportHistory } from '@/components/import';
+import { SimplifiedImportWizard, ImportHistory, ImportWizardV2 } from '@/components/import';
 import { useImportStore } from '@/store/importStore';
 import { useTradeStore } from '@/store/tradeStore';
 import { useActiveAccount } from '@/store/accountStore';
@@ -23,7 +23,7 @@ export function ImportPage() {
   const { resetImport } = useImportStore();
   const { refreshTradesForAccount } = useTradeStore();
   const activeAccount = useActiveAccount();
-  const [activeTab, setActiveTab] = useState<'import' | 'history'>('import');
+  const [activeTab, setActiveTab] = useState<'import' | 'import-v2' | 'history'>('import-v2');
 
   const handleImportComplete = async () => {
     // Refresh trades for the active account to reflect imported data
@@ -146,22 +146,30 @@ export function ImportPage() {
             <CardContent>
               <Tabs
                 value={activeTab}
-                onValueChange={(value) => setActiveTab(value as 'import' | 'history')}
+                onValueChange={(value) => setActiveTab(value as 'import' | 'import-v2' | 'history')}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
+                  <TabsTrigger value="import-v2" className="flex items-center space-x-2">
+                    <Upload className="h-4 w-4" />
+                    <span>Import V2</span>
+                  </TabsTrigger>
                   <TabsTrigger value="import" className="flex items-center space-x-2">
                     <Upload className="h-4 w-4" />
-                    <span>New Import</span>
+                    <span>Legacy Import</span>
                   </TabsTrigger>
                   <TabsTrigger value="history" className="flex items-center space-x-2">
                     <History className="h-4 w-4" />
-                    <span>Import History</span>
+                    <span>History</span>
                   </TabsTrigger>
                 </TabsList>
 
+                <TabsContent value="import-v2" className="space-y-6">
+                  <ImportWizardV2 onComplete={handleImportComplete} />
+                </TabsContent>
+
                 <TabsContent value="import" className="space-y-6">
-                  <ImportWizard onComplete={handleImportComplete} />
+                  <SimplifiedImportWizard onComplete={handleImportComplete} />
                 </TabsContent>
 
                 <TabsContent value="history" className="space-y-6">

@@ -262,7 +262,7 @@ export class NT8ImportService {
     });
 
     if (!user || user.accounts.length === 0) {
-      throw new Error('No active account found for user');
+      throw new Error('NO_ACCOUNT_FOUND: You need to create a trading account before importing trades. Please go to Settings > Accounts to create one.');
     }
 
     const accountId = user.accounts[0].id;
@@ -337,14 +337,16 @@ export class NT8ImportService {
             return;
           }
 
-          // Check for duplicates
+          // Check for duplicates (ONLY against existing database trades)
           let isDuplicate = false;
           if (options.skipDuplicates) {
+            console.log(`🔍 [importNT8File] Checking duplicate for row ${rowNumber}: ${parsedTrade.symbol} at ${parsedTrade.entryPrice}`);
             isDuplicate = await this.checkDuplicate(
               parsedTrade,
               options.userId,
               accountId
             );
+            console.log(`🔍 [importNT8File] Row ${rowNumber} duplicate check result: ${isDuplicate}`);
           }
 
           // Import trade (unless dry run)
@@ -406,6 +408,7 @@ export class NT8ImportService {
             // Mark duplicates appropriately but still show them in preview
             const warningList = ['Dry run - trade not imported'];
             if (isDuplicate) {
+              console.log(`⚠️ [importNT8File] DRY RUN: Row ${rowNumber} marked as duplicate! This should ONLY happen if trade exists in database.`);
               warningList.push('Trade already exists - will be skipped');
               summary.duplicates++;
             }
@@ -414,25 +417,7 @@ export class NT8ImportService {
               rowNumber,
               success: true,
               duplicate: isDuplicate,
-              warnings: warningList,
-              trade: {
-                instrument: parsedTrade.symbol,
-                quantity: parsedTrade.quantity,
-                price: parsedTrade.entryPrice,
-                time: parsedTrade.entryDate.toISOString(),
-                direction: parsedTrade.direction,
-                commission: parsedTrade.commission,
-                pnl: parsedTrade.pnl,
-                exitPrice: parsedTrade.exitPrice,
-                exitTime: parsedTrade.exitDate?.toISOString() || null,
-                mae: parsedTrade.mae,
-                mfe: parsedTrade.mfe,
-                strategy: parsedTrade.strategy,
-                account: parsedTrade.account,
-                tradeId: parsedTrade.tradeId,
-                notes: parsedTrade.notes,
-                error: isDuplicate ? 'Duplicate trade' : undefined
-              }
+              warnings: warningList
             });
             summary.skipped++;
           }
@@ -501,7 +486,7 @@ export class NT8ImportService {
     fieldMapping: NT8FieldMapping
   ): NT8ParsedTrade {
     // Debug: Log basic trade info
-    console.log('🔍 [parseNT8Trade] Processing trade:', raw['Trade number'] || 'unknown', raw['Instrument'] || 'unknown');
+    console.log('🔍 [parseNT8Trade] Processing trade:', (raw as any)['Trade number'] || 'unknown', (raw as any)['Instrument'] || 'unknown');
 
     // Helper function to get field value
     const getFieldValue = (fieldNames: string[]): any => {
@@ -643,30 +628,53 @@ export class NT8ImportService {
 
   /**
    * Check if trade is duplicate
+   * IMPORTANT: This ONLY checks against EXISTING database trades, NOT within the current import batch
    */
   private async checkDuplicate(
     trade: NT8ParsedTrade,
     userId: string,
     accountId: string
   ): Promise<boolean> {
-    // Check for duplicate trades with enhanced criteria:
-    // - Same symbol, direction, entry price, quantity
-    // - Entry date within 5 minutes (for NT8 timing variations)
-    // - Same user and account
-    const existingTrade = await this.prisma.$queryRaw`
-      SELECT id
-      FROM trades
-      WHERE "userId" = ${userId}
-        AND "accountId" = ${accountId}
-        AND symbol = ${trade.symbol}
-        AND direction = ${trade.direction}
-        AND "entryPrice" = ${trade.entryPrice}
-        AND quantity = ${trade.quantity}
-        AND "entryDate" BETWEEN ${new Date(trade.entryDate.getTime() - 300000)} AND ${new Date(trade.entryDate.getTime() + 300000)}
-      LIMIT 1
-    `;
+    try {
+      // Check for duplicate trades with enhanced criteria using Prisma ORM (SQLite compatible)
+      // - Same symbol, direction, entry price, quantity
+      // - Entry date within 5 minutes (for NT8 timing variations)
+      // - Same user and account
+      // CRITICAL: This query ONLY checks the trades table (existing DB trades)
+      // It does NOT compare trades within the same import batch
+      const startTime = new Date(trade.entryDate.getTime() - 300000); // 5 minutes before
+      const endTime = new Date(trade.entryDate.getTime() + 300000); // 5 minutes after
 
-    return (existingTrade as any[]).length > 0;
+      const existingTrade = await this.prisma.trade.findFirst({
+        where: {
+          userId,
+          accountId,
+          symbol: trade.symbol,
+          direction: trade.direction,
+          entryPrice: trade.entryPrice,
+          quantity: trade.quantity,
+          entryDate: {
+            gte: startTime,
+            lte: endTime
+          }
+        },
+        select: { id: true }
+      });
+
+      const isDuplicate = existingTrade !== null;
+
+      // Debug logging
+      if (isDuplicate) {
+        console.log(`🔍 [checkDuplicate] Found duplicate for ${trade.symbol} at ${trade.entryPrice} on ${trade.entryDate}`);
+      }
+
+      return isDuplicate;
+    } catch (error) {
+      console.error('❌ [checkDuplicate] Error checking for duplicate:', error);
+      // If there's an error in duplicate check, assume not duplicate to allow import
+      // This prevents false positives
+      return false;
+    }
   }
 
   /**

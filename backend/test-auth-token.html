@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Check Token</title></head>
+<body>
+<h1>JWT Token Check</h1>
+<pre id="output"></pre>
+<script>
+const token = localStorage.getItem('token');
+const output = document.getElementById('output');
+if (token) {
+  output.textContent = 'Token found:\n' + token;
+} else {
+  output.textContent = 'No token found in localStorage';
+}
+</script>
+</body>
+</html>

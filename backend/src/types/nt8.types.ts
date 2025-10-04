@@ -176,8 +176,8 @@ export const DEFAULT_NT8_FIELD_MAPPINGS: NT8FieldMapping = {
   quantity: ['Qty', 'Quantity', 'Position size', 'PositionSize', 'Contracts', 'Size'],
   entryPrice: ['Entry price', 'Entry Price', 'EntryPrice', 'Fill price', 'Avg fill price'],
   exitPrice: ['Exit price', 'Exit Price', 'ExitPrice', 'Close price', 'Avg close price'],
-  direction: ['Market pos.', 'Direction', 'Side', 'Market position', 'MarketPosition', 'Position'],
-  pnl: ['Profit', 'P&L', 'PnL', 'Net profit', 'NetProfit', 'Gross P&L', 'GrossPnL', 'Realized P&L'],
+  direction: ['Side', 'Market pos.', 'Direction', 'Market position', 'MarketPosition', 'Position'],
+  pnl: ['Realized P&L', 'Profit', 'P&L', 'PnL', 'Net profit', 'NetProfit', 'Gross P&L', 'GrossPnL'],
   commission: ['Commission', 'Commissions', 'Fees', 'Total fees'],
   mae: ['MAE', 'Max adverse excursion', 'MaxAdverseExcursion', 'Max Adverse Excursion'],
   mfe: ['MFE', 'Max favorable excursion', 'MaxFavorableExcursion', 'Max Favorable Excursion'],
@@ -316,13 +316,15 @@ export function parseEuropeanNumber(value: any): number | null {
 }
 
 /**
- * Parse NT8 date format: d/M/yyyy H:mm:ss
- * Examples: "2/9/2025 12:18:21", "10/12/2025 09:45:12"
+ * Parse NT8 date format: Supports both d/M/yyyy H:mm:ss and M/d/yyyy H:mm:ss
+ * Examples:
+ *   - European: "2/9/2025 12:18:21" (day/month/year)
+ *   - US: "09/20/2025 10:30:00" (month/day/year)
  */
 export function parseNT8Date(dateStr: string): Date | null {
   if (!dateStr) return null;
 
-  // NT8 format: d/M/yyyy H:mm:ss or dd/MM/yyyy H:mm:ss
+  // NT8 format: d/M/yyyy H:mm:ss or M/d/yyyy H:mm:ss
   const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
 
   if (!match) {
@@ -331,19 +333,63 @@ export function parseNT8Date(dateStr: string): Date | null {
     return isNaN(fallbackDate.getTime()) ? null : fallbackDate;
   }
 
-  const [, day, month, year, hour, minute, second] = match;
+  const [, first, second, year, hour, minute, second_part] = match;
 
-  // Create date object (month is 0-indexed in JavaScript)
-  const date = new Date(
-    parseInt(year),
-    parseInt(month) - 1,
-    parseInt(day),
-    parseInt(hour),
-    parseInt(minute),
-    parseInt(second)
-  );
+  // Heuristic: If first number > 12, it's day (European format)
+  // Otherwise, assume US format (month/day/year)
+  let date: Date;
+  const firstNum = parseInt(first);
+  const secondNum = parseInt(second);
+  let parsedYear = parseInt(year);
 
-  return isNaN(date.getTime()) ? null : date;
+  if (firstNum > 12) {
+    // European format (day/month/year)
+    date = new Date(
+      parsedYear,
+      secondNum - 1, // month (0-indexed)
+      firstNum, // day
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second_part)
+    );
+  } else if (secondNum > 12) {
+    // US format (month/day/year) - second value is clearly a day
+    date = new Date(
+      parsedYear,
+      firstNum - 1, // month (0-indexed)
+      secondNum, // day
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second_part)
+    );
+  } else {
+    // Ambiguous - default to US format (MM/DD/YYYY) as it's more common in NT8
+    date = new Date(
+      parsedYear,
+      firstNum - 1, // month (0-indexed)
+      secondNum, // day
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second_part)
+    );
+  }
+
+  if (isNaN(date.getTime())) return null;
+
+  // CRITICAL FIX: NinjaTrader exports futures trades with contract expiry year, not trade execution year
+  // Example: Trading ES SEP25 in October 2024 shows dates as "10/15/2025" instead of "10/15/2024"
+  // Solution: If the parsed date is in the future (more than 30 days from now), assume it was last year
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  if (date > thirtyDaysFromNow) {
+    // Date is more than 30 days in the future - likely wrong year from NT8 futures contract
+    console.log(`⚠️ [parseNT8Date] Future date detected: ${dateStr} -> ${date.toISOString()}. Adjusting to previous year.`);
+    date.setFullYear(date.getFullYear() - 1);
+    console.log(`✅ [parseNT8Date] Corrected date: ${date.toISOString()}`);
+  }
+
+  return date;
 }
 
 /**

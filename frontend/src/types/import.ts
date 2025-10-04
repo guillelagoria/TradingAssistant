@@ -7,6 +7,8 @@ export interface NT8Trade {
   exchange: string;
   quantity: number;
   price: number;
+  exitPrice?: number;
+  profit?: number;
   currency: string;
   commission: number;
   rate: number;
@@ -94,4 +96,41 @@ export interface FileUploadStatus {
   progress: number;
   status: 'pending' | 'uploading' | 'processing' | 'completed' | 'error';
   error?: string;
+}
+
+// V2 Import Types
+export interface NT8TradePreview {
+  symbol: string;
+  direction: 'LONG' | 'SHORT';
+  entryDate: string;
+  exitDate: string | null;
+  entryPrice: number;
+  exitPrice: number | null;
+  pnl: number | null;
+  commission: number;
+  status: 'valid' | 'duplicate' | 'error';
+  errorMessage?: string;
+}
+
+export interface NT8PreviewResponse {
+  success: boolean;
+  data: {
+    totalTrades: number;
+    validTrades: number;
+    duplicates: number;
+    errors: number;
+    trades: NT8TradePreview[];
+  };
+  message?: string;
+}
+
+export interface NT8ExecuteResponse {
+  success: boolean;
+  data: {
+    imported: number;
+    skipped: number;
+    errors: number;
+    message: string;
+  };
+  message?: string;
 }
