@@ -18,7 +18,6 @@ import {
 import { toast } from 'sonner';
 
 interface SimplePreferencesData {
-  defaultCommission: number;
   favoriteSymbols: string[];
   theme: 'light' | 'dark' | 'system';
   currency: string;
@@ -27,7 +26,6 @@ interface SimplePreferencesData {
 }
 
 const DEFAULT_PREFERENCES: SimplePreferencesData = {
-  defaultCommission: 0,
   favoriteSymbols: ['ES', 'NQ', 'YM', 'RTY'],
   theme: 'system',
   currency: 'USD',
@@ -101,25 +99,6 @@ export function SimplePreferences() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Commission Settings */}
-          <div className="space-y-2">
-            <Label htmlFor="default-commission">Default Commission ($)</Label>
-            <Input
-              id="default-commission"
-              type="number"
-              min="0"
-              step="0.01"
-              value={preferences.defaultCommission}
-              onChange={(e) => handleChange('defaultCommission', parseFloat(e.target.value) || 0)}
-              placeholder="0.00"
-            />
-            <p className="text-xs text-muted-foreground">
-              Commission per trade (broker fees, spreads, etc.)
-            </p>
-          </div>
-
-          <Separator className="my-6" />
-
           {/* Favorite Symbols Section */}
           <div className="space-y-3">
             <div>
@@ -319,11 +298,7 @@ export function SimplePreferences() {
           <CardTitle className="text-sm">Current Settings Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="font-medium">Commission</div>
-              <div className="text-muted-foreground">${preferences.defaultCommission}</div>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div>
               <div className="font-medium">Symbols</div>
               <div className="text-muted-foreground">{preferences.favoriteSymbols.length} favorites</div>

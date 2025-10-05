@@ -90,11 +90,6 @@ export const generateCumulativePnLData = (trades: Trade[]): CumulativePnLPoint[]
     .filter(trade => trade.exitPrice && (trade.netPnl !== undefined || trade.pnl !== undefined))
     .sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
 
-  console.log('📊 generateCumulativePnLData:', {
-    totalTrades: trades.length,
-    closedTrades: closedTrades.length
-  });
-
   if (!closedTrades.length) return [];
 
   let cumulativePnl = 0;
@@ -107,17 +102,6 @@ export const generateCumulativePnLData = (trades: Trade[]): CumulativePnLPoint[]
 
     cumulativePnl += tradePnl;
     cumulativeCommission += commission;
-
-    // Debug first and last trade
-    if (index === 0 || index === closedTrades.length - 1) {
-      console.log(`📊 Chart Trade ${index + 1}:`, {
-        symbol: trade.symbol,
-        netPnl: trade.netPnl,
-        commission: trade.commission,
-        tradePnl,
-        cumulativePnl
-      });
-    }
 
     const tradeDate = parseTradeDate(trade.exitDate || trade.entryDate);
 

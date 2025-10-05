@@ -202,21 +202,20 @@ const AccountFormComponent: React.FC<AccountFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="current-balance">Current Balance</Label>
+          <Label htmlFor="current-balance" className="text-muted-foreground">
+            Current Balance (Auto-calculated)
+          </Label>
           <Input
             id="current-balance"
             name="currentBalance"
-            type="number"
-            step="0.01"
-            value={formData.currentBalance}
-            onChange={handleInputChange('currentBalance')}
-            placeholder="Optional"
-            className={formErrors.currentBalance ? 'border-red-500' : ''}
-            autoComplete="off"
+            type="text"
+            value="Calculated from trades"
+            disabled
+            className="bg-muted/50 cursor-not-allowed"
           />
-          {formErrors.currentBalance && (
-            <p className="text-sm text-red-600">{formErrors.currentBalance}</p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Balance is automatically updated based on your trades
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -556,6 +555,11 @@ const TradingAccountManager: React.FC = () => {
     const stats = useAccountStats(account.id);
     const isActive = activeAccount?.id === account.id;
 
+    // Calculate actual current balance: initial balance + total P&L
+    const calculatedBalance = stats
+      ? account.initialBalance + (stats.totalNetPnL || 0)
+      : account.initialBalance;
+
     return (
       <motion.div
         layout
@@ -644,7 +648,7 @@ const TradingAccountManager: React.FC = () => {
                   Current Balance
                 </Label>
                 <p className="text-base font-semibold">
-                  {formatCurrency(account.currentBalance || account.initialBalance, account.currency)}
+                  {formatCurrency(calculatedBalance, account.currency)}
                 </p>
               </div>
               {stats && (
@@ -656,15 +660,15 @@ const TradingAccountManager: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <p className={cn(
                       'text-base font-semibold',
-                      stats.totalPnL > 0 ? 'text-emerald-600 dark:text-emerald-400' :
-                      stats.totalPnL < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'
+                      (stats.totalNetPnL || 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' :
+                      (stats.totalNetPnL || 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'
                     )}>
-                      {stats.totalPnL > 0 && '+'}
-                      {formatCurrency(stats.totalPnL, account.currency)}
+                      {(stats.totalNetPnL || 0) > 0 && '+'}
+                      {formatCurrency(stats.totalNetPnL || 0, account.currency)}
                     </p>
-                    {stats.totalPnL !== 0 && (
+                    {(stats.totalNetPnL || 0) !== 0 && (
                       <>
-                        {stats.totalPnL > 0 ? (
+                        {(stats.totalNetPnL || 0) > 0 ? (
                           <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         ) : (
                           <TrendingDown className="h-4 w-4 text-rose-600 dark:text-rose-400" />
