@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { parseNT8CSV } from '../utils/csvParser';
 import { parseEuropeanNumber } from '../utils/numberParser';
 import { parseNT8DateTime } from '../utils/dateParser';
+import { calculateCommission } from '../config/commissions';
 import {
   ParsedTrade,
   ValidationResult,
@@ -137,16 +138,34 @@ export class NT8ImportServiceV2 {
         return null;
       }
 
+      // Parse commission from CSV, or calculate based on instrument if 0
+      const csvCommission = parseEuropeanNumber(csvRow['Commission']);
+      const quantity = parseEuropeanNumber(csvRow['Qty']);
+      const instrument = csvRow['Instrument'] || '';
+      const symbol = this.extractSymbol(instrument);
+
+      // If CSV commission is 0, calculate based on symbol and quantity
+      const commission = csvCommission > 0
+        ? csvCommission
+        : calculateCommission(symbol, quantity);
+
+      console.log('[NT8 Commission]', {
+        symbol,
+        quantity,
+        csvCommission,
+        calculatedCommission: commission
+      });
+
       const parsed = {
-        symbol: this.extractSymbol(csvRow['Instrument'] || ''),
+        symbol,
         direction: this.parseDirection(csvRow['Market pos.'] || ''),
-        quantity: parseEuropeanNumber(csvRow['Qty']),
+        quantity,
         entryPrice: parseEuropeanNumber(csvRow['Entry price']),
         exitPrice: parseEuropeanNumber(csvRow['Exit price']) || null,
         entryDate,
         exitDate,
         pnl: parseEuropeanNumber(csvRow['Profit']),
-        commission: parseEuropeanNumber(csvRow['Commission']),
+        commission,
         mae: parseEuropeanNumber(csvRow['MAE']),
         mfe: parseEuropeanNumber(csvRow['MFE']),
         nt8Strategy: csvRow['Strategy'] || null,

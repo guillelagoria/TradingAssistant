@@ -165,9 +165,12 @@ export function calculateTradeStats(trades: any[]): TradeStats {
   });
 
   // Calculate basic metrics
-  const totalPnl = completedTrades.reduce((sum, trade) => sum + (trade.netPnl || trade.pnl || 0), 0);
+  // netPnl field already contains P&L in dollars (net of commission)
+  // pnl field contains P&L in points/ticks (NOT dollars)
+  const netPnl = completedTrades.reduce((sum, trade) => sum + (trade.netPnl || 0), 0);
   const totalCommission = completedTrades.reduce((sum, trade) => sum + (trade.commission || 0), 0);
-  const netPnl = totalPnl - totalCommission;
+  // totalPnl is gross (netPnl + commission)
+  const totalPnl = netPnl + totalCommission;
 
   // Win/Loss statistics
   const totalWins = winningTrades.reduce((sum, trade) => sum + (trade.netPnl || trade.pnl || 0), 0);

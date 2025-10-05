@@ -1,16 +1,7 @@
-// Legacy components
-export { ImportWizard } from './ImportWizard';
-export { FileUploadStep } from './FileUploadStep';
-export { ImportProgress } from './ImportProgress';
+// Import History (shared component)
 export { ImportHistory } from './ImportHistory';
 
-// New simplified components
-export { SimplifiedImportWizard } from './SimplifiedImportWizard';
-export { UploadAndPreviewStep } from './UploadAndPreviewStep';
-export { CompactPreviewTable } from './CompactPreviewTable';
-export { ValidationSummary } from './ValidationSummary';
-
-// V2 Components (Modern, Minimal UI)
+// V2 Components (Active Import System)
 export { ImportWizardV2 } from './ImportWizardV2';
 export { ImportStatsCard } from './ImportStatsCard';
 export { ImportPreviewTable } from './ImportPreviewTable';

@@ -439,7 +439,9 @@ class AccountService {
     const losingTrades = closedTrades.filter(t => t.result === 'LOSS');
 
     const totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+    // netPnl already contains net P&L (after commission deduction)
     const totalNetPnL = closedTrades.reduce((sum, t) => sum + (t.netPnl || 0), 0);
+    const totalCommission = closedTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
 
     const winRate = closedTrades.length > 0
       ? (winningTrades.length / closedTrades.length) * 100

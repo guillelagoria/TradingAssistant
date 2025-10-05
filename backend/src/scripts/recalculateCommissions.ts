@@ -1,157 +1,82 @@
-#!/usr/bin/env ts-node
-
 /**
- * Script to recalculate commissions and netPnL for all existing trades
- * This fixes trades that were created before proper commission calculation was implemented
+ * Script to recalculate commissions for existing trades
+ * Run with: npx ts-node src/scripts/recalculateCommissions.ts
  */
 
 import { PrismaClient } from '@prisma/client';
-import { calculateTradeMetrics } from '../utils/calculations';
-import { accountService } from '../services/account.service';
+import { calculateCommission } from '../config/commissions';
 
 const prisma = new PrismaClient();
 
-interface TradeUpdate {
-  id: string;
-  oldCommission: number;
-  newCommission: number;
-  oldNetPnL: number;
-  newNetPnL: number;
-  accountId: string;
-}
-
 async function recalculateCommissions() {
-  console.log('🔄 Starting commission recalculation for all existing trades...');
+  console.log('🔄 Starting commission recalculation...\n');
 
   try {
-    // Get all trades that need commission recalculation
+    // Get all trades with commission = 0
     const trades = await prisma.trade.findMany({
       where: {
-        exitPrice: { not: null }, // Only completed trades
+        commission: 0
       },
-      orderBy: { entryDate: 'asc' }
+      select: {
+        id: true,
+        symbol: true,
+        quantity: true,
+        commission: true,
+        pnl: true,
+        netPnl: true
+      }
     });
 
-    console.log(`📊 Found ${trades.length} completed trades to process`);
+    console.log(`📊 Found ${trades.length} trades with commission = 0\n`);
 
     if (trades.length === 0) {
-      console.log('✅ No trades found to update');
+      console.log('✅ No trades need commission recalculation');
       return;
     }
 
-    const updates: TradeUpdate[] = [];
-    const affectedAccounts = new Set<string>();
+    let updated = 0;
+    let errors = 0;
 
-    // Process each trade
     for (const trade of trades) {
       try {
-        // Recalculate metrics with proper commission
-        const metrics = calculateTradeMetrics({
-          direction: trade.direction,
-          entryPrice: trade.entryPrice,
-          exitPrice: trade.exitPrice,
-          quantity: trade.quantity,
-          stopLoss: trade.stopLoss,
-          maxFavorablePrice: trade.maxFavorablePrice,
-          maxAdversePrice: trade.maxAdversePrice,
-          market: trade.market || trade.symbol || 'ES', // Default to ES if no market specified
-        });
+        // Calculate correct commission based on symbol and quantity
+        const newCommission = calculateCommission(trade.symbol, trade.quantity);
 
-        // Check if commission changed
-        const oldCommission = trade.commission || 0;
-        const newCommission = metrics.commission || 0;
-        const oldNetPnL = trade.netPnl || trade.pnl || 0;
-        const newNetPnL = metrics.netPnl || 0;
+        // Recalculate netPnl = pnl - commission
+        // Note: pnl field contains profit in DOLLARS (not points)
+        const newNetPnl = (trade.pnl || 0) - newCommission;
 
-        if (oldCommission !== newCommission || oldNetPnL !== newNetPnL) {
-          updates.push({
-            id: trade.id,
-            oldCommission,
-            newCommission,
-            oldNetPnL,
-            newNetPnL,
-            accountId: trade.accountId
-          });
-
-          affectedAccounts.add(trade.accountId);
-
-          console.log(`📝 Trade ${trade.id} (${trade.symbol}): Commission ${oldCommission} → ${newCommission}, NetPnL ${oldNetPnL} → ${newNetPnL}`);
-        }
-      } catch (error) {
-        console.error(`❌ Error processing trade ${trade.id}:`, error);
-      }
-    }
-
-    if (updates.length === 0) {
-      console.log('✅ All trades already have correct commission calculations');
-      return;
-    }
-
-    console.log(`\n🔄 Updating ${updates.length} trades...`);
-
-    // Update trades in batches for better performance
-    const batchSize = 50;
-    let updatedCount = 0;
-
-    for (let i = 0; i < updates.length; i += batchSize) {
-      const batch = updates.slice(i, i + batchSize);
-
-      await Promise.all(batch.map(async (update) => {
+        // Update trade
         await prisma.trade.update({
-          where: { id: update.id },
+          where: { id: trade.id },
           data: {
-            commission: update.newCommission,
-            netPnl: update.newNetPnL,
+            commission: newCommission,
+            netPnl: newNetPnl
           }
         });
-      }));
 
-      updatedCount += batch.length;
-      console.log(`✅ Updated ${updatedCount}/${updates.length} trades`);
-    }
-
-    console.log(`\n🔄 Recalculating account balances for ${affectedAccounts.size} affected accounts...`);
-
-    // Recalculate account balances for all affected accounts
-    let balanceUpdatedCount = 0;
-    for (const accountId of affectedAccounts) {
-      try {
-        // Find the user ID for this account (we need it for the service)
-        const account = await prisma.account.findUnique({
-          where: { id: accountId },
-          select: { userId: true, name: true }
+        console.log(`✅ Updated trade ${trade.id}:`, {
+          symbol: trade.symbol,
+          quantity: trade.quantity,
+          oldCommission: trade.commission,
+          newCommission,
+          oldNetPnl: trade.netPnl,
+          newNetPnl
         });
 
-        if (account) {
-          await accountService.recalculateAccountBalance(accountId, account.userId);
-          balanceUpdatedCount++;
-          console.log(`✅ Updated balance for account: ${account.name}`);
-        }
+        updated++;
       } catch (error) {
-        console.error(`❌ Error updating balance for account ${accountId}:`, error);
+        console.error(`❌ Error updating trade ${trade.id}:`, error);
+        errors++;
       }
     }
 
-    // Summary
-    console.log(`\n📊 COMMISSION RECALCULATION COMPLETE`);
-    console.log(`📈 Trades updated: ${updatedCount}`);
-    console.log(`💰 Account balances updated: ${balanceUpdatedCount}`);
-
-    // Calculate total commission impact
-    const totalOldCommission = updates.reduce((sum, u) => sum + u.oldCommission, 0);
-    const totalNewCommission = updates.reduce((sum, u) => sum + u.newCommission, 0);
-    const commissionDifference = totalNewCommission - totalOldCommission;
-
-    console.log(`💵 Total commission change: $${commissionDifference.toFixed(2)}`);
-    console.log(`   Old total: $${totalOldCommission.toFixed(2)}`);
-    console.log(`   New total: $${totalNewCommission.toFixed(2)}`);
-
-    if (commissionDifference > 0) {
-      console.log(`⚠️  Account balances decreased by $${commissionDifference.toFixed(2)} due to added commissions`);
-    }
+    console.log(`\n📈 Commission recalculation complete:`);
+    console.log(`   ✅ Updated: ${updated} trades`);
+    console.log(`   ❌ Errors: ${errors} trades`);
 
   } catch (error) {
-    console.error('❌ Fatal error during commission recalculation:', error);
+    console.error('❌ Error during recalculation:', error);
     throw error;
   } finally {
     await prisma.$disconnect();
@@ -159,16 +84,12 @@ async function recalculateCommissions() {
 }
 
 // Run the script
-if (require.main === module) {
-  recalculateCommissions()
-    .then(() => {
-      console.log('✅ Commission recalculation completed successfully');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ Commission recalculation failed:', error);
-      process.exit(1);
-    });
-}
-
-export { recalculateCommissions };
+recalculateCommissions()
+  .then(() => {
+    console.log('\n✅ Script completed successfully');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('\n❌ Script failed:', error);
+    process.exit(1);
+  });

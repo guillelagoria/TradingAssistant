@@ -154,9 +154,9 @@ export const useTradeStore = create<TradeState>()(
       // Basic state setters
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
-      
+
       // Fetch trades with filters and pagination
-      fetchTrades: async (filters = {}, page = 1, limit = 20) => {
+      fetchTrades: async (filters = {}, page = 1, limit = 100) => {
         set({ loading: true, error: null });
 
         try {

@@ -23,7 +23,6 @@ import marketRoutes from './routes/market.routes';
 import accountRoutes from './routes/account.routes';
 import uploadRoutes from './routes/upload.routes';
 import economicEventsRoutes from './routes/economicEvents.routes';
-import importRoutes from './routes/import.routes';
 import dataCapabilitiesRoutes from './routes/dataCapabilities.routes';
 import tradeOptimizationRoutes from './routes/tradeOptimization.routes';
 import nt8ImportV2Routes from './routes/nt8ImportV2.routes';
@@ -109,8 +108,6 @@ app.use('/api/stats', authenticate, statsRoutes);
 app.use('/api/analysis', authenticate, analysisRoutes);
 app.use('/api/markets', authenticate, marketRoutes);
 app.use('/api/uploads', uploadRoutes);
-// Import routes (authentication handled per route)
-app.use('/api/import', importRoutes);
 // Economic Events routes (public - no auth required for market data)
 app.use('/api/economic-events', economicEventsRoutes);
 

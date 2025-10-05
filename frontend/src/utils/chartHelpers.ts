@@ -87,24 +87,47 @@ export const generateCumulativePnLData = (trades: Trade[]): CumulativePnLPoint[]
 
   // Filter closed trades and sort by entry date
   const closedTrades = trades
-    .filter(trade => trade.exitPrice && trade.pnl !== undefined)
+    .filter(trade => trade.exitPrice && (trade.netPnl !== undefined || trade.pnl !== undefined))
     .sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+
+  console.log('📊 generateCumulativePnLData:', {
+    totalTrades: trades.length,
+    closedTrades: closedTrades.length
+  });
 
   if (!closedTrades.length) return [];
 
   let cumulativePnl = 0;
-  
+  let cumulativeCommission = 0;
+
   return closedTrades.map((trade, index) => {
-    cumulativePnl += trade.netPnl || trade.pnl;
+    // netPnl already contains net P&L (after commission deduction)
+    const tradePnl = trade.netPnl ?? 0;
+    const commission = trade.commission ?? 0;
+
+    cumulativePnl += tradePnl;
+    cumulativeCommission += commission;
+
+    // Debug first and last trade
+    if (index === 0 || index === closedTrades.length - 1) {
+      console.log(`📊 Chart Trade ${index + 1}:`, {
+        symbol: trade.symbol,
+        netPnl: trade.netPnl,
+        commission: trade.commission,
+        tradePnl,
+        cumulativePnl
+      });
+    }
+
     const tradeDate = parseTradeDate(trade.exitDate || trade.entryDate);
-    
+
     return {
       date: format(tradeDate, 'yyyy-MM-dd'),
       formattedDate: format(tradeDate, 'MMM dd, yyyy'),
       originalDate: tradeDate,
       value: cumulativePnl,
       cumulativePnl,
-      tradePnl: trade.netPnl || trade.pnl,
+      tradePnl,
       tradeCount: index + 1,
     };
   });
@@ -114,13 +137,13 @@ export const generateCumulativePnLData = (trades: Trade[]): CumulativePnLPoint[]
 export const generateDailyPnLData = (trades: Trade[]): DailyPnLPoint[] => {
   if (!trades.length) return [];
 
-  const closedTrades = trades.filter(trade => trade.exitPrice && trade.pnl !== undefined);
-  
+  const closedTrades = trades.filter(trade => trade.exitPrice && (trade.netPnl !== undefined || trade.pnl !== undefined));
+
   // Group trades by exit date (or entry date if no exit date)
   const dailyGroups = closedTrades.reduce((groups, trade) => {
     const tradeDate = parseTradeDate(trade.exitDate || trade.entryDate);
     const dateKey = format(tradeDate, 'yyyy-MM-dd');
-    
+
     if (!groups[dateKey]) {
       groups[dateKey] = {
         date: dateKey,
@@ -131,13 +154,14 @@ export const generateDailyPnLData = (trades: Trade[]): DailyPnLPoint[] => {
         lossTrades: 0,
       };
     }
-    
+
     groups[dateKey].trades.push(trade);
-    groups[dateKey].totalPnl += trade.netPnl || trade.pnl;
-    
+    // netPnl already contains net P&L (after commission deduction)
+    groups[dateKey].totalPnl += (trade.netPnl ?? 0);
+
     if (trade.result === TradeResult.WIN) groups[dateKey].winTrades++;
     else if (trade.result === TradeResult.LOSS) groups[dateKey].lossTrades++;
-    
+
     return groups;
   }, {} as Record<string, any>);
 
@@ -213,14 +237,14 @@ export const generateWinRateData = (trades: Trade[]): WinRateData[] => {
 // Generate efficiency scatter plot data
 export const generateEfficiencyData = (trades: Trade[]): EfficiencyPoint[] => {
   return trades
-    .filter(trade => trade.efficiency !== undefined && trade.pnl !== undefined)
+    .filter(trade => trade.efficiency !== undefined && trade.netPnl !== undefined)
     .map(trade => {
       const tradeDate = parseTradeDate(trade.exitDate || trade.entryDate);
-      
+
       return {
         tradeId: trade.id,
         symbol: trade.symbol,
-        pnl: trade.netPnl || trade.pnl,
+        pnl: trade.netPnl ?? 0,
         efficiency: trade.efficiency,
         rMultiple: trade.rMultiple || 0,
         result: trade.result || TradeResult.BREAKEVEN,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -34,7 +34,8 @@ const AnimatedPnLChart: React.FC<AnimatedPnLChartProps> = ({ height = 350, class
   const [showChart, setShowChart] = useState(false);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
-  const chartData = generateCumulativePnLData(trades);
+  // Memoize chartData to prevent infinite loops
+  const chartData = useMemo(() => generateCumulativePnLData(trades), [trades]);
   const isEmpty = chartData.length === 0;
 
   useEffect(() => {
@@ -48,8 +49,11 @@ const AnimatedPnLChart: React.FC<AnimatedPnLChartProps> = ({ height = 350, class
           setAnimatedData(prev => [...prev, point]);
         }, index * 50); // Stagger animation
       });
+    } else {
+      setAnimatedData([]);
+      setShowChart(false);
     }
-  }, [trades]);
+  }, [chartData]);
 
   const finalPnL = chartData[chartData.length - 1]?.cumulativePnl || 0;
   const isProfit = finalPnL >= 0;
